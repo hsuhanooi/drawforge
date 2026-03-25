@@ -1,0 +1,4 @@
+- Implemented startNewRun with default player state, starter deck, and initial run metadata. Added Jest coverage for initialization and no-combat/no-map selection state.
+- Added card model, strike/defend definitions, and a minimal combat engine to execute card effects. Added Jest tests covering card creation and effect execution.
+- Verified starter deck composition (5 Strike, 5 Defend) and added tests ensuring it is stored on new runs.
+- Added deck zone state (draw/hand/discard) with deterministic shuffle injection, draw/reshuffle/discard behavior, and tests covering draw/removal/reshuffle edge cases.

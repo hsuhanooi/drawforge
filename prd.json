@@ -1,0 +1,409 @@
+# PRD: Roguelike Deckbuilding Card Game
+
+## Product Overview
+
+This project is a single-player deckbuilding card game inspired by games like Slay the Spire. This should work in a browser to test it.
+
+The player starts a run with a basic deck, traverses a map made of nodes, enters combat encounters, plays cards using energy, earns rewards, and improves their deck over the course of the run.
+
+This PRD is designed for use by implementation agents in this repository. Work should be broken into small, testable, independently shippable chunks. Features are listed in priority order. Every completed task must include unit tests that verify the functionality introduced by that task.
+
+In addition, all progress should be appended to `progress.txt` as work is completed.
+
+---
+
+## Product Goals
+
+- Deliver a playable single-run deckbuilding game loop
+- Keep the architecture modular and testable
+- Prioritize deterministic systems first before adding complexity
+- Break work into small milestones that developers can complete safely
+- Require unit tests for every shipped task
+
+---
+
+## Development Rules
+
+1. Tasks should be completed in priority order unless dependencies require otherwise.
+2. Every finished task must include new unit tests for that functionality.
+3. Systems should be deterministic where possible. If randomness is used, it must be seedable or mockable in tests.
+4. Progress must be appended to `progress.txt` after each meaningful update.
+5. Start with the smallest playable vertical slice before adding polish or content breadth.
+
+---
+
+## Milestones
+
+### Milestone 1: Core Run + Combat Loop
+Create the minimum playable loop:
+- Start a new run
+- Initialize player state and starter deck
+- Enter combat
+- Play cards using energy
+- Resolve turns
+- Win or lose combat
+- Receive a reward
+
+### Milestone 2: Map Traversal
+Add run progression:
+- Generate a node map
+- Allow player traversal between nodes
+- Support combat nodes
+- Advance run state after encounters
+
+### Milestone 3: Deckbuilding Systems
+Add deck growth:
+- Card rewards
+- Deck inspection
+- Card addition
+- Card removal support
+
+### Milestone 4: Expanded Content
+Add more gameplay variety:
+- Additional enemy types
+- Elite encounters
+- Boss encounter
+- Relic system
+- Event nodes
+
+### Milestone 5: Save/Load + Polish
+Add quality-of-life and persistence:
+- Save current run
+- Load saved run
+- Basic animations and feedback
+- Balance tuning hooks
+
+---
+
+## PRD Tasks
+
+### 1. Initialize a new game run
+
+```json
+{
+  "category": "functional",
+  "description": "Initialize a new game run with default player state",
+  "steps": [
+    "Call startNewRun()",
+    "Verify player health is initialized to the default value",
+    "Verify player gold is initialized to the default value",
+    "Verify player starter deck is created",
+    "Verify run state is set to 'in_progress'",
+    "Verify no current combat is active",
+    "Verify no map node is selected yet"
+  ],
+  "passes": true
+}
+
+{
+  "category": "functional",
+  "description": "Card data model supports the core properties needed for combat",
+  "steps": [
+    "Create a Card model with id, name, cost, type, and effect fields",
+    "Create a Strike card definition",
+    "Create a Defend card definition",
+    "Verify cards can be instantiated from the model",
+    "Verify card effects can be executed by the combat engine"
+  ],
+  "passes": true
+}
+
+{
+  "category": "functional",
+  "description": "New runs initialize a starter deck with basic attack and defense cards",
+  "steps": [
+    "Start a new run",
+    "Create the starter deck contents",
+    "Verify the deck includes the expected number of Strike cards",
+    "Verify the deck includes the expected number of Defend cards",
+    "Verify deck contents are stored in player state"
+  ],
+  "passes": true
+}
+
+{
+  "category": "functional",
+  "description": "Deck zones support drawing cards, discarding cards, and reshuffling when needed",
+  "steps": [
+    "Initialize draw pile from the player's deck",
+    "Draw cards into the player's hand",
+    "Verify drawn cards are removed from the draw pile",
+    "Discard cards from hand",
+    "Verify discarded cards move to the discard pile",
+    "Empty the draw pile and trigger a reshuffle from discard pile",
+    "Verify cards can continue to be drawn after reshuffle"
+  ],
+  "passes": true
+}
+
+{
+  "category": "functional",
+  "description": "Game can start a combat encounter with one player and one enemy",
+  "steps": [
+    "Create a combat encounter",
+    "Initialize player combat state",
+    "Initialize enemy combat state",
+    "Verify combat state is set to active",
+    "Verify the player takes the first turn"
+  ],
+  "passes": false
+}
+
+{
+  "category": "functional",
+  "description": "Player energy is initialized each turn and limits card play",
+  "steps": [
+    "Start the player's turn",
+    "Verify player energy is set to the default value",
+    "Play a card with a valid energy cost",
+    "Verify energy decreases correctly",
+    "Attempt to play a card without enough energy",
+    "Verify the card play is rejected"
+  ],
+  "passes": false
+}
+
+{
+  "category": "functional",
+  "description": "Playing an attack card deals damage to the enemy",
+  "steps": [
+    "Start a combat encounter",
+    "Place an attack card in the player's hand",
+    "Play the attack card",
+    "Verify the card cost is paid",
+    "Verify enemy health is reduced by the correct amount",
+    "Verify the played card leaves the player's hand"
+  ],
+  "passes": false
+}
+
+{
+  "category": "functional",
+  "description": "Playing a defense card grants block to the player",
+  "steps": [
+    "Start a combat encounter",
+    "Place a defense card in the player's hand",
+    "Play the defense card",
+    "Verify the card cost is paid",
+    "Verify player block increases by the correct amount",
+    "Verify the played card leaves the player's hand"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Incoming damage is absorbed by block before reducing health",
+  "steps": [
+    "Give the player a known amount of block",
+    "Apply incoming enemy damage",
+    "Verify block is reduced first",
+    "Verify only remaining damage reduces player health",
+    "Verify health is unchanged when block fully absorbs the damage"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Temporary block is cleared at the start of the player's next turn",
+  "steps": [
+    "Start combat",
+    "Grant the player block",
+    "End the current turn cycle",
+    "Start the player's next turn",
+    "Verify temporary block has been reset to zero"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Combat correctly transitions from player turn to enemy turn",
+  "steps": [
+    "Start the player's turn",
+    "End the player's turn",
+    "Verify turn state changes to enemy turn",
+    "Verify any end-of-turn cleanup occurs",
+    "Verify enemy action phase begins"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Enemy performs a basic deterministic attack during its turn",
+  "steps": [
+    "Start the enemy turn",
+    "Execute the enemy's action",
+    "Verify the enemy deals the expected amount of damage",
+    "Verify damage is applied to the player correctly",
+    "Verify enemy turn ends after the action resolves"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Combat returns to the player after the enemy turn finishes",
+  "steps": [
+    "Complete an enemy turn",
+    "Start the next player turn",
+    "Verify energy is refreshed",
+    "Verify the player draws a new hand or the correct number of cards",
+    "Verify turn state is set to player turn"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Combat ends with victory when the enemy reaches zero health",
+  "steps": [
+    "Reduce enemy health to zero during combat",
+    "Verify combat state changes to victory",
+    "Verify no additional enemy actions occur",
+    "Verify post-combat reward flow becomes available"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Combat ends with defeat when the player reaches zero health",
+  "steps": [
+    "Reduce player health to zero during combat",
+    "Verify combat state changes to defeat",
+    "Verify no further turns are processed",
+    "Verify the run is marked as failed or ended"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Winning a combat encounter generates card reward choices",
+  "steps": [
+    "Complete combat with a victory result",
+    "Generate a set of reward card options",
+    "Verify the expected number of reward cards is shown",
+    "Select one reward card",
+    "Verify the selected card is added to the player's deck"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "A run generates a traversable map made of connected nodes",
+  "steps": [
+    "Start a new run",
+    "Generate the map structure",
+    "Verify the map contains multiple rows of nodes",
+    "Verify nodes contain type metadata",
+    "Verify nodes are connected in a traversable structure"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Player can begin map traversal by selecting a valid starting node",
+  "steps": [
+    "Generate a new map",
+    "Display valid starting nodes",
+    "Select one starting node",
+    "Verify the node becomes the current position",
+    "Verify the run advances to that node's content"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Player can only move to nodes connected to the current position",
+  "steps": [
+    "Set a current map node",
+    "Inspect available next nodes",
+    "Attempt to move to a connected node",
+    "Verify movement succeeds",
+    "Attempt to move to a non-connected node",
+    "Verify movement is rejected"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Entering a combat node starts a combat encounter",
+  "steps": [
+    "Move the player to a combat node",
+    "Resolve node entry",
+    "Verify a combat encounter is created",
+    "Verify combat becomes the active game state"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Player can inspect the current deck during a run",
+  "steps": [
+    "Start a run",
+    "Open the deck view",
+    "Verify all current deck cards are listed",
+    "Verify added reward cards appear in the deck view"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Player can remove a card from the deck when a card removal flow is available",
+  "steps": [
+    "Start a run with a known deck",
+    "Enter a card removal flow",
+    "Select a removable card",
+    "Confirm removal",
+    "Verify the card is no longer present in the player's deck"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Game can serialize and save the current run state",
+  "steps": [
+    "Start a run",
+    "Advance to a non-initial game state",
+    "Save the run",
+    "Verify the save data contains player, deck, map, and combat state as applicable",
+    "Verify the save can be retrieved later"
+  ],
+  "passes": false
+}
+{
+  "category": "functional",
+  "description": "Game can restore a previously saved run state",
+  "steps": [
+    "Create a saved run",
+    "Load the saved run",
+    "Verify player state matches the saved data",
+    "Verify map position matches the saved data",
+    "Verify combat state is restored correctly if combat was active"
+  ],
+  "passes": false
+}
+
+
+Testing Requirements
+
+Every task must include unit tests.
+
+Required test coverage
+Happy path behavior for the new feature
+At least one edge case for the new feature
+Deterministic validation of outcomes
+Mocked or seeded randomness where applicable
+Example edge cases to cover
+Drawing from an empty draw pile
+Reshuffling when discard pile is empty
+Trying to play a card with insufficient energy
+Applying damage larger than current block
+Overkill damage reducing health to zero but not below allowed bounds
+Attempting invalid map traversal
+Loading malformed or incomplete save data
+
+
+Notes for Implementation Agents
+Prefer small pure functions for combat and deck logic
+Keep game state serializable
+Avoid coupling UI code to core combat logic
+Start with one player class and a very small card pool
+Start with one basic enemy behavior before adding enemy variety
+Do not add polish before the full playable loop works

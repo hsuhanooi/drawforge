@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drawforge Browser Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>Drawforge</h1>
+        <p class="subtitle">Minimal browser shell for run state + save/load controls</p>
+      </header>
+
+      <section class="controls card">
+        <h2>Run Controls</h2>
+        <div class="button-row">
+          <button id="new-run-button">New Run</button>
+          <button id="save-run-button">Save Run</button>
+          <button id="load-run-button">Load Run</button>
+          <button id="clear-save-button">Clear Save</button>
+        </div>
+        <p id="status" class="status">Ready.</p>
+      </section>
+
+      <section class="overview card">
+        <h2>Run Overview</h2>
+        <dl class="summary-grid">
+          <div><dt>State</dt><dd id="run-state">-</dd></div>
+          <div><dt>Health</dt><dd id="player-health">-</dd></div>
+          <div><dt>Gold</dt><dd id="player-gold">-</dd></div>
+          <div><dt>Deck Size</dt><dd id="deck-count">-</dd></div>
+          <div><dt>Current Node</dt><dd id="current-node">-</dd></div>
+          <div><dt>Combat</dt><dd id="combat-state">-</dd></div>
+        </dl>
+      </section>
+
+      <section class="deck card">
+        <h2>Deck</h2>
+        <ul id="deck-list" class="deck-list"></ul>
+      </section>
+
+      <section class="raw card">
+        <h2>Raw State</h2>
+        <pre id="raw-state"></pre>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

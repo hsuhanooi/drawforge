@@ -1,0 +1,86 @@
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: #111827;
+  color: #f9fafb;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.subtitle {
+  color: #cbd5e1;
+}
+
+.card {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.status {
+  margin-top: 12px;
+  color: #93c5fd;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.summary-grid dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.summary-grid dd {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+
+.deck-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+}
+
+.deck-list li {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

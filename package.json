@@ -4,7 +4,8 @@
   "type": "commonjs",
   "scripts": {
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "start": "node server.js"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

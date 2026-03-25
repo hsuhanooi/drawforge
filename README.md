@@ -52,6 +52,14 @@ Run lint:
 npm run lint
 ```
 
+Start the minimal browser demo:
+
+```bash
+npm start
+```
+
+Then open <http://localhost:3000>.
+
 ## Repository layout
 
 ```text
@@ -204,4 +212,14 @@ A few conventions are already clear from the repo:
 
 ## Browser/UI note
 
-The PRD says the game should work in a browser for testing, but this repo currently reads like a **logic-first foundation** rather than a full browser app. There is no obvious UI layer yet. That’s fine: the game rules are being built first so a UI can be added on top later.
+The PRD says the game should work in a browser for testing, and the repo now includes a **minimal browser shell** under `browser/` plus a tiny static Node server in `server.js`.
+
+Current browser shell scope:
+
+- start a new run
+- inspect the top-level run state
+- save the current run to `localStorage`
+- load a saved run from `localStorage`
+- clear the saved run
+
+This is intentionally thin. It is a testing shell for the current game state, not a full combat UI yet.

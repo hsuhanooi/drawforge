@@ -1,4 +1,4 @@
-const { createRewardOptions, addRewardCardToDeck } = require("../src/rewards");
+const { createRewardOptions, addRewardCardToDeck, createVictoryRewards } = require("../src/rewards");
 
 const createBaseCombat = () => ({
   state: "victory",
@@ -25,5 +25,13 @@ describe("combat rewards", () => {
 
     expect(nextDeck).toHaveLength(3);
     expect(nextDeck).toContain(options[0].id);
+  });
+
+  it("creates larger victory rewards for elite and boss fights", () => {
+    const eliteRewards = createVictoryRewards("elite");
+    const bossRewards = createVictoryRewards("boss");
+
+    expect(eliteRewards.relic).not.toBeNull();
+    expect(bossRewards.gold).toBeGreaterThan(eliteRewards.gold);
   });
 });

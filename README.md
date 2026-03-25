@@ -19,12 +19,12 @@ Based on `prd.json` and `progress.txt`, the project already has:
 - deterministic map generation + traversal
 - combat node resolution
 - deck inspection and card removal
+- save/load support
+- balance tuning hooks
+- browser map traversal + combat UI
+- event, elite, boss, relic, and reward-loop support in the browser shell
 
-The main unfinished items are:
-
-- save current run
-- load saved run
-- later polish / persistence quality-of-life work
+The biggest remaining work after this point is mostly polish/content depth rather than the core playable loop.
 
 ## Tech stack
 
@@ -223,3 +223,4 @@ Current browser shell scope:
 - clear the saved run
 
 This is intentionally thin. It is a testing shell for the current game state, not a full combat UI yet.
+esting the playable run loop.

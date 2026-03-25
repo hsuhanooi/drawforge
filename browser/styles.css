@@ -104,6 +104,25 @@ button:hover {
   margin-top: 12px;
 }
 
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+t {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.top-gap {
+  margin-top: 12px;
+}
+
 pre {
   overflow: auto;
   white-space: pre-wrap;

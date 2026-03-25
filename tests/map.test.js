@@ -8,7 +8,7 @@ describe("map generation", () => {
     const rows = new Set(map.nodes.map((node) => node.row));
     expect(rows.size).toBe(4);
     map.nodes.forEach((node) => {
-      expect(node.type).toBe("combat");
+      expect(typeof node.type).toBe("string");
       expect(Array.isArray(node.next)).toBe(true);
     });
   });

@@ -1,5 +1,21 @@
 const { createBalanceConfig } = require("./balance");
 
+const getNodeType = (row, col, rows) => {
+  if (row === rows - 1) {
+    return "boss";
+  }
+
+  if (row === rows - 2) {
+    return "elite";
+  }
+
+  if (row > 0 && row % 2 === 1 && col === 1) {
+    return "event";
+  }
+
+  return "combat";
+};
+
 const generateMap = (options = {}, balanceOverrides = {}) => {
   const balance = createBalanceConfig(balanceOverrides);
   const { rows = balance.map.rows, columns = balance.map.columns } = options;
@@ -11,8 +27,8 @@ const generateMap = (options = {}, balanceOverrides = {}) => {
         id: `r${row}c${col}`,
         row,
         col,
-        type: "combat",
-        next: row === rows - 1 ? [] : []
+        type: getNodeType(row, col, rows),
+        next: []
       });
     }
   }
@@ -43,5 +59,6 @@ const generateMap = (options = {}, balanceOverrides = {}) => {
 };
 
 module.exports = {
-  generateMap
+  generateMap,
+  getNodeType
 };

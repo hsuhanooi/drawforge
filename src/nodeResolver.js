@@ -1,16 +1,38 @@
 const { createBalanceConfig } = require("./balance");
 const { createCombatEncounter } = require("./combat");
+const { createEnemyForNode } = require("./enemies");
+const { createRelicReward } = require("./relics");
 
 const resolveNode = ({ node, player, balanceOverrides = {} }) => {
   const balance = createBalanceConfig(balanceOverrides);
 
-  if (node.type === "combat") {
+  if (["combat", "elite", "boss"].includes(node.type)) {
+    const enemy = createEnemyForNode({ row: node.row ?? 0, col: node.col ?? 0, type: node.type });
+    const health = node.type === "combat"
+      ? balance.enemy.basicEnemyHealth
+      : enemy.health || balance.enemy.basicEnemyHealth;
+
     return {
       state: "combat",
       combat: createCombatEncounter({
         player,
-        enemy: { id: "slime", health: balance.enemy.basicEnemyHealth }
+        enemy: {
+          ...enemy,
+          health
+        }
       })
+    };
+  }
+
+  if (node.type === "event") {
+    return {
+      state: "event",
+      combat: null,
+      event: {
+        id: `event-${node.id}`,
+        reward: createRelicReward(node.row + node.col),
+        text: "You find a strange relic hidden beside the path."
+      }
     };
   }
 

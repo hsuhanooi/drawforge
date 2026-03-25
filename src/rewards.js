@@ -1,5 +1,6 @@
 const { strikeCardDefinition, defendCardDefinition } = require("./cards");
 const { createBalanceConfig } = require("./balance");
+const { createRelicReward } = require("./relics");
 
 const createRewardOptions = (count, balanceOverrides = {}) => {
   const balance = createBalanceConfig(balanceOverrides);
@@ -17,7 +18,23 @@ const createRewardOptions = (count, balanceOverrides = {}) => {
 
 const addRewardCardToDeck = (deck, card) => [...deck, card.id];
 
+const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
+  const cards = createRewardOptions(undefined, balanceOverrides);
+  const rewards = {
+    cards,
+    gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
+    relic: null
+  };
+
+  if (["elite", "boss"].includes(nodeType)) {
+    rewards.relic = createRelicReward(nodeType === "boss" ? 2 : 1);
+  }
+
+  return rewards;
+};
+
 module.exports = {
   createRewardOptions,
-  addRewardCardToDeck
+  addRewardCardToDeck,
+  createVictoryRewards
 };

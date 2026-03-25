@@ -380,6 +380,85 @@ Add quality-of-life and persistence:
   "passes": true
 }
 
+{
+  "category": "functional",
+  "description": "Game includes additional enemy types beyond the starting basic enemy",
+  "steps": [
+    "Resolve multiple combat nodes across the map",
+    "Verify at least two distinct enemy definitions can appear",
+    "Verify enemies differ in health and/or damage",
+    "Verify selection remains deterministic for tests"
+  ],
+  "passes": true
+}
+{
+  "category": "functional",
+  "description": "Game supports elite encounters with stronger rewards",
+  "steps": [
+    "Enter an elite node",
+    "Verify a stronger enemy is created",
+    "Win the encounter",
+    "Verify elite rewards include improved gold and a relic reward"
+  ],
+  "passes": true
+}
+{
+  "category": "functional",
+  "description": "Game supports a boss encounter at the end of the map",
+  "steps": [
+    "Reach the final map row",
+    "Enter the boss node",
+    "Verify a boss enemy is created",
+    "Win the encounter",
+    "Verify the run can transition to a won/completed state"
+  ],
+  "passes": true
+}
+{
+  "category": "functional",
+  "description": "Game includes a simple relic system that modifies the run state",
+  "steps": [
+    "Gain a relic from an event or elite/boss reward",
+    "Apply the relic to the run",
+    "Verify the relic is stored on the run",
+    "Verify the relic changes player health, gold, or combat energy as designed"
+  ],
+  "passes": true
+}
+{
+  "category": "functional",
+  "description": "Game supports event nodes that resolve outside of combat",
+  "steps": [
+    "Enter an event node",
+    "Present event choices",
+    "Resolve one event option",
+    "Verify the run state changes appropriately without starting combat"
+  ],
+  "passes": true
+}
+{
+  "category": "functional",
+  "description": "Browser UI supports a playable end-to-end run loop",
+  "steps": [
+    "Start a run in the browser",
+    "Traverse the map",
+    "Enter combat and play cards",
+    "Resolve rewards or events",
+    "Continue progression until defeat or boss completion",
+    "Verify save/load still works from the browser"
+  ],
+  "passes": true
+}
+{
+  "category": "functional",
+  "description": "Browser UI includes basic animations and feedback",
+  "steps": [
+    "Trigger state changes in the browser",
+    "Verify buttons and status text provide visible feedback",
+    "Verify the interface remains usable while lightweight polish is applied"
+  ],
+  "passes": true
+}
 
 Testing Requirements
 

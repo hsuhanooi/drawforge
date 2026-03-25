@@ -36,3 +36,5 @@
 - Added more interesting card effects with browser-usable `focus` (energy utility) and `volley` (attack + draw-style support in the browser model), while keeping the reward pool deterministic and test-covered.
 - Added deterministic event variety through `src/events.js` with shrine, forge, and camp-style events instead of a single repeated event pattern. Wired event generation into node resolution and the browser shell.
 - Refactored the browser app into a cleaner event/card loop with richer reward-card generation and multiple event outcomes, while keeping save/load and the existing run loop intact.
+- Added utility/replacement cards `focus` and `volley`, extended both the browser card library and the core reward pool to include them, and added test coverage for their card definitions/effects.
+- Added deterministic multi-template event generation in a dedicated `src/events.js` module and expanded event outcomes to include gold, reward-card offers, and add-card results in addition to healing/relic/removal choices.

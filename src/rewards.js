@@ -3,7 +3,9 @@ const {
   defendCardDefinition,
   bashCardDefinition,
   barrierCardDefinition,
-  quickStrikeCardDefinition
+  quickStrikeCardDefinition,
+  focusCardDefinition,
+  volleyCardDefinition
 } = require("./cards");
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
@@ -16,7 +18,9 @@ const createRewardOptions = (count, balanceOverrides = {}) => {
     defendCardDefinition,
     bashCardDefinition,
     barrierCardDefinition,
-    quickStrikeCardDefinition
+    quickStrikeCardDefinition,
+    focusCardDefinition,
+    volleyCardDefinition
   ];
   const options = [];
 

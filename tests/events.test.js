@@ -18,4 +18,11 @@ describe("event variety", () => {
     expect(effects.length).toBeGreaterThan(0);
     expect(effects.some((effect) => ["heal", "relic", "gold", "reward_cards", "remove", "add_card"].includes(effect))).toBe(true);
   });
+
+  it("camp events can offer utility cards", () => {
+    const camp = createEventForNode({ id: "r1c1", row: 1, col: 1 });
+    const cardIds = camp.options.filter((option) => option.card).map((option) => option.card.id);
+
+    expect(cardIds).toEqual(expect.arrayContaining(["focus", "volley"]));
+  });
 });

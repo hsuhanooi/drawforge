@@ -6,7 +6,7 @@ body {
 }
 
 .app {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -36,15 +36,25 @@ button {
   border-radius: 8px;
   padding: 10px 14px;
   cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
 button:hover {
   background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .status {
   margin-top: 12px;
   color: #93c5fd;
+  min-height: 20px;
+  animation: pulse 500ms ease;
 }
 
 .summary-grid {
@@ -66,7 +76,7 @@ button:hover {
 
 .deck-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
   list-style: none;
   padding: 0;
@@ -85,7 +95,7 @@ button:hover {
 
 .node-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
 }
 
@@ -93,11 +103,26 @@ button:hover {
   text-align: left;
   background: #0f172a;
   border: 1px solid #334155;
+  min-height: 72px;
 }
 
 .node-button.current {
   border-color: #f59e0b;
   box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.end-state {
+  border-color: #4b5563;
+}
+
+.end-state.win {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px #22c55e;
+}
+
+.end-state.loss {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
 }
 
 .top-gap {
@@ -107,20 +132,6 @@ button:hover {
 @keyframes pulse {
   0% { opacity: 0.4; }
   100% { opacity: 1; }
-}
-
-pre {
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-t {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 1px #f59e0b;
-}
-
-.top-gap {
-  margin-top: 12px;
 }
 
 pre {

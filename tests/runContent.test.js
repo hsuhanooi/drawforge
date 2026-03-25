@@ -15,7 +15,7 @@ describe("expanded run content", () => {
 
   it("resolves event nodes into non-combat rewards", () => {
     const result = resolveNode({
-      node: { id: "r1c1", type: "event" },
+      node: { id: "r1c1", type: "event", row: 1, col: 1 },
       player: { health: 80 }
     });
 

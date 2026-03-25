@@ -10,7 +10,7 @@
     <main class="app">
       <header>
         <h1>Drawforge</h1>
-        <p class="subtitle">Minimal browser shell for run state + save/load controls</p>
+        <p class="subtitle">Playable browser shell for testing the full run loop</p>
       </header>
 
       <section class="controls card">
@@ -51,13 +51,22 @@
           <div><dt>Player Block</dt><dd id="combat-player-block">-</dd></div>
           <div><dt>Player Energy</dt><dd id="combat-player-energy">-</dd></div>
           <div><dt>Enemy HP</dt><dd id="combat-enemy-health">-</dd></div>
+          <div><dt>Enemy Intent</dt><dd id="combat-enemy-intent">-</dd></div>
           <div><dt>Turn</dt><dd id="combat-turn">-</dd></div>
+          <div><dt>Draw Pile</dt><dd id="draw-pile-count">-</dd></div>
+          <div><dt>Discard</dt><dd id="discard-pile-count">-</dd></div>
         </div>
         <div class="button-row top-gap">
           <button id="end-turn-button">End Turn</button>
         </div>
         <h3>Hand</h3>
         <div id="hand-actions" class="node-grid"></div>
+      </section>
+
+      <section class="rewards card">
+        <h2>Rewards / Events</h2>
+        <div id="reward-summary" class="hint">No pending rewards.</div>
+        <div id="reward-actions" class="node-grid"></div>
       </section>
 
       <section class="deck card">
@@ -70,16 +79,14 @@
         <div id="removal-actions" class="node-grid top-gap"></div>
       </section>
 
+      <section class="card end-state" id="end-state-card">
+        <h2>Run Result</h2>
+        <p id="end-state-text" class="hint">Your run is still in progress.</p>
+      </section>
+
       <section class="raw card">
         <h2>Raw State</h2>
         <pre id="raw-state"></pre>
-      </section>
-    </main>
-
-    <script src="./app.js"></script>
-  </body>
-</html>
-raw-state"></pre>
       </section>
     </main>
 

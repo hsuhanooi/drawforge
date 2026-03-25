@@ -31,3 +31,5 @@
 - Upgraded the browser shell from a thin state viewer into a playable test loop: varied node types, event choices, post-combat reward selection, relic tracking, gold progression, boss-win/loss states, and better in-browser run progression. Also added lightweight UI feedback polish through button transitions and status animation.
 - Expanded the card/reward pool with `bash`, `barrier`, and `quick_strike`, and updated reward generation to draw from a more varied deterministic set of reward cards.
 - Added a simple browser-side card removal flow that can be entered through certain event/reward states, so runs now support practical deck thinning in the test UI rather than only through backend helpers.
+- Polished the browser combat/run UX with explicit enemy intent, draw/discard pile counters, reshuffle feedback in status text, and a dedicated end-state panel for victory/defeat so the run outcome is much clearer during manual testing.
+- Cleaned up accidental duplicated garbage at the ends of `browser/index.html` and `browser/styles.css` caused by earlier edits, restoring those browser assets to a sane state.

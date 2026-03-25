@@ -26,4 +26,10 @@ describe("relic system", () => {
 
     expect(getCombatEnergyBonus(run)).toBe(1);
   });
+
+  it("does not grant energy bonus when ember ring is absent", () => {
+    const run = { relics: [createRelicReward(0)] };
+
+    expect(getCombatEnergyBonus(run)).toBe(0);
+  });
 });

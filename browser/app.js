@@ -106,10 +106,12 @@
 
   const drawCards = (combat, count) => {
     const next = clone(combat);
+    next.reshuffled = false;
     for (let i = 0; i < count; i += 1) {
       if (next.drawPile.length === 0 && next.discardPile.length > 0) {
         next.drawPile = [...next.discardPile];
         next.discardPile = [];
+        next.reshuffled = true;
       }
       if (next.drawPile.length === 0) break;
       next.hand.push(next.drawPile.shift());
@@ -307,7 +309,12 @@
     combatPlayerBlock: document.getElementById("combat-player-block"),
     combatPlayerEnergy: document.getElementById("combat-player-energy"),
     combatEnemyHealth: document.getElementById("combat-enemy-health"),
-    combatTurn: document.getElementById("combat-turn")
+    combatEnemyIntent: document.getElementById("combat-enemy-intent"),
+    drawPileCount: document.getElementById("draw-pile-count"),
+    discardPileCount: document.getElementById("discard-pile-count"),
+    combatTurn: document.getElementById("combat-turn"),
+    endStateCard: document.getElementById("end-state-card"),
+    endStateText: document.getElementById("end-state-text")
   };
 
   let currentRun = startNewRun();
@@ -353,6 +360,9 @@
       elements.combatPlayerBlock.textContent = "-";
       elements.combatPlayerEnergy.textContent = "-";
       elements.combatEnemyHealth.textContent = "-";
+      elements.combatEnemyIntent.textContent = "-";
+      elements.drawPileCount.textContent = "-";
+      elements.discardPileCount.textContent = "-";
       elements.combatTurn.textContent = "-";
       return;
     }
@@ -361,6 +371,9 @@
     elements.combatPlayerBlock.textContent = String(combat.player.block);
     elements.combatPlayerEnergy.textContent = String(combat.player.energy);
     elements.combatEnemyHealth.textContent = `${combat.enemy.name} (${combat.enemy.health})`;
+    elements.combatEnemyIntent.textContent = combat.state === "active" ? `Attack for ${combat.enemy.damage}` : combat.state;
+    elements.drawPileCount.textContent = String(combat.drawPile.length);
+    elements.discardPileCount.textContent = String(combat.discardPile.length);
     elements.combatTurn.textContent = combat.turn || combat.state;
 
     combat.hand.forEach((card, index) => {
@@ -373,7 +386,9 @@
           const updatedCombat = playCardAtIndex(currentRun.combat, index);
           currentRun = updatedCombat.state === "victory" ? applyVictory(currentRun, updatedCombat) : { ...currentRun, combat: updatedCombat, player: { ...currentRun.player, health: updatedCombat.player.health } };
           render();
-          setStatus(updatedCombat.state === "victory" ? `Won the ${updatedCombat.enemy.name} fight.` : `Played ${card.name}.`);
+          setStatus(updatedCombat.state === "victory"
+            ? `Won the ${updatedCombat.enemy.name} fight.`
+            : `${card.name} played. Draw: ${updatedCombat.drawPile.length}, discard: ${updatedCombat.discardPile.length}.`);
         } catch (error) {
           setStatus(error.message, true);
         }
@@ -468,6 +483,24 @@
     });
   };
 
+  const renderEndState = () => {
+    elements.endStateCard.classList.remove("win", "loss");
+
+    if (currentRun.state === "won") {
+      elements.endStateCard.classList.add("win");
+      elements.endStateText.textContent = "Victory. You cleared the boss and finished the run.";
+      return;
+    }
+
+    if (currentRun.state === "lost") {
+      elements.endStateCard.classList.add("loss");
+      elements.endStateText.textContent = "Defeat. The run has ended, but you can start a new one immediately.";
+      return;
+    }
+
+    elements.endStateText.textContent = "Your run is still in progress.";
+  };
+
   const render = () => {
     elements.runState.textContent = currentRun.state;
     elements.playerHealth.textContent = String(currentRun.player.health);
@@ -495,6 +528,7 @@
     renderCombat();
     renderRewards();
     renderRemoval();
+    renderEndState();
     elements.rawState.textContent = JSON.stringify(currentRun, null, 2);
   };
 
@@ -526,7 +560,11 @@
       ? { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: 0 }, state: "lost" }
       : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
     render();
-    setStatus(nextCombat.state === "defeat" ? "You were defeated." : "Ended turn and resolved enemy attack.");
+    setStatus(nextCombat.state === "defeat"
+      ? "You were defeated. Start a new run to try again."
+      : nextCombat.reshuffled
+        ? "Ended turn, reshuffled discard into draw pile, and resolved enemy attack."
+        : "Ended turn and resolved enemy attack.");
   });
 
   render();

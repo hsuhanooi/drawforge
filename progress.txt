@@ -20,3 +20,4 @@
 - Added node resolution to start combat encounters on combat nodes. Added tests and marked PRD item complete.
 - Added deck inspection helper to list current deck contents and verified reward cards appear in the view. Added tests and marked PRD item complete.
 - Added deck removal helper with tests for successful removal and invalid selection, and marked PRD item complete.
+- Added save/load support in `src/save.js` with a small storage adapter boundary and JSON-based serialization. Added Jest coverage for saving player/deck/map/combat state, restoring saved runs, malformed JSON, incomplete save data, invalid combat state, and missing saves.

@@ -1,9 +1,23 @@
+const { createBalanceConfig } = require("./balance");
 const { checkCombatEnd } = require("./combatState");
 const { applyDamage } = require("./damage");
 
 const BASIC_ENEMY_ATTACK_DAMAGE = 6;
 
-const performEnemyAttack = (combat, damage = BASIC_ENEMY_ATTACK_DAMAGE) => {
+const resolveEnemyDamage = (damageOrBalance) => {
+  if (typeof damageOrBalance === "number") {
+    return damageOrBalance;
+  }
+
+  if (damageOrBalance && typeof damageOrBalance === "object") {
+    return createBalanceConfig(damageOrBalance).enemy.basicAttackDamage;
+  }
+
+  return BASIC_ENEMY_ATTACK_DAMAGE;
+};
+
+const performEnemyAttack = (combat, damageOrBalance = BASIC_ENEMY_ATTACK_DAMAGE) => {
+  const damage = resolveEnemyDamage(damageOrBalance);
   const afterDamage = checkCombatEnd(applyDamage(combat, damage));
 
   return {

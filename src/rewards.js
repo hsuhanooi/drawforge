@@ -1,12 +1,17 @@
 const { strikeCardDefinition, defendCardDefinition } = require("./cards");
+const { createBalanceConfig } = require("./balance");
 
-const createRewardOptions = (count = 3) => {
+const createRewardOptions = (count, balanceOverrides = {}) => {
+  const balance = createBalanceConfig(balanceOverrides);
+  const optionCount = count ?? balance.rewards.cardOptionCount;
   const pool = [strikeCardDefinition, defendCardDefinition];
   const options = [];
-  for (let i = 0; i < count; i += 1) {
+
+  for (let i = 0; i < optionCount; i += 1) {
     const factory = pool[i % pool.length];
     options.push(factory());
   }
+
   return options;
 };
 

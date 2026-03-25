@@ -365,7 +365,7 @@ Add quality-of-life and persistence:
     "Verify the save data contains player, deck, map, and combat state as applicable",
     "Verify the save can be retrieved later"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -377,7 +377,7 @@ Add quality-of-life and persistence:
     "Verify map position matches the saved data",
     "Verify combat state is restored correctly if combat was active"
   ],
-  "passes": false
+  "passes": true
 }
 
 

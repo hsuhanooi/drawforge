@@ -1,11 +1,24 @@
 const { DEFAULT_PLAYER_ENERGY } = require("./constants");
+const { createBalanceConfig } = require("./balance");
 
-const startPlayerTurn = (combat, energy = DEFAULT_PLAYER_ENERGY) => ({
+const resolveEnergy = (energyOrBalance) => {
+  if (typeof energyOrBalance === "number") {
+    return energyOrBalance;
+  }
+
+  if (energyOrBalance && typeof energyOrBalance === "object") {
+    return createBalanceConfig(energyOrBalance).player.energy;
+  }
+
+  return DEFAULT_PLAYER_ENERGY;
+};
+
+const startPlayerTurn = (combat, energyOrBalance = DEFAULT_PLAYER_ENERGY) => ({
   ...combat,
   turn: "player",
   player: {
     ...combat.player,
-    energy
+    energy: resolveEnergy(energyOrBalance)
   }
 });
 

@@ -1,4 +1,8 @@
-const generateMap = ({ rows = 5, columns = 3 } = {}) => {
+const { createBalanceConfig } = require("./balance");
+
+const generateMap = (options = {}, balanceOverrides = {}) => {
+  const balance = createBalanceConfig(balanceOverrides);
+  const { rows = balance.map.rows, columns = balance.map.columns } = options;
   const nodes = [];
 
   for (let row = 0; row < rows; row += 1) {

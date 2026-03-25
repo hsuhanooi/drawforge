@@ -5,11 +5,14 @@ const {
   BASH_DAMAGE,
   BARRIER_BLOCK,
   QUICK_STRIKE_DAMAGE,
+  VOLLEY_DAMAGE,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
   barrierCardDefinition,
-  quickStrikeCardDefinition
+  quickStrikeCardDefinition,
+  focusCardDefinition,
+  volleyCardDefinition
 } = require("../src/cards");
 const { executeCardEffect } = require("../src/combatEngine");
 
@@ -40,6 +43,8 @@ describe("card definitions", () => {
     const bash = bashCardDefinition();
     const barrier = barrierCardDefinition();
     const quickStrike = quickStrikeCardDefinition();
+    const focus = focusCardDefinition();
+    const volley = volleyCardDefinition();
 
     expect(strike.id).toBe("strike");
     expect(strike.cost).toBe(1);
@@ -51,6 +56,8 @@ describe("card definitions", () => {
     expect(barrier.cost).toBe(2);
     expect(quickStrike.id).toBe("quick_strike");
     expect(quickStrike.cost).toBe(0);
+    expect(focus.id).toBe("focus");
+    expect(volley.id).toBe("volley");
   });
 
   it("executes a strike effect via the combat engine", () => {
@@ -83,13 +90,17 @@ describe("card definitions", () => {
     const bash = bashCardDefinition();
     const barrier = barrierCardDefinition();
     const quickStrike = quickStrikeCardDefinition();
+    const focus = focusCardDefinition();
+    const volley = volleyCardDefinition();
     const state = {
-      player: { health: 80, block: 1 },
+      player: { health: 80, block: 1, energy: 2 },
       enemy: { health: 20 }
     };
 
     expect(executeCardEffect(bash, state).enemy.health).toBe(20 - BASH_DAMAGE);
     expect(executeCardEffect(barrier, state).player.block).toBe(1 + BARRIER_BLOCK);
     expect(executeCardEffect(quickStrike, state).enemy.health).toBe(20 - QUICK_STRIKE_DAMAGE);
+    expect(executeCardEffect(focus, state).player.energy).toBe(3);
+    expect(executeCardEffect(volley, state).enemy.health).toBe(20 - VOLLEY_DAMAGE);
   });
 });

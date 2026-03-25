@@ -20,7 +20,8 @@ describe("expanded run content", () => {
     });
 
     expect(result.state).toBe("event");
-    expect(result.event).toHaveProperty("reward");
+    expect(result.event).toHaveProperty("kind");
+    expect(Array.isArray(result.event.options)).toBe(true);
     expect(result.combat).toBeNull();
   });
 

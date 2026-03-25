@@ -1,7 +1,7 @@
 const { createBalanceConfig } = require("./balance");
 const { createCombatEncounter } = require("./combat");
 const { createEnemyForNode } = require("./enemies");
-const { createRelicReward } = require("./relics");
+const { createEventForNode } = require("./events");
 
 const resolveNode = ({ node, player, balanceOverrides = {} }) => {
   const balance = createBalanceConfig(balanceOverrides);
@@ -28,11 +28,7 @@ const resolveNode = ({ node, player, balanceOverrides = {} }) => {
     return {
       state: "event",
       combat: null,
-      event: {
-        id: `event-${node.id}`,
-        reward: createRelicReward(node.row + node.col),
-        text: "You find a strange relic hidden beside the path."
-      }
+      event: createEventForNode({ row: node.row ?? 0, col: node.col ?? 0, id: node.id })
     };
   }
 

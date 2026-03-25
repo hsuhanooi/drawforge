@@ -33,3 +33,6 @@
 - Added a simple browser-side card removal flow that can be entered through certain event/reward states, so runs now support practical deck thinning in the test UI rather than only through backend helpers.
 - Polished the browser combat/run UX with explicit enemy intent, draw/discard pile counters, reshuffle feedback in status text, and a dedicated end-state panel for victory/defeat so the run outcome is much clearer during manual testing.
 - Cleaned up accidental duplicated garbage at the ends of `browser/index.html` and `browser/styles.css` caused by earlier edits, restoring those browser assets to a sane state.
+- Added more interesting card effects with browser-usable `focus` (energy utility) and `volley` (attack + draw-style support in the browser model), while keeping the reward pool deterministic and test-covered.
+- Added deterministic event variety through `src/events.js` with shrine, forge, and camp-style events instead of a single repeated event pattern. Wired event generation into node resolution and the browser shell.
+- Refactored the browser app into a cleaner event/card loop with richer reward-card generation and multiple event outcomes, while keeping save/load and the existing run loop intact.

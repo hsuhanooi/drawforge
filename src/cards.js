@@ -5,6 +5,7 @@ const DEFEND_BLOCK = 5;
 const BASH_DAMAGE = 8;
 const BARRIER_BLOCK = 8;
 const QUICK_STRIKE_DAMAGE = 4;
+const VOLLEY_DAMAGE = 5;
 
 const strikeCardDefinition = () =>
   createCard({
@@ -81,15 +82,48 @@ const quickStrikeCardDefinition = () =>
     })
   });
 
+const focusCardDefinition = () =>
+  createCard({
+    id: "focus",
+    name: "Focus",
+    cost: 1,
+    type: "skill",
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        energy: (state.player.energy ?? 0) + 1
+      }
+    })
+  });
+
+const volleyCardDefinition = () =>
+  createCard({
+    id: "volley",
+    name: "Volley",
+    cost: 1,
+    type: "attack",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - VOLLEY_DAMAGE
+      }
+    })
+  });
+
 module.exports = {
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
   BASH_DAMAGE,
   BARRIER_BLOCK,
   QUICK_STRIKE_DAMAGE,
+  VOLLEY_DAMAGE,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
   barrierCardDefinition,
-  quickStrikeCardDefinition
+  quickStrikeCardDefinition,
+  focusCardDefinition,
+  volleyCardDefinition
 };

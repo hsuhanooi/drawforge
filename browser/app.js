@@ -14,7 +14,9 @@
     defend: { id: "defend", name: "Defend", cost: 1, type: "skill", block: 5 },
     bash: { id: "bash", name: "Bash", cost: 2, type: "attack", damage: 8 },
     barrier: { id: "barrier", name: "Barrier", cost: 2, type: "skill", block: 8 },
-    quick_strike: { id: "quick_strike", name: "Quick Strike", cost: 0, type: "attack", damage: 4 }
+    quick_strike: { id: "quick_strike", name: "Quick Strike", cost: 0, type: "attack", damage: 4 },
+    focus: { id: "focus", name: "Focus", cost: 1, type: "skill", energyGain: 1, draw: 1 },
+    volley: { id: "volley", name: "Volley", cost: 1, type: "attack", damage: 5, draw: 1 }
   };
 
   const RELICS = [
@@ -23,21 +25,57 @@
     { id: "ember_ring", name: "Ember Ring", description: "Start each combat with +1 energy" }
   ];
 
-  const clone = (value) => JSON.parse(JSON.stringify(value));
-  const createCardFromId = (cardId) => ({ ...CARD_LIBRARY[cardId] });
-  const createRewardCardOptions = (offset = 0) => {
-    const ids = ["strike", "defend", "bash", "barrier", "quick_strike"];
-    return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
-  };
+  const EVENT_TEMPLATES = [
+    {
+      id: "shrine",
+      text: "A quiet shrine offers healing, a relic, or a chance to refine your deck.",
+      createOptions: (node) => [
+        { id: "heal", label: "Recover 10 health", effect: "heal" },
+        { id: "relic", label: `Take ${RELICS[(node.row + node.col) % RELICS.length].name}`, effect: "relic", relic: RELICS[(node.row + node.col) % RELICS.length] },
+        { id: "remove", label: "Enter card removal", effect: "remove" }
+      ]
+    },
+    {
+      id: "forge",
+      text: "An old forge lets you sharpen your deck with a free reward card or extra gold.",
+      createOptions: (node) => [
+        { id: "gold", label: "Take 20 gold", effect: "gold", amount: 20 },
+        { id: "card", label: "Take a forged card reward", effect: "reward_cards", cards: createRewardCardOptions((node.row + node.col + 1) % 7) },
+        { id: "remove", label: "Burn away a weak card", effect: "remove" }
+      ]
+    },
+    {
+      id: "camp",
+      text: "A roadside camp gives you time to recover or prepare for the next fight.",
+      createOptions: () => [
+        { id: "heal", label: "Recover 12 health", effect: "heal", amount: 12 },
+        { id: "focus", label: "Add Focus to your deck", effect: "add_card", card: createCardFromId("focus") },
+        { id: "volley", label: "Add Volley to your deck", effect: "add_card", card: createCardFromId("volley") }
+      ]
+    }
+  ];
 
-  const getNodeType = (row, col, rows) => {
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function createCardFromId(cardId) {
+    return { ...CARD_LIBRARY[cardId] };
+  }
+
+  function createRewardCardOptions(offset = 0) {
+    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley"];
+    return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
+  }
+
+  function getNodeType(row, col, rows) {
     if (row === rows - 1) return "boss";
     if (row === rows - 2) return "elite";
     if (row > 0 && row % 2 === 1 && col === 1) return "event";
     return "combat";
-  };
+  }
 
-  const createEnemyForNode = (node) => {
+  function createEnemyForNode(node) {
     if (node.type === "elite") {
       return { id: "cultist_captain", name: "Cultist Captain", health: 45, damage: 9, rewardGold: 25 };
     }
@@ -50,9 +88,9 @@
       { id: "mossling", name: "Mossling", health: 34, damage: 5, rewardGold: 12 }
     ];
     return enemies[(node.row + node.col) % enemies.length];
-  };
+  }
 
-  const generateMap = ({ rows = 5, columns = 3 } = {}) => {
+  function generateMap({ rows = 5, columns = 3 } = {}) {
     const nodes = [];
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < columns; col += 1) {
@@ -69,42 +107,50 @@
       }
     }
     return { rows, columns, nodes, currentNodeId: null };
-  };
+  }
 
-  const startNewRun = () => ({
-    state: "in_progress",
-    player: { health: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD, deck: [...DEFAULT_STARTER_DECK] },
-    relics: [],
-    combat: null,
-    pendingRewards: null,
-    event: null,
-    map: generateMap()
-  });
+  function startNewRun() {
+    return {
+      state: "in_progress",
+      player: { health: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD, deck: [...DEFAULT_STARTER_DECK] },
+      relics: [],
+      combat: null,
+      pendingRewards: null,
+      event: null,
+      map: generateMap()
+    };
+  }
 
-  const validateRun = (run) => {
+  function validateRun(run) {
     if (!run || typeof run !== "object") throw new Error("Saved run must be an object");
     if (!run.player || !Array.isArray(run.player.deck)) throw new Error("Saved run player deck is invalid");
     if (!run.map || !Array.isArray(run.map.nodes)) throw new Error("Saved run map data is invalid");
     return run;
-  };
+  }
 
-  const saveRun = (run) => localStorage.setItem(STORAGE_KEY, JSON.stringify(run));
-  const loadRun = () => {
+  function saveRun(run) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(run));
+  }
+
+  function loadRun() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) throw new Error("No saved run found");
     return validateRun(JSON.parse(raw));
-  };
+  }
 
-  const getStartingNodes = (map) => map.nodes.filter((node) => node.row === 0);
-  const listAvailableNodes = (run) => {
+  function getStartingNodes(map) {
+    return map.nodes.filter((node) => node.row === 0);
+  }
+
+  function listAvailableNodes(run) {
     if (run.pendingRewards || run.event || (run.combat && run.combat.state === "active")) return [];
     if (run.map.currentNodeId === null) return getStartingNodes(run.map);
     const currentNode = run.map.nodes.find((node) => node.id === run.map.currentNodeId);
     if (!currentNode) return [];
     return run.map.nodes.filter((node) => currentNode.next.includes(node.id));
-  };
+  }
 
-  const drawCards = (combat, count) => {
+  function drawCards(combat, count) {
     const next = clone(combat);
     next.reshuffled = false;
     for (let i = 0; i < count; i += 1) {
@@ -117,11 +163,13 @@
       next.hand.push(next.drawPile.shift());
     }
     return next;
-  };
+  }
 
-  const getEnergyBonus = (run) => ((run.relics || []).some((relic) => relic.id === "ember_ring") ? 1 : 0);
+  function getEnergyBonus(run) {
+    return (run.relics || []).some((relic) => relic.id === "ember_ring") ? 1 : 0;
+  }
 
-  const startCombat = (run, node) => {
+  function startCombat(run, node) {
     const enemy = createEnemyForNode(node);
     return drawCards({
       state: "active",
@@ -133,26 +181,28 @@
       discardPile: [],
       enemy
     }, 5);
-  };
+  }
 
-  const createVictoryRewards = (nodeType, nodeId = "r0c0") => ({
-    cards: createRewardCardOptions(nodeId.length % 5),
-    gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
-    relic: ["elite", "boss"].includes(nodeType) ? RELICS[nodeType === "boss" ? 2 : 1] : null,
-    removeCard: nodeType === "elite"
-  });
+  function createVictoryRewards(nodeType, nodeId = "r0c0") {
+    return {
+      cards: createRewardCardOptions(nodeId.length % 7),
+      gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
+      relic: ["elite", "boss"].includes(nodeType) ? RELICS[nodeType === "boss" ? 2 : 1] : null,
+      removeCard: nodeType === "elite"
+    };
+  }
 
-  const createEventState = (node) => ({
-    id: `event-${node.id}`,
-    text: "A quiet shrine offers either healing, a relic, or a chance to refine your deck.",
-    options: [
-      { id: "heal", label: "Recover 10 health", effect: "heal" },
-      { id: "relic", label: `Take ${RELICS[(node.row + node.col) % RELICS.length].name}`, effect: "relic", relic: RELICS[(node.row + node.col) % RELICS.length] },
-      { id: "remove", label: "Enter card removal", effect: "remove" }
-    ]
-  });
+  function createEventState(node) {
+    const template = EVENT_TEMPLATES[(node.row + node.col) % EVENT_TEMPLATES.length];
+    return {
+      id: `event-${node.id}`,
+      kind: template.id,
+      text: template.text,
+      options: template.createOptions(node)
+    };
+  }
 
-  const enterNode = (run, nodeId) => {
+  function enterNode(run, nodeId) {
     const node = run.map.nodes.find((candidate) => candidate.id === nodeId);
     if (!node) throw new Error("Node not found");
     if (run.map.currentNodeId === null && node.row !== 0) throw new Error("Invalid starting node");
@@ -172,9 +222,9 @@
       return nextRun;
     }
     return nextRun;
-  };
+  }
 
-  const applyVictory = (run, combat) => {
+  function applyVictory(run, combat) {
     const rewards = createVictoryRewards(combat.nodeType, run.map.currentNodeId || "r0c0");
     return {
       ...run,
@@ -182,21 +232,23 @@
       combat,
       pendingRewards: rewards
     };
-  };
+  }
 
-  const playCardAtIndex = (combat, handIndex) => {
+  function playCardAtIndex(combat, handIndex) {
     const card = combat.hand[handIndex];
     if (!card) throw new Error("Card not found in hand");
     if (combat.turn !== "player") throw new Error("It is not the player's turn");
     if (combat.player.energy < card.cost) throw new Error("Not enough energy");
 
-    const next = clone(combat);
+    let next = clone(combat);
     next.player.energy -= card.cost;
     next.hand.splice(handIndex, 1);
     next.discardPile.push(card);
 
     if (card.damage) next.enemy.health -= card.damage;
     if (card.block) next.player.block += card.block;
+    if (card.energyGain) next.player.energy += card.energyGain;
+    if (card.draw) next = drawCards(next, card.draw);
 
     if (next.enemy.health <= 0) {
       next.enemy.health = 0;
@@ -205,9 +257,9 @@
     }
 
     return next;
-  };
+  }
 
-  const resolveEndTurn = (combat, run) => {
+  function resolveEndTurn(combat, run) {
     if (combat.state !== "active") return combat;
     const blocked = Math.min(combat.player.block, combat.enemy.damage);
     const remainingDamage = combat.enemy.damage - blocked;
@@ -224,69 +276,78 @@
       return next;
     }
 
-    return drawCards(next, 5);
-  };
+    next = drawCards(next, 5);
+    return next;
+  }
 
-  const applyRelic = (run, relic) => {
+  function applyRelic(run, relic) {
     const nextRun = { ...run, relics: [...(run.relics || []), relic], player: { ...run.player } };
     if (relic.id === "iron_core") nextRun.player.health += 5;
     if (relic.id === "feather_charm") nextRun.player.gold += 15;
     return nextRun;
-  };
+  }
 
-  const claimCardReward = (run, card) => ({
-    ...run,
-    player: { ...run.player, deck: [...run.player.deck, card.id] },
-    combat: null,
-    pendingRewards: null,
-    state: run.map.currentNodeId === `r${run.map.rows - 1}c1` ? "won" : "in_progress"
-  });
+  function finishNode(run) {
+    const isBossRow = run.map.currentNodeId === `r${run.map.rows - 1}c1`;
+    return {
+      ...run,
+      combat: null,
+      pendingRewards: null,
+      event: null,
+      state: isBossRow ? "won" : "in_progress"
+    };
+  }
 
-  const claimRelicReward = (run, relic) => ({
-    ...applyRelic(run, relic),
-    combat: null,
-    pendingRewards: null,
-    state: run.map.currentNodeId === `r${run.map.rows - 1}c1` ? "won" : "in_progress"
-  });
+  function claimCardReward(run, card) {
+    return finishNode({
+      ...run,
+      player: { ...run.player, deck: [...run.player.deck, card.id] }
+    });
+  }
 
-  const skipRewards = (run) => ({
-    ...run,
-    combat: null,
-    pendingRewards: null,
-    state: run.map.currentNodeId === `r${run.map.rows - 1}c1` ? "won" : "in_progress"
-  });
+  function claimRelicReward(run, relic) {
+    return finishNode(applyRelic(run, relic));
+  }
 
-  const claimEventOption = (run, option) => {
+  function skipRewards(run) {
+    return finishNode(run);
+  }
+
+  function claimEventOption(run, option) {
     let nextRun = { ...run, event: null };
     if (option.effect === "heal") {
-      nextRun = { ...nextRun, player: { ...nextRun.player, health: nextRun.player.health + 10 } };
+      nextRun = { ...nextRun, player: { ...nextRun.player, health: nextRun.player.health + (option.amount || 10) } };
     }
     if (option.effect === "relic") {
       nextRun = applyRelic(nextRun, option.relic);
+    }
+    if (option.effect === "gold") {
+      nextRun = { ...nextRun, player: { ...nextRun.player, gold: nextRun.player.gold + option.amount } };
+    }
+    if (option.effect === "reward_cards") {
+      nextRun = { ...nextRun, pendingRewards: { cards: option.cards, gold: 0, relic: null, removeCard: false } };
+    }
+    if (option.effect === "add_card") {
+      nextRun = { ...nextRun, player: { ...nextRun.player, deck: [...nextRun.player.deck, option.card.id] } };
     }
     if (option.effect === "remove") {
       nextRun = { ...nextRun, pendingRewards: { cards: [], gold: 0, relic: null, removeCard: true } };
     }
     return nextRun;
-  };
+  }
 
-  const removeCardFromDeck = (run, cardId) => {
+  function removeCardFromDeck(run, cardId) {
     const index = run.player.deck.indexOf(cardId);
-    if (index === -1) {
-      return run;
-    }
+    if (index === -1) return run;
 
-    return {
+    return finishNode({
       ...run,
       player: {
         ...run.player,
         deck: [...run.player.deck.slice(0, index), ...run.player.deck.slice(index + 1)]
-      },
-      pendingRewards: null,
-      event: null,
-      combat: null
-    };
-  };
+      }
+    });
+  }
 
   const elements = {
     status: document.getElementById("status"),
@@ -320,12 +381,12 @@
   let currentRun = startNewRun();
   let removalModeOpen = false;
 
-  const setStatus = (message, isError = false) => {
+  function setStatus(message, isError = false) {
     elements.status.textContent = message;
     elements.status.style.color = isError ? "#fca5a5" : "#93c5fd";
-  };
+  }
 
-  const renderMap = () => {
+  function renderMap() {
     elements.mapActions.innerHTML = "";
     const availableNodes = listAvailableNodes(currentRun);
     if (availableNodes.length === 0) {
@@ -350,9 +411,9 @@
       });
       elements.mapActions.appendChild(button);
     });
-  };
+  }
 
-  const renderCombat = () => {
+  function renderCombat() {
     const combat = currentRun.combat;
     elements.handActions.innerHTML = "";
     if (!combat) {
@@ -379,12 +440,19 @@
     combat.hand.forEach((card, index) => {
       const button = document.createElement("button");
       button.className = "node-button";
-      button.innerHTML = `${card.name}<br />Cost: ${card.cost}<br />Type: ${card.type}`;
+      const extras = [];
+      if (card.damage) extras.push(`Dmg ${card.damage}`);
+      if (card.block) extras.push(`Block ${card.block}`);
+      if (card.draw) extras.push(`Draw ${card.draw}`);
+      if (card.energyGain) extras.push(`+${card.energyGain} energy`);
+      button.innerHTML = `${card.name}<br />Cost: ${card.cost}<br />${extras.join(" • ") || card.type}`;
       button.disabled = combat.turn !== "player" || combat.state !== "active";
       button.addEventListener("click", () => {
         try {
           const updatedCombat = playCardAtIndex(currentRun.combat, index);
-          currentRun = updatedCombat.state === "victory" ? applyVictory(currentRun, updatedCombat) : { ...currentRun, combat: updatedCombat, player: { ...currentRun.player, health: updatedCombat.player.health } };
+          currentRun = updatedCombat.state === "victory"
+            ? applyVictory(currentRun, updatedCombat)
+            : { ...currentRun, combat: updatedCombat, player: { ...currentRun.player, health: updatedCombat.player.health } };
           render();
           setStatus(updatedCombat.state === "victory"
             ? `Won the ${updatedCombat.enemy.name} fight.`
@@ -395,12 +463,12 @@
       });
       elements.handActions.appendChild(button);
     });
-  };
+  }
 
-  const renderRewards = () => {
+  function renderRewards() {
     elements.rewardActions.innerHTML = "";
     if (currentRun.event) {
-      elements.rewardSummary.textContent = currentRun.event.text;
+      elements.rewardSummary.textContent = `[${currentRun.event.kind}] ${currentRun.event.text}`;
       currentRun.event.options.forEach((option) => {
         const button = document.createElement("button");
         button.className = "node-button";
@@ -425,9 +493,8 @@
       ? "Choose a card to remove from your deck."
       : `Victory rewards: +${gold} gold${relic ? ` and relic ${relic.name}` : ""}. Pick a card reward or skip.`;
 
-    if (removeCard) {
-      return;
-    }
+    if (removeCard) return;
+
     cards.forEach((card) => {
       const button = document.createElement("button");
       button.className = "node-button";
@@ -439,6 +506,7 @@
       });
       elements.rewardActions.appendChild(button);
     });
+
     if (relic) {
       const relicButton = document.createElement("button");
       relicButton.className = "node-button";
@@ -450,6 +518,7 @@
       });
       elements.rewardActions.appendChild(relicButton);
     }
+
     const skipButton = document.createElement("button");
     skipButton.className = "node-button";
     skipButton.textContent = "Skip rewards";
@@ -459,17 +528,13 @@
       setStatus("Skipped reward selection.");
     });
     elements.rewardActions.appendChild(skipButton);
-  };
+  }
 
-  const renderRemoval = () => {
+  function renderRemoval() {
     elements.removalActions.innerHTML = "";
+    if (!(removalModeOpen || (currentRun.pendingRewards && currentRun.pendingRewards.removeCard))) return;
 
-    if (!(removalModeOpen || (currentRun.pendingRewards && currentRun.pendingRewards.removeCard))) {
-      return;
-    }
-
-    const uniqueCards = [...new Set(currentRun.player.deck)];
-    uniqueCards.forEach((cardId) => {
+    [...new Set(currentRun.player.deck)].forEach((cardId) => {
       const button = document.createElement("button");
       button.className = "node-button";
       button.textContent = `Remove ${cardId}`;
@@ -481,27 +546,24 @@
       });
       elements.removalActions.appendChild(button);
     });
-  };
+  }
 
-  const renderEndState = () => {
+  function renderEndState() {
     elements.endStateCard.classList.remove("win", "loss");
-
     if (currentRun.state === "won") {
       elements.endStateCard.classList.add("win");
       elements.endStateText.textContent = "Victory. You cleared the boss and finished the run.";
       return;
     }
-
     if (currentRun.state === "lost") {
       elements.endStateCard.classList.add("loss");
       elements.endStateText.textContent = "Defeat. The run has ended, but you can start a new one immediately.";
       return;
     }
-
     elements.endStateText.textContent = "Your run is still in progress.";
-  };
+  }
 
-  const render = () => {
+  function render() {
     elements.runState.textContent = currentRun.state;
     elements.playerHealth.textContent = String(currentRun.player.health);
     elements.playerGold.textContent = String(currentRun.player.gold);
@@ -530,19 +592,26 @@
     renderRemoval();
     renderEndState();
     elements.rawState.textContent = JSON.stringify(currentRun, null, 2);
-  };
+  }
 
   document.getElementById("new-run-button").addEventListener("click", () => {
     currentRun = startNewRun();
+    removalModeOpen = false;
     render();
     setStatus("Started a fresh run with varied map content.");
   });
-  document.getElementById("save-run-button").addEventListener("click", () => { saveRun(currentRun); setStatus("Run saved to localStorage."); });
+
+  document.getElementById("save-run-button").addEventListener("click", () => {
+    saveRun(currentRun);
+    setStatus("Run saved to localStorage.");
+  });
+
   document.getElementById("toggle-removal-button").addEventListener("click", () => {
     removalModeOpen = !removalModeOpen;
     render();
     setStatus(removalModeOpen ? "Card removal view opened." : "Card removal view closed.");
   });
+
   document.getElementById("load-run-button").addEventListener("click", () => {
     try {
       currentRun = loadRun();
@@ -552,9 +621,17 @@
       setStatus(error.message, true);
     }
   });
-  document.getElementById("clear-save-button").addEventListener("click", () => { localStorage.removeItem(STORAGE_KEY); setStatus("Saved run cleared."); });
+
+  document.getElementById("clear-save-button").addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setStatus("Saved run cleared.");
+  });
+
   document.getElementById("end-turn-button").addEventListener("click", () => {
-    if (!currentRun.combat) return setStatus("No active combat.", true);
+    if (!currentRun.combat) {
+      setStatus("No active combat.", true);
+      return;
+    }
     const nextCombat = resolveEndTurn(currentRun.combat, currentRun);
     currentRun = nextCombat.state === "defeat"
       ? { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: 0 }, state: "lost" }

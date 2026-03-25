@@ -2,3 +2,21 @@
 - Added card model, strike/defend definitions, and a minimal combat engine to execute card effects. Added Jest tests covering card creation and effect execution.
 - Verified starter deck composition (5 Strike, 5 Defend) and added tests ensuring it is stored on new runs.
 - Added deck zone state (draw/hand/discard) with deterministic shuffle injection, draw/reshuffle/discard behavior, and tests covering draw/removal/reshuffle edge cases.
+- Added combat encounter initialization with active state, player-first turn, and basic player/enemy combat state. Added tests for encounter setup.
+- Added energy system with turn start initialization and card play energy checks, plus unit tests for spending and rejection on insufficient energy.
+- Added card play flow for attack cards: energy payment, effect execution, and hand removal into discard. Added test ensuring Strike reduces enemy health and costs energy.
+- Added defense card play coverage: Defend grants block, spends energy, and leaves hand. Added unit test and marked PRD item complete.
+- Added damage resolution that consumes block before health and clamps health at zero. Added tests for partial and full block absorption.
+- Added next player turn start helper that clears temporary block and refreshes energy. Added tests and marked PRD item complete.
+- Added player-to-enemy turn transition helper that switches turn state and starts enemy action phase. Added unit test and marked PRD item complete.
+- Added deterministic enemy attack that applies damage and ends enemy turn. Added tests for damage and block interaction, marked PRD item complete.
+- Added post-enemy turn flow to refresh energy, reset block, and draw a new hand. Added tests and marked PRD item complete.
+- Added combat end-state checks for enemy defeat (victory), wired into card play and enemy actions. Added tests and marked PRD item complete.
+- Added test coverage for combat defeat when player health reaches zero and marked PRD item complete.
+- Added reward generation for combat victory with deterministic card options and deck addition helper. Added tests and marked PRD item complete.
+- Added deterministic map generation with connected rows of combat nodes. Added tests for node counts, types, and connectivity, and marked PRD item complete.
+- Added traversal helpers to list valid starting nodes and select a starting node. Added tests for valid selection and rejection of non-starting nodes.
+- Added traversal movement helper enforcing connected-node movement. Added tests for valid and invalid moves and marked PRD item complete.
+- Added node resolution to start combat encounters on combat nodes. Added tests and marked PRD item complete.
+- Added deck inspection helper to list current deck contents and verified reward cards appear in the view. Added tests and marked PRD item complete.
+- Added deck removal helper with tests for successful removal and invalid selection, and marked PRD item complete.

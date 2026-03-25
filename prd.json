@@ -146,7 +146,7 @@ Add quality-of-life and persistence:
     "Verify combat state is set to active",
     "Verify the player takes the first turn"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -160,7 +160,7 @@ Add quality-of-life and persistence:
     "Attempt to play a card without enough energy",
     "Verify the card play is rejected"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -174,7 +174,7 @@ Add quality-of-life and persistence:
     "Verify enemy health is reduced by the correct amount",
     "Verify the played card leaves the player's hand"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -188,7 +188,7 @@ Add quality-of-life and persistence:
     "Verify player block increases by the correct amount",
     "Verify the played card leaves the player's hand"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -200,7 +200,7 @@ Add quality-of-life and persistence:
     "Verify only remaining damage reduces player health",
     "Verify health is unchanged when block fully absorbs the damage"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -212,7 +212,7 @@ Add quality-of-life and persistence:
     "Start the player's next turn",
     "Verify temporary block has been reset to zero"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -224,7 +224,7 @@ Add quality-of-life and persistence:
     "Verify any end-of-turn cleanup occurs",
     "Verify enemy action phase begins"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -236,7 +236,7 @@ Add quality-of-life and persistence:
     "Verify damage is applied to the player correctly",
     "Verify enemy turn ends after the action resolves"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -248,7 +248,7 @@ Add quality-of-life and persistence:
     "Verify the player draws a new hand or the correct number of cards",
     "Verify turn state is set to player turn"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -259,7 +259,7 @@ Add quality-of-life and persistence:
     "Verify no additional enemy actions occur",
     "Verify post-combat reward flow becomes available"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -270,7 +270,7 @@ Add quality-of-life and persistence:
     "Verify no further turns are processed",
     "Verify the run is marked as failed or ended"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -282,7 +282,7 @@ Add quality-of-life and persistence:
     "Select one reward card",
     "Verify the selected card is added to the player's deck"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -294,7 +294,7 @@ Add quality-of-life and persistence:
     "Verify nodes contain type metadata",
     "Verify nodes are connected in a traversable structure"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -306,7 +306,7 @@ Add quality-of-life and persistence:
     "Verify the node becomes the current position",
     "Verify the run advances to that node's content"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -319,7 +319,7 @@ Add quality-of-life and persistence:
     "Attempt to move to a non-connected node",
     "Verify movement is rejected"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -330,7 +330,7 @@ Add quality-of-life and persistence:
     "Verify a combat encounter is created",
     "Verify combat becomes the active game state"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -341,7 +341,7 @@ Add quality-of-life and persistence:
     "Verify all current deck cards are listed",
     "Verify added reward cards appear in the deck view"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",
@@ -353,7 +353,7 @@ Add quality-of-life and persistence:
     "Confirm removal",
     "Verify the card is no longer present in the player's deck"
   ],
-  "passes": false
+  "passes": true
 }
 {
   "category": "functional",

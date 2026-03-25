@@ -2,8 +2,14 @@ const { createCard } = require("../src/card");
 const {
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
+  BASH_DAMAGE,
+  BARRIER_BLOCK,
+  QUICK_STRIKE_DAMAGE,
   strikeCardDefinition,
-  defendCardDefinition
+  defendCardDefinition,
+  bashCardDefinition,
+  barrierCardDefinition,
+  quickStrikeCardDefinition
 } = require("../src/cards");
 const { executeCardEffect } = require("../src/combatEngine");
 
@@ -28,14 +34,23 @@ describe("card model", () => {
 });
 
 describe("card definitions", () => {
-  it("creates strike and defend card instances", () => {
+  it("creates strike, defend, and extended reward card instances", () => {
     const strike = strikeCardDefinition();
     const defend = defendCardDefinition();
+    const bash = bashCardDefinition();
+    const barrier = barrierCardDefinition();
+    const quickStrike = quickStrikeCardDefinition();
 
     expect(strike.id).toBe("strike");
     expect(strike.cost).toBe(1);
     expect(defend.id).toBe("defend");
     expect(defend.cost).toBe(1);
+    expect(bash.id).toBe("bash");
+    expect(bash.cost).toBe(2);
+    expect(barrier.id).toBe("barrier");
+    expect(barrier.cost).toBe(2);
+    expect(quickStrike.id).toBe("quick_strike");
+    expect(quickStrike.cost).toBe(0);
   });
 
   it("executes a strike effect via the combat engine", () => {
@@ -62,5 +77,19 @@ describe("card definitions", () => {
 
     expect(nextState.player.block).toBe(2 + DEFEND_BLOCK);
     expect(nextState.enemy).toEqual(state.enemy);
+  });
+
+  it("executes extended reward card effects", () => {
+    const bash = bashCardDefinition();
+    const barrier = barrierCardDefinition();
+    const quickStrike = quickStrikeCardDefinition();
+    const state = {
+      player: { health: 80, block: 1 },
+      enemy: { health: 20 }
+    };
+
+    expect(executeCardEffect(bash, state).enemy.health).toBe(20 - BASH_DAMAGE);
+    expect(executeCardEffect(barrier, state).player.block).toBe(1 + BARRIER_BLOCK);
+    expect(executeCardEffect(quickStrike, state).enemy.health).toBe(20 - QUICK_STRIKE_DAMAGE);
   });
 });

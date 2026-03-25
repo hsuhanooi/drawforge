@@ -18,4 +18,13 @@ describe("deck removal", () => {
     expect(result.removed).toBe(false);
     expect(result.deck).toEqual(deck);
   });
+
+  it("removes only one copy when duplicates exist", () => {
+    const deck = ["strike", "strike", "defend"];
+
+    const result = removeCardFromDeck(deck, "strike");
+
+    expect(result.removed).toBe(true);
+    expect(result.deck).toEqual(["strike", "defend"]);
+  });
 });

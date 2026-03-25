@@ -11,7 +11,10 @@
 
   const CARD_LIBRARY = {
     strike: { id: "strike", name: "Strike", cost: 1, type: "attack", damage: 6 },
-    defend: { id: "defend", name: "Defend", cost: 1, type: "skill", block: 5 }
+    defend: { id: "defend", name: "Defend", cost: 1, type: "skill", block: 5 },
+    bash: { id: "bash", name: "Bash", cost: 2, type: "attack", damage: 8 },
+    barrier: { id: "barrier", name: "Barrier", cost: 2, type: "skill", block: 8 },
+    quick_strike: { id: "quick_strike", name: "Quick Strike", cost: 0, type: "attack", damage: 4 }
   };
 
   const RELICS = [
@@ -22,7 +25,10 @@
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const createCardFromId = (cardId) => ({ ...CARD_LIBRARY[cardId] });
-  const createRewardCardOptions = () => [createCardFromId("strike"), createCardFromId("defend"), createCardFromId("strike")];
+  const createRewardCardOptions = (offset = 0) => {
+    const ids = ["strike", "defend", "bash", "barrier", "quick_strike"];
+    return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
+  };
 
   const getNodeType = (row, col, rows) => {
     if (row === rows - 1) return "boss";
@@ -127,18 +133,20 @@
     }, 5);
   };
 
-  const createVictoryRewards = (nodeType) => ({
-    cards: createRewardCardOptions(),
+  const createVictoryRewards = (nodeType, nodeId = "r0c0") => ({
+    cards: createRewardCardOptions(nodeId.length % 5),
     gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
-    relic: ["elite", "boss"].includes(nodeType) ? RELICS[nodeType === "boss" ? 2 : 1] : null
+    relic: ["elite", "boss"].includes(nodeType) ? RELICS[nodeType === "boss" ? 2 : 1] : null,
+    removeCard: nodeType === "elite"
   });
 
   const createEventState = (node) => ({
     id: `event-${node.id}`,
-    text: "A quiet shrine offers either healing or a relic.",
+    text: "A quiet shrine offers either healing, a relic, or a chance to refine your deck.",
     options: [
       { id: "heal", label: "Recover 10 health", effect: "heal" },
-      { id: "relic", label: `Take ${RELICS[(node.row + node.col) % RELICS.length].name}`, effect: "relic", relic: RELICS[(node.row + node.col) % RELICS.length] }
+      { id: "relic", label: `Take ${RELICS[(node.row + node.col) % RELICS.length].name}`, effect: "relic", relic: RELICS[(node.row + node.col) % RELICS.length] },
+      { id: "remove", label: "Enter card removal", effect: "remove" }
     ]
   });
 
@@ -164,12 +172,15 @@
     return nextRun;
   };
 
-  const applyVictory = (run, combat) => ({
-    ...run,
-    player: { ...run.player, health: combat.player.health, gold: run.player.gold + createVictoryRewards(combat.nodeType).gold },
-    combat,
-    pendingRewards: createVictoryRewards(combat.nodeType)
-  });
+  const applyVictory = (run, combat) => {
+    const rewards = createVictoryRewards(combat.nodeType, run.map.currentNodeId || "r0c0");
+    return {
+      ...run,
+      player: { ...run.player, health: combat.player.health, gold: run.player.gold + rewards.gold },
+      combat,
+      pendingRewards: rewards
+    };
+  };
 
   const playCardAtIndex = (combat, handIndex) => {
     const card = combat.hand[handIndex];
@@ -251,7 +262,28 @@
     if (option.effect === "relic") {
       nextRun = applyRelic(nextRun, option.relic);
     }
+    if (option.effect === "remove") {
+      nextRun = { ...nextRun, pendingRewards: { cards: [], gold: 0, relic: null, removeCard: true } };
+    }
     return nextRun;
+  };
+
+  const removeCardFromDeck = (run, cardId) => {
+    const index = run.player.deck.indexOf(cardId);
+    if (index === -1) {
+      return run;
+    }
+
+    return {
+      ...run,
+      player: {
+        ...run.player,
+        deck: [...run.player.deck.slice(0, index), ...run.player.deck.slice(index + 1)]
+      },
+      pendingRewards: null,
+      event: null,
+      combat: null
+    };
   };
 
   const elements = {
@@ -270,6 +302,7 @@
     handActions: document.getElementById("hand-actions"),
     rewardActions: document.getElementById("reward-actions"),
     rewardSummary: document.getElementById("reward-summary"),
+    removalActions: document.getElementById("removal-actions"),
     combatPlayerHealth: document.getElementById("combat-player-health"),
     combatPlayerBlock: document.getElementById("combat-player-block"),
     combatPlayerEnergy: document.getElementById("combat-player-energy"),
@@ -278,6 +311,7 @@
   };
 
   let currentRun = startNewRun();
+  let removalModeOpen = false;
 
   const setStatus = (message, isError = false) => {
     elements.status.textContent = message;
@@ -371,8 +405,14 @@
       return;
     }
 
-    const { cards, gold, relic } = currentRun.pendingRewards;
-    elements.rewardSummary.textContent = `Victory rewards: +${gold} gold${relic ? ` and relic ${relic.name}` : ""}. Pick a card reward or skip.`;
+    const { cards, gold, relic, removeCard } = currentRun.pendingRewards;
+    elements.rewardSummary.textContent = removeCard
+      ? "Choose a card to remove from your deck."
+      : `Victory rewards: +${gold} gold${relic ? ` and relic ${relic.name}` : ""}. Pick a card reward or skip.`;
+
+    if (removeCard) {
+      return;
+    }
     cards.forEach((card) => {
       const button = document.createElement("button");
       button.className = "node-button";
@@ -406,6 +446,28 @@
     elements.rewardActions.appendChild(skipButton);
   };
 
+  const renderRemoval = () => {
+    elements.removalActions.innerHTML = "";
+
+    if (!(removalModeOpen || (currentRun.pendingRewards && currentRun.pendingRewards.removeCard))) {
+      return;
+    }
+
+    const uniqueCards = [...new Set(currentRun.player.deck)];
+    uniqueCards.forEach((cardId) => {
+      const button = document.createElement("button");
+      button.className = "node-button";
+      button.textContent = `Remove ${cardId}`;
+      button.addEventListener("click", () => {
+        currentRun = removeCardFromDeck(currentRun, cardId);
+        removalModeOpen = false;
+        render();
+        setStatus(`Removed ${cardId} from the deck.`);
+      });
+      elements.removalActions.appendChild(button);
+    });
+  };
+
   const render = () => {
     elements.runState.textContent = currentRun.state;
     elements.playerHealth.textContent = String(currentRun.player.health);
@@ -432,6 +494,7 @@
     renderMap();
     renderCombat();
     renderRewards();
+    renderRemoval();
     elements.rawState.textContent = JSON.stringify(currentRun, null, 2);
   };
 
@@ -441,6 +504,11 @@
     setStatus("Started a fresh run with varied map content.");
   });
   document.getElementById("save-run-button").addEventListener("click", () => { saveRun(currentRun); setStatus("Run saved to localStorage."); });
+  document.getElementById("toggle-removal-button").addEventListener("click", () => {
+    removalModeOpen = !removalModeOpen;
+    render();
+    setStatus(removalModeOpen ? "Card removal view opened." : "Card removal view closed.");
+  });
   document.getElementById("load-run-button").addEventListener("click", () => {
     try {
       currentRun = loadRun();

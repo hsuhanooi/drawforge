@@ -1,11 +1,23 @@
-const { strikeCardDefinition, defendCardDefinition } = require("./cards");
+const {
+  strikeCardDefinition,
+  defendCardDefinition,
+  bashCardDefinition,
+  barrierCardDefinition,
+  quickStrikeCardDefinition
+} = require("./cards");
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
 
 const createRewardOptions = (count, balanceOverrides = {}) => {
   const balance = createBalanceConfig(balanceOverrides);
   const optionCount = count ?? balance.rewards.cardOptionCount;
-  const pool = [strikeCardDefinition, defendCardDefinition];
+  const pool = [
+    strikeCardDefinition,
+    defendCardDefinition,
+    bashCardDefinition,
+    barrierCardDefinition,
+    quickStrikeCardDefinition
+  ];
   const options = [];
 
   for (let i = 0; i < optionCount; i += 1) {

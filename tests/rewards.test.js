@@ -17,6 +17,13 @@ describe("combat rewards", () => {
     expect(options[0]).toHaveProperty("id");
   });
 
+  it("can generate expanded reward cards from the larger pool", () => {
+    const options = createRewardOptions(5);
+    const ids = options.map((card) => card.id);
+
+    expect(ids).toEqual(expect.arrayContaining(["bash", "barrier", "quick_strike"]));
+  });
+
   it("adds the selected reward card to the deck", () => {
     const deck = ["strike", "defend"];
     const options = createRewardOptions(3);

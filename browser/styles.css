@@ -79,6 +79,27 @@ button:hover {
   padding: 8px 10px;
 }
 
+.hint {
+  color: #9ca3af;
+}
+
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.node-button {
+  text-align: left;
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+.node-button.current {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px #f59e0b;
+}
+
 pre {
   overflow: auto;
   white-space: pre-wrap;

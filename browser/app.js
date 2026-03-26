@@ -77,17 +77,76 @@
 
   function createEnemyForNode(node) {
     if (node.type === "elite") {
-      return { id: "cultist_captain", name: "Cultist Captain", health: 45, damage: 9, rewardGold: 25 };
+      return {
+        id: "cultist_captain",
+        name: "Cultist Captain",
+        health: 45,
+        damage: 9,
+        rewardGold: 25,
+        intents: [
+          { type: "attack", value: 9, label: "Heavy attack for 9" },
+          { type: "buff", value: 2, label: "Rally: gain +2 future damage" },
+          { type: "attack", value: 11, label: "Heavy attack for 11" }
+        ]
+      };
     }
     if (node.type === "boss") {
-      return { id: "spire_guardian", name: "Spire Guardian", health: 70, damage: 12, rewardGold: 50 };
+      return {
+        id: "spire_guardian",
+        name: "Spire Guardian",
+        health: 70,
+        damage: 12,
+        rewardGold: 50,
+        intents: [
+          { type: "attack", value: 12, label: "Crush for 12" },
+          { type: "block", value: 10, label: "Fortify: gain 10 block" },
+          { type: "multi_attack", value: 4, hits: 3, label: "Barrage: 3x4" }
+        ]
+      };
     }
     const enemies = [
-      { id: "slime", name: "Slime", health: 30, damage: 6, rewardGold: 12 },
-      { id: "fangling", name: "Fangling", health: 26, damage: 7, rewardGold: 12 },
-      { id: "mossling", name: "Mossling", health: 34, damage: 5, rewardGold: 12 }
+      {
+        id: "slime",
+        name: "Slime",
+        health: 30,
+        damage: 6,
+        rewardGold: 12,
+        intents: [
+          { type: "attack", value: 6, label: "Slam for 6" },
+          { type: "block", value: 6, label: "Harden: gain 6 block" }
+        ]
+      },
+      {
+        id: "fangling",
+        name: "Fangling",
+        health: 26,
+        damage: 7,
+        rewardGold: 12,
+        intents: [
+          { type: "multi_attack", value: 3, hits: 2, label: "Flurry: 2x3" },
+          { type: "attack", value: 8, label: "Pounce for 8" }
+        ]
+      },
+      {
+        id: "mossling",
+        name: "Mossling",
+        health: 34,
+        damage: 5,
+        rewardGold: 12,
+        intents: [
+          { type: "buff", value: 2, label: "Grow: gain +2 future damage" },
+          { type: "attack", value: 7, label: "Vine lash for 7" }
+        ]
+      }
     ];
     return enemies[(node.row + node.col) % enemies.length];
+  }
+
+  function resolveEnemyIntent(enemy, turnNumber = 0) {
+    const intents = enemy.intents && enemy.intents.length > 0
+      ? enemy.intents
+      : [{ type: "attack", value: enemy.damage, label: `Attack for ${enemy.damage}` }];
+    return intents[turnNumber % intents.length];
   }
 
   function generateMap({ rows = 5, columns = 3 } = {}) {
@@ -175,6 +234,8 @@
       state: "active",
       turn: "player",
       nodeType: node.type,
+      enemyTurnNumber: 0,
+      enemyIntent: resolveEnemyIntent(enemy, 0),
       player: { health: run.player.health, block: 0, energy: DEFAULT_PLAYER_ENERGY + getEnergyBonus(run) },
       hand: [],
       drawPile: run.player.deck.map(createCardFromId),
@@ -245,7 +306,12 @@
     next.hand.splice(handIndex, 1);
     next.discardPile.push(card);
 
-    if (card.damage) next.enemy.health -= card.damage;
+    if (card.damage) {
+      const blocked = Math.min(next.enemy.block || 0, card.damage);
+      const remainingDamage = card.damage - blocked;
+      next.enemy.block = (next.enemy.block || 0) - blocked;
+      next.enemy.health -= remainingDamage;
+    }
     if (card.block) next.player.block += card.block;
     if (card.energyGain) next.player.energy += card.energyGain;
     if (card.draw) next = drawCards(next, card.draw);
@@ -259,23 +325,64 @@
     return next;
   }
 
-  function resolveEndTurn(combat, run) {
-    if (combat.state !== "active") return combat;
-    const blocked = Math.min(combat.player.block, combat.enemy.damage);
-    const remainingDamage = combat.enemy.damage - blocked;
-    const nextHealth = Math.max(0, combat.player.health - remainingDamage);
+  function applyEnemyIntent(combat, intent) {
+    if (!intent) {
+      return combat;
+    }
 
     let next = clone(combat);
-    next.player.health = nextHealth;
-    next.player.block = 0;
-    next.player.energy = DEFAULT_PLAYER_ENERGY + getEnergyBonus(run);
-    next.turn = nextHealth > 0 ? "player" : null;
 
-    if (nextHealth <= 0) {
-      next.state = "defeat";
+    if (intent.type === "attack") {
+      const blocked = Math.min(next.player.block, intent.value);
+      const remainingDamage = intent.value - blocked;
+      next.player.block -= blocked;
+      next.player.health = Math.max(0, next.player.health - remainingDamage);
       return next;
     }
 
+    if (intent.type === "multi_attack") {
+      for (let i = 0; i < (intent.hits || 1); i += 1) {
+        const blocked = Math.min(next.player.block, intent.value);
+        const remainingDamage = intent.value - blocked;
+        next.player.block -= blocked;
+        next.player.health = Math.max(0, next.player.health - remainingDamage);
+        if (next.player.health <= 0) {
+          break;
+        }
+      }
+      return next;
+    }
+
+    if (intent.type === "block") {
+      next.enemy.block = (next.enemy.block || 0) + intent.value;
+      return next;
+    }
+
+    if (intent.type === "buff") {
+      next.enemy.damage = (next.enemy.damage || 0) + intent.value;
+      return next;
+    }
+
+    return next;
+  }
+
+  function resolveEndTurn(combat, run) {
+    if (combat.state !== "active") return combat;
+
+    let next = applyEnemyIntent(combat, combat.enemyIntent);
+    next.player.block = 0;
+    next.player.energy = DEFAULT_PLAYER_ENERGY + getEnergyBonus(run);
+
+    if (next.player.health <= 0) {
+      next.state = "defeat";
+      next.turn = null;
+      next.enemyIntent = null;
+      return next;
+    }
+
+    next.turn = "player";
+    next.enemyTurnNumber = (combat.enemyTurnNumber || 0) + 1;
+    next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemyTurnNumber);
     next = drawCards(next, 5);
     return next;
   }
@@ -370,6 +477,7 @@
     combatPlayerBlock: document.getElementById("combat-player-block"),
     combatPlayerEnergy: document.getElementById("combat-player-energy"),
     combatEnemyHealth: document.getElementById("combat-enemy-health"),
+    combatEnemyBlock: document.getElementById("combat-enemy-block"),
     combatEnemyIntent: document.getElementById("combat-enemy-intent"),
     drawPileCount: document.getElementById("draw-pile-count"),
     discardPileCount: document.getElementById("discard-pile-count"),
@@ -432,7 +540,10 @@
     elements.combatPlayerBlock.textContent = String(combat.player.block);
     elements.combatPlayerEnergy.textContent = String(combat.player.energy);
     elements.combatEnemyHealth.textContent = `${combat.enemy.name} (${combat.enemy.health})`;
-    elements.combatEnemyIntent.textContent = combat.state === "active" ? `Attack for ${combat.enemy.damage}` : combat.state;
+    elements.combatEnemyBlock.textContent = String(combat.enemy.block || 0);
+    elements.combatEnemyIntent.textContent = combat.state === "active"
+      ? (combat.enemyIntent ? combat.enemyIntent.label : `Attack for ${combat.enemy.damage}`)
+      : combat.state;
     elements.drawPileCount.textContent = String(combat.drawPile.length);
     elements.discardPileCount.textContent = String(combat.discardPile.length);
     elements.combatTurn.textContent = combat.turn || combat.state;

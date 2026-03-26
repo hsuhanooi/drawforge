@@ -478,9 +478,11 @@
     combatPlayerEnergy: document.getElementById("combat-player-energy"),
     combatEnemyHealth: document.getElementById("combat-enemy-health"),
     combatEnemyBlock: document.getElementById("combat-enemy-block"),
+    combatEnemyHex: document.getElementById("combat-enemy-hex"),
     combatEnemyIntent: document.getElementById("combat-enemy-intent"),
     drawPileCount: document.getElementById("draw-pile-count"),
     discardPileCount: document.getElementById("discard-pile-count"),
+    exhaustPileCount: document.getElementById("exhaust-pile-count"),
     combatTurn: document.getElementById("combat-turn"),
     endStateCard: document.getElementById("end-state-card"),
     endStateText: document.getElementById("end-state-text")
@@ -605,7 +607,7 @@
     const { cards, gold, relic, removeCard } = currentRun.pendingRewards;
     elements.rewardSummary.textContent = removeCard
       ? "Choose a card to remove from your deck."
-      : `Victory rewards: +${gold} gold${relic ? ` and relic ${relic.name}` : ""}. Pick a card reward or skip.`;
+      : `Victory rewards: +${gold} gold${relic ? ` and optional relic ${relic.name}` : ""}. Pick exactly one reward or skip.`;
 
     if (removeCard) return;
 

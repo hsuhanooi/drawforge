@@ -45,3 +45,4 @@
 - Added a new mechanics layer for cards: exhaust-style one-shots (`surge`, `hex`), temporary energy gain, and a simple debuff interaction where `punish` deals bonus damage against hexed enemies.
 - Extended the browser combat UI to track exhaust pile count and enemy hex stacks, and expanded the browser reward/event card pool so the new mechanics can appear in actual runs.
 - Added core Jest coverage for advanced card mechanics, including exhaust-pile routing and bonus damage against hexed enemies.
+- Fixed a browser rerender bug that made reward selection appear broken: the reward handler was working, but `renderCombat()` crashed because `combatEnemyHex` and `exhaustPileCount` were missing from the DOM elements map. After fixing those bindings, selecting a reward now clears the reward panel and updates the deck/state correctly.

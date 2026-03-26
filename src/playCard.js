@@ -1,7 +1,17 @@
+// @ts-check
+
+/** @typedef {import("./domain").Card} Card */
+/** @typedef {import("./domain").CombatState} CombatState */
+
 const { executeCardEffect } = require("./combatEngine");
 const { checkCombatEnd } = require("./combatState");
 const { playCardWithEnergy } = require("./energy");
 
+/**
+ * @param {Card[]} hand
+ * @param {Card} card
+ * @returns {Card[]}
+ */
 const removeCardFromHand = (hand, card) => {
   const index = hand.indexOf(card);
   if (index === -1) {
@@ -11,6 +21,10 @@ const removeCardFromHand = (hand, card) => {
   return [...hand.slice(0, index), ...hand.slice(index + 1)];
 };
 
+/**
+ * @param {CombatState} combat
+ * @param {Card} card
+ */
 const playCard = (combat, card) => {
   if (!combat.hand.includes(card)) {
     return {

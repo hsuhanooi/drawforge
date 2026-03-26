@@ -20,6 +20,13 @@
     "src/balance.js",
     "src/relics.js",
     "src/rewards.js",
-    "src/events.js"
+    "src/events.js",
+    "src/combat.js",
+    "src/combatEngine.js",
+    "src/deckZones.js",
+    "src/energy.js",
+    "src/combatState.js",
+    "src/turns.js",
+    "src/playCard.js"
   ]
 }

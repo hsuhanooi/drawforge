@@ -1,3 +1,11 @@
+// @ts-check
+
+/** @typedef {import("./domain").CombatState} CombatState */
+
+/**
+ * @param {CombatState} combat
+ * @returns {CombatState}
+ */
 const checkCombatEnd = (combat) => {
   if (combat.enemy.health <= 0) {
     return {

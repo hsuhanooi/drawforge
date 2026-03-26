@@ -39,10 +39,25 @@ export interface CombatMutationState {
     health: number;
     hex?: number;
     damage?: number;
+    block?: number;
     intents?: IntentLike[];
+    name?: string;
+    rewardGold?: number;
   };
   drawCount?: number;
   exhaustPile?: unknown[];
+}
+
+export interface CombatState extends CombatMutationState {
+  state: "active" | "victory" | "defeat";
+  turn: "player" | "enemy" | null;
+  hand: Card[];
+  drawPile: Card[];
+  discardPile: Card[];
+  exhaustPile?: Card[];
+  enemyTurnNumber?: number;
+  enemyIntent?: IntentLike | null;
+  enemyPhase?: string | null;
 }
 
 export interface Card {
@@ -50,7 +65,7 @@ export interface Card {
   name: string;
   cost: number;
   type: CardType;
-  effect: (state: CombatMutationState) => CombatMutationState;
+  effect: (state: CombatState) => CombatState;
   exhaust?: boolean;
   damage?: number;
   block?: number;
@@ -68,7 +83,7 @@ export interface CardDefinitionInput {
   name: string;
   cost: number;
   type: CardType;
-  effect: (state: CombatMutationState) => CombatMutationState;
+  effect: (state: CombatState) => CombatState;
   exhaust?: boolean;
 }
 

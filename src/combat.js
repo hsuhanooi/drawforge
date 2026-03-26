@@ -1,3 +1,13 @@
+// @ts-check
+
+/** @typedef {import("./domain").CombatState} CombatState */
+/** @typedef {import("./domain").CombatState["player"]} CombatPlayer */
+/** @typedef {import("./domain").CombatState["enemy"]} CombatEnemy */
+
+/**
+ * @param {{ player: { health: number }, enemy: CombatEnemy }} input
+ * @returns {CombatState}
+ */
 const createCombatEncounter = ({ player, enemy }) => ({
   state: "active",
   turn: "player",
@@ -7,6 +17,7 @@ const createCombatEncounter = ({ player, enemy }) => ({
     energy: 0
   },
   hand: [],
+  drawPile: [],
   discardPile: [],
   enemy: {
     ...enemy

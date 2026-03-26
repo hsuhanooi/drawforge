@@ -1,6 +1,6 @@
 // @ts-check
 
-/** @typedef {import("./domain").CombatMutationState} CombatMutationState */
+/** @typedef {import("./domain").CombatState} CombatState */
 /** @typedef {import("./domain").Card} Card */
 
 const { createCard } = require("./card");
@@ -28,7 +28,7 @@ const strikeCardDefinition = () =>
     name: "Strike",
     cost: 1,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -45,7 +45,7 @@ const defendCardDefinition = () =>
     name: "Defend",
     cost: 1,
     type: "skill",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -62,7 +62,7 @@ const bashCardDefinition = () =>
     name: "Bash",
     cost: 2,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -79,7 +79,7 @@ const barrierCardDefinition = () =>
     name: "Barrier",
     cost: 2,
     type: "skill",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -96,7 +96,7 @@ const quickStrikeCardDefinition = () =>
     name: "Quick Strike",
     cost: 0,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -113,7 +113,7 @@ const focusCardDefinition = () =>
     name: "Focus",
     cost: 1,
     type: "skill",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -130,7 +130,7 @@ const volleyCardDefinition = () =>
     name: "Volley",
     cost: 1,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -149,7 +149,7 @@ const surgeCardDefinition = () =>
     cost: 0,
     type: "skill",
     exhaust: true,
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -167,7 +167,7 @@ const hexCardDefinition = () =>
     cost: 1,
     type: "skill",
     exhaust: true,
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -184,7 +184,7 @@ const punishCardDefinition = () =>
     name: "Punish",
     cost: 1,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -201,7 +201,7 @@ const burnoutCardDefinition = () =>
     name: "Burnout",
     cost: 1,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -218,7 +218,7 @@ const crackdownCardDefinition = () =>
     name: "Crackdown",
     cost: 2,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -235,7 +235,7 @@ const momentumCardDefinition = () =>
     name: "Momentum",
     cost: 1,
     type: "skill",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -253,7 +253,7 @@ const witherCardDefinition = () =>
     name: "Wither",
     cost: 1,
     type: "skill",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -271,7 +271,7 @@ const siphonWardCardDefinition = () =>
     name: "Siphon Ward",
     cost: 1,
     type: "skill",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -288,7 +288,7 @@ const detonateSigilCardDefinition = () =>
     name: "Detonate Sigil",
     cost: 2,
     type: "attack",
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -306,7 +306,7 @@ const lingeringCurseCardDefinition = () =>
     cost: 1,
     type: "skill",
     exhaust: true,
-    /** @param {CombatMutationState} state */
+    /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {

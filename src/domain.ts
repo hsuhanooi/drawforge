@@ -15,7 +15,19 @@ export const CARD_IDS = [
   "wither",
   "siphon_ward",
   "detonate_sigil",
-  "lingering_curse"
+  "lingering_curse",
+  "mark_of_ruin",
+  "hexblade",
+  "reapers_clause",
+  "fire_sale",
+  "cremate",
+  "grave_fuel",
+  "brand_the_soul",
+  "harvester",
+  "charge_up",
+  "arc_lash",
+  "blood_pact",
+  "spite_shield"
 ] as const;
 
 export type CardId = (typeof CARD_IDS)[number];
@@ -34,6 +46,7 @@ export interface CombatMutationState {
     health: number;
     block: number;
     energy?: number;
+    charged?: boolean;
   };
   enemy: {
     health: number;
@@ -46,6 +59,8 @@ export interface CombatMutationState {
   };
   drawCount?: number;
   exhaustPile?: unknown[];
+  exhaustedThisTurn?: number;
+  exhaustFromHand?: boolean;
 }
 
 export interface CombatState extends CombatMutationState {
@@ -60,6 +75,8 @@ export interface CombatState extends CombatMutationState {
   enemyPhase?: string | null;
 }
 
+export type CardRarity = "common" | "uncommon" | "rare";
+
 export interface Card {
   id: CardId;
   name: string;
@@ -67,6 +84,7 @@ export interface Card {
   type: CardType;
   effect: (state: CombatState) => CombatState;
   exhaust?: boolean;
+  rarity?: CardRarity;
   damage?: number;
   block?: number;
   draw?: number;
@@ -85,12 +103,14 @@ export interface CardDefinitionInput {
   type: CardType;
   effect: (state: CombatState) => CombatState;
   exhaust?: boolean;
+  rarity?: CardRarity;
 }
 
 export interface RelicReward {
   id: string;
   name: string;
   description: string;
+  rarity?: "common" | "uncommon" | "rare";
 }
 
 export type EventOption =

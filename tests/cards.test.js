@@ -11,6 +11,18 @@ const {
   DETONATE_SIGIL_DAMAGE,
   DETONATE_SIGIL_HEX_BONUS,
   LINGERING_CURSE_HEX,
+  MARK_OF_RUIN_HEX,
+  HEXBLADE_DAMAGE,
+  HEXBLADE_HEX,
+  REAPERS_CLAUSE_DAMAGE,
+  CREMATE_BLOCK,
+  HARVESTER_DAMAGE,
+  HARVESTER_BONUS,
+  ARC_LASH_DAMAGE,
+  BLOOD_PACT_SELF_DAMAGE,
+  BLOOD_PACT_ENERGY,
+  SPITE_SHIELD_BLOCK,
+  SPITE_SHIELD_HEX,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
@@ -21,7 +33,19 @@ const {
   witherCardDefinition,
   siphonWardCardDefinition,
   detonateSigilCardDefinition,
-  lingeringCurseCardDefinition
+  lingeringCurseCardDefinition,
+  markOfRuinCardDefinition,
+  hexbladeCardDefinition,
+  reaperSClauseCardDefinition,
+  fireSaleCardDefinition,
+  cremateCardDefinition,
+  graveFuelCardDefinition,
+  brandTheSoulCardDefinition,
+  harvesterCardDefinition,
+  chargeUpCardDefinition,
+  arcLashCardDefinition,
+  bloodPactCardDefinition,
+  spiteShieldCardDefinition
 } = require("../src/cards");
 const { executeCardEffect } = require("../src/combatEngine");
 
@@ -41,7 +65,8 @@ describe("card model", () => {
       cost: 2,
       type: "attack",
       effect: expect.any(Function),
-      exhaust: false
+      exhaust: false,
+      rarity: "common"
     });
   });
 });
@@ -150,5 +175,145 @@ describe("card definitions", () => {
 
     const afterCurse = executeCardEffect(lingeringCurse, baseState);
     expect(afterCurse.enemy.hex).toBe(LINGERING_CURSE_HEX);
+  });
+});
+
+describe("new card definitions", () => {
+  it("all new cards instantiate with correct ids and rarity", () => {
+    expect(markOfRuinCardDefinition().id).toBe("mark_of_ruin");
+    expect(markOfRuinCardDefinition().rarity).toBe("common");
+    expect(hexbladeCardDefinition().id).toBe("hexblade");
+    expect(hexbladeCardDefinition().rarity).toBe("common");
+    expect(reaperSClauseCardDefinition().id).toBe("reapers_clause");
+    expect(reaperSClauseCardDefinition().rarity).toBe("uncommon");
+    expect(fireSaleCardDefinition().id).toBe("fire_sale");
+    expect(fireSaleCardDefinition().rarity).toBe("common");
+    expect(cremateCardDefinition().id).toBe("cremate");
+    expect(cremateCardDefinition().rarity).toBe("common");
+    expect(graveFuelCardDefinition().id).toBe("grave_fuel");
+    expect(graveFuelCardDefinition().rarity).toBe("rare");
+    expect(brandTheSoulCardDefinition().id).toBe("brand_the_soul");
+    expect(brandTheSoulCardDefinition().rarity).toBe("uncommon");
+    expect(harvesterCardDefinition().id).toBe("harvester");
+    expect(harvesterCardDefinition().rarity).toBe("rare");
+    expect(chargeUpCardDefinition().id).toBe("charge_up");
+    expect(chargeUpCardDefinition().rarity).toBe("common");
+    expect(arcLashCardDefinition().id).toBe("arc_lash");
+    expect(arcLashCardDefinition().rarity).toBe("common");
+    expect(bloodPactCardDefinition().id).toBe("blood_pact");
+    expect(bloodPactCardDefinition().rarity).toBe("rare");
+    expect(spiteShieldCardDefinition().id).toBe("spite_shield");
+    expect(spiteShieldCardDefinition().rarity).toBe("uncommon");
+  });
+
+  it("all existing cards have rarity field", () => {
+    expect(strikeCardDefinition().rarity).toBe("common");
+    expect(defendCardDefinition().rarity).toBe("common");
+    expect(bashCardDefinition().rarity).toBe("common");
+    expect(barrierCardDefinition().rarity).toBe("common");
+    expect(quickStrikeCardDefinition().rarity).toBe("common");
+    expect(focusCardDefinition().rarity).toBe("common");
+    expect(volleyCardDefinition().rarity).toBe("common");
+    expect(witherCardDefinition().rarity).toBe("uncommon");
+    expect(siphonWardCardDefinition().rarity).toBe("uncommon");
+    expect(detonateSigilCardDefinition().rarity).toBe("uncommon");
+    expect(lingeringCurseCardDefinition().rarity).toBe("uncommon");
+  });
+
+  it("mark_of_ruin applies hex and draws a card", () => {
+    const card = markOfRuinCardDefinition();
+    const state = { player: { health: 80, block: 0, energy: 2 }, enemy: { health: 20, hex: 0 }, drawCount: 0 };
+    const next = executeCardEffect(card, state);
+    expect(next.enemy.hex).toBe(MARK_OF_RUIN_HEX);
+    expect(next.drawCount).toBe(1);
+  });
+
+  it("hexblade deals damage and applies hex", () => {
+    const card = hexbladeCardDefinition();
+    const state = { player: { health: 80, block: 0 }, enemy: { health: 30, hex: 0 } };
+    const next = executeCardEffect(card, state);
+    expect(next.enemy.health).toBe(30 - HEXBLADE_DAMAGE);
+    expect(next.enemy.hex).toBe(HEXBLADE_HEX);
+  });
+
+  it("reapers_clause deals base damage regardless of hex (effect layer)", () => {
+    const card = reaperSClauseCardDefinition();
+    const state = { player: { health: 80, block: 0 }, enemy: { health: 30, hex: 0 } };
+    const next = executeCardEffect(card, state);
+    expect(next.enemy.health).toBe(30 - REAPERS_CLAUSE_DAMAGE);
+  });
+
+  it("cremate gains block and signals exhaustFromHand", () => {
+    const card = cremateCardDefinition();
+    const state = { player: { health: 80, block: 0 }, enemy: { health: 30 } };
+    const next = executeCardEffect(card, state);
+    expect(next.player.block).toBe(CREMATE_BLOCK);
+    expect(next.exhaustFromHand).toBe(true);
+  });
+
+  it("grave_fuel gains energy equal to exhaustedThisTurn", () => {
+    const card = graveFuelCardDefinition();
+    const state = { player: { health: 80, block: 0, energy: 1 }, enemy: { health: 30 }, exhaustedThisTurn: 2 };
+    const next = executeCardEffect(card, state);
+    expect(next.player.energy).toBe(3);
+  });
+
+  it("grave_fuel gains 0 energy when nothing was exhausted", () => {
+    const card = graveFuelCardDefinition();
+    const state = { player: { health: 80, block: 0, energy: 1 }, enemy: { health: 30 }, exhaustedThisTurn: 0 };
+    const next = executeCardEffect(card, state);
+    expect(next.player.energy).toBe(1);
+  });
+
+  it("harvester deals base damage, plus bonus vs hexed and vs exhausted", () => {
+    const card = harvesterCardDefinition();
+    const base = { player: { health: 80, block: 0 }, enemy: { health: 30, hex: 0 }, exhaustedThisTurn: 0 };
+    const hexed = { ...base, enemy: { ...base.enemy, hex: 1 } };
+    const exhausted = { ...base, exhaustedThisTurn: 1 };
+    const both = { ...hexed, exhaustedThisTurn: 1 };
+
+    expect(executeCardEffect(card, base).enemy.health).toBe(30 - HARVESTER_DAMAGE);
+    expect(executeCardEffect(card, hexed).enemy.health).toBe(30 - HARVESTER_DAMAGE - HARVESTER_BONUS);
+    expect(executeCardEffect(card, exhausted).enemy.health).toBe(30 - HARVESTER_DAMAGE - HARVESTER_BONUS);
+    expect(executeCardEffect(card, both).enemy.health).toBe(30 - HARVESTER_DAMAGE - HARVESTER_BONUS - HARVESTER_BONUS);
+  });
+
+  it("charge_up sets charged and draws a card", () => {
+    const card = chargeUpCardDefinition();
+    const state = { player: { health: 80, block: 0, charged: false }, enemy: { health: 30 }, drawCount: 0 };
+    const next = executeCardEffect(card, state);
+    expect(next.player.charged).toBe(true);
+    expect(next.drawCount).toBe(1);
+  });
+
+  it("arc_lash deals damage and draws if charged", () => {
+    const card = arcLashCardDefinition();
+    const uncharged = { player: { health: 80, block: 0, charged: false }, enemy: { health: 30 }, drawCount: 0 };
+    const charged = { ...uncharged, player: { ...uncharged.player, charged: true } };
+
+    const afterUncharged = executeCardEffect(card, uncharged);
+    expect(afterUncharged.enemy.health).toBe(30 - ARC_LASH_DAMAGE);
+    expect(afterUncharged.drawCount).toBe(0);
+
+    const afterCharged = executeCardEffect(card, charged);
+    expect(afterCharged.enemy.health).toBe(30 - ARC_LASH_DAMAGE);
+    expect(afterCharged.drawCount).toBe(1);
+  });
+
+  it("blood_pact deals self-damage and gains energy and draws", () => {
+    const card = bloodPactCardDefinition();
+    const state = { player: { health: 80, block: 0, energy: 0 }, enemy: { health: 30 }, drawCount: 0 };
+    const next = executeCardEffect(card, state);
+    expect(next.player.health).toBe(80 - BLOOD_PACT_SELF_DAMAGE);
+    expect(next.player.energy).toBe(BLOOD_PACT_ENERGY);
+    expect(next.drawCount).toBe(1);
+  });
+
+  it("spite_shield grants block and applies hex to enemy", () => {
+    const card = spiteShieldCardDefinition();
+    const state = { player: { health: 80, block: 0 }, enemy: { health: 30, hex: 0 } };
+    const next = executeCardEffect(card, state);
+    expect(next.player.block).toBe(SPITE_SHIELD_BLOCK);
+    expect(next.enemy.hex).toBe(SPITE_SHIELD_HEX);
   });
 });

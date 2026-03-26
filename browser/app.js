@@ -25,29 +25,53 @@
   ];
 
   const CARD_LIBRARY = {
-    strike: { id: "strike", name: "Strike", cost: 1, type: "attack", damage: 6 },
-    defend: { id: "defend", name: "Defend", cost: 1, type: "skill", block: 5 },
-    bash: { id: "bash", name: "Bash", cost: 2, type: "attack", damage: 8 },
-    barrier: { id: "barrier", name: "Barrier", cost: 2, type: "skill", block: 8 },
-    quick_strike: { id: "quick_strike", name: "Quick Strike", cost: 0, type: "attack", damage: 4 },
-    focus: { id: "focus", name: "Focus", cost: 1, type: "skill", energyGain: 1 },
-    volley: { id: "volley", name: "Volley", cost: 1, type: "attack", damage: 5, draw: 1 },
-    surge: { id: "surge", name: "Surge", cost: 0, type: "skill", energyGain: 2, exhaust: true },
-    hex: { id: "hex", name: "Hex", cost: 1, type: "skill", hex: 1, exhaust: true },
-    punish: { id: "punish", name: "Punish", cost: 1, type: "attack", damage: 6, bonusVsHex: 4 },
-    burnout: { id: "burnout", name: "Burnout", cost: 1, type: "attack", damage: 6, bonusVsExhaust: 6 },
-    crackdown: { id: "crackdown", name: "Crackdown", cost: 2, type: "attack", damage: 8, bonusVsHex: 6 },
-    momentum: { id: "momentum", name: "Momentum", cost: 1, type: "skill", block: 5, draw: 1, bonusBlockIfHighEnergy: 2 },
-    wither: { id: "wither", name: "Wither", cost: 1, type: "skill", damage: 3, hex: 1 },
-    siphon_ward: { id: "siphon_ward", name: "Siphon Ward", cost: 1, type: "skill", block: 4, bonusBlockIfHexed: 4 },
-    detonate_sigil: { id: "detonate_sigil", name: "Detonate Sigil", cost: 2, type: "attack", damage: 7, bonusVsHex: 10 },
-    lingering_curse: { id: "lingering_curse", name: "Lingering Curse", cost: 1, type: "skill", hex: 2, exhaust: true }
+    strike: { id: "strike", name: "Strike", cost: 1, type: "attack", rarity: "common", damage: 6 },
+    defend: { id: "defend", name: "Defend", cost: 1, type: "skill", rarity: "common", block: 5 },
+    bash: { id: "bash", name: "Bash", cost: 2, type: "attack", rarity: "common", damage: 8 },
+    barrier: { id: "barrier", name: "Barrier", cost: 2, type: "skill", rarity: "common", block: 8 },
+    quick_strike: { id: "quick_strike", name: "Quick Strike", cost: 0, type: "attack", rarity: "common", damage: 4 },
+    focus: { id: "focus", name: "Focus", cost: 1, type: "skill", rarity: "common", energyGain: 1 },
+    volley: { id: "volley", name: "Volley", cost: 1, type: "attack", rarity: "common", damage: 5, draw: 1 },
+    surge: { id: "surge", name: "Surge", cost: 0, type: "skill", rarity: "uncommon", energyGain: 2, exhaust: true },
+    hex: { id: "hex", name: "Hex", cost: 1, type: "skill", rarity: "uncommon", hex: 1, exhaust: true },
+    punish: { id: "punish", name: "Punish", cost: 1, type: "attack", rarity: "uncommon", damage: 6, bonusVsHex: 4 },
+    burnout: { id: "burnout", name: "Burnout", cost: 1, type: "attack", rarity: "uncommon", damage: 6, bonusVsExhaust: 6 },
+    crackdown: { id: "crackdown", name: "Crackdown", cost: 2, type: "attack", rarity: "uncommon", damage: 8, bonusVsHex: 6 },
+    momentum: { id: "momentum", name: "Momentum", cost: 1, type: "skill", rarity: "uncommon", block: 5, draw: 1, bonusBlockIfHighEnergy: 2 },
+    wither: { id: "wither", name: "Wither", cost: 1, type: "skill", rarity: "uncommon", damage: 3, hex: 1 },
+    siphon_ward: { id: "siphon_ward", name: "Siphon Ward", cost: 1, type: "skill", rarity: "uncommon", block: 4, bonusBlockIfHexed: 4 },
+    detonate_sigil: { id: "detonate_sigil", name: "Detonate Sigil", cost: 2, type: "attack", rarity: "uncommon", damage: 7, bonusVsHex: 10 },
+    lingering_curse: { id: "lingering_curse", name: "Lingering Curse", cost: 1, type: "skill", rarity: "uncommon", hex: 2, exhaust: true },
+    mark_of_ruin: { id: "mark_of_ruin", name: "Mark of Ruin", cost: 1, type: "skill", rarity: "common", hex: 1, draw: 1 },
+    hexblade: { id: "hexblade", name: "Hexblade", cost: 1, type: "attack", rarity: "common", damage: 7, hex: 1 },
+    reapers_clause: { id: "reapers_clause", name: "Reaper's Clause", cost: 2, type: "attack", rarity: "uncommon", damage: 10, costReduceIfHexed: 1 },
+    fire_sale: { id: "fire_sale", name: "Fire Sale", cost: 0, type: "skill", rarity: "common", exhaustFromHand: true, draw: 2 },
+    cremate: { id: "cremate", name: "Cremate", cost: 1, type: "skill", rarity: "common", exhaustFromHand: true, block: 6 },
+    grave_fuel: { id: "grave_fuel", name: "Grave Fuel", cost: 1, type: "skill", rarity: "rare", energyPerExhausted: true },
+    brand_the_soul: { id: "brand_the_soul", name: "Brand the Soul", cost: 1, type: "skill", rarity: "uncommon", hex: 1, exhaustFromHand: true },
+    harvester: { id: "harvester", name: "Harvester", cost: 1, type: "attack", rarity: "rare", damage: 4, bonusVsHexedOrExhausted: 4 },
+    charge_up: { id: "charge_up", name: "Charge Up", cost: 1, type: "skill", rarity: "common", setCharged: true, draw: 1 },
+    arc_lash: { id: "arc_lash", name: "Arc Lash", cost: 1, type: "attack", rarity: "common", damage: 7, drawIfCharged: 1 },
+    blood_pact: { id: "blood_pact", name: "Blood Pact", cost: 0, type: "skill", rarity: "rare", selfDamage: 3, energyGain: 2, draw: 1 },
+    spite_shield: { id: "spite_shield", name: "Spite Shield", cost: 1, type: "skill", rarity: "uncommon", block: 6, hex: 1 }
   };
 
   const RELICS = [
-    { id: "iron_core", name: "Iron Core", description: "+5 max health and heal 5 immediately" },
-    { id: "feather_charm", name: "Feather Charm", description: "+15 gold immediately" },
-    { id: "ember_ring", name: "Ember Ring", description: "Start each combat with +1 energy" }
+    { id: "iron_core", name: "Iron Core", description: "+5 max health and heal 5 immediately", rarity: "common" },
+    { id: "feather_charm", name: "Feather Charm", description: "+15 gold immediately", rarity: "common" },
+    { id: "ember_ring", name: "Ember Ring", description: "Start each combat with +1 energy", rarity: "common" },
+    { id: "bone_token", name: "Bone Token", description: "Heal 3 after each combat victory", rarity: "common" },
+    { id: "rusted_buckler", name: "Rusted Buckler", description: "Start each combat with 4 Block", rarity: "common" },
+    { id: "quickened_loop", name: "Quickened Loop", description: "Draw 1 additional card on the first turn of each combat", rarity: "common" },
+    { id: "worn_grimoire", name: "Worn Grimoire", description: "The first time you apply Hex each combat, apply +1 additional Hex", rarity: "uncommon" },
+    { id: "coal_pendant", name: "Coal Pendant", description: "The first card you Exhaust each combat draws 1 card", rarity: "uncommon" },
+    { id: "hex_nail", name: "Hex Nail", description: "Attack cards deal +2 damage to Hexed enemies", rarity: "uncommon" },
+    { id: "cinder_box", name: "Cinder Box", description: "Whenever you Exhaust a card, gain 2 Block", rarity: "uncommon" },
+    { id: "volt_shard", name: "Volt Shard", description: "When you become Charged, gain 1 Block and draw 1", rarity: "uncommon" },
+    { id: "merchant_ledger", name: "Merchant's Ledger", description: "Card rewards after combat offer 1 extra choice", rarity: "uncommon" },
+    { id: "sigil_engine", name: "Sigil Engine", description: "When an enemy first reaches 3+ Hex in a combat, deal 8 damage to it", rarity: "rare" },
+    { id: "time_locked_seal", name: "Time-Locked Seal", description: "The first card you play each turn that costs 1 or less costs 0", rarity: "rare" },
+    { id: "phoenix_ash", name: "Phoenix Ash", description: "Once per run, if you would die, survive at 1 HP instead", rarity: "rare" }
   ];
 
   const EVENT_TEMPLATES = [
@@ -104,7 +128,14 @@
   }
 
   function createRewardCardOptions(count = 3) {
-    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum", "wither", "siphon_ward", "detonate_sigil", "lingering_curse"];
+    const ids = [
+      "bash", "barrier", "quick_strike", "focus", "volley",
+      "surge", "hex", "punish", "burnout", "crackdown", "momentum", "wither",
+      "siphon_ward", "detonate_sigil", "lingering_curse",
+      "mark_of_ruin", "hexblade", "reapers_clause", "fire_sale", "cremate",
+      "grave_fuel", "brand_the_soul", "harvester", "charge_up", "arc_lash",
+      "blood_pact", "spite_shield"
+    ];
     return pickUniqueItems(ids, count).map((cardId) => createCardFromId(cardId));
   }
 
@@ -235,10 +266,12 @@
   }
 
   function startNewRun() {
+    const [bonusCard] = createRewardCardOptions(1);
     return {
       state: "in_progress",
-      player: { health: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD, deck: [...DEFAULT_STARTER_DECK] },
+      player: { health: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD, deck: [...DEFAULT_STARTER_DECK, bonusCard.id] },
       relics: [],
+      phoenix_used: false,
       combat: null,
       pendingRewards: null,
       event: null,
@@ -294,29 +327,58 @@
     return (run.relics || []).some((relic) => relic.id === "ember_ring") ? 1 : 0;
   }
 
+  function hasRelic(run, id) {
+    return (run.relics || []).some((r) => r.id === id);
+  }
+
   function startCombat(run, node) {
     const enemy = createEnemyForNode(node);
+    const drawCount = hasRelic(run, "quickened_loop") ? 6 : 5;
+    const startingBlock = hasRelic(run, "rusted_buckler") ? 4 : 0;
     return drawCards({
       state: "active",
       turn: "player",
       nodeType: node.type,
       enemyTurnNumber: 0,
       enemyIntent: resolveEnemyIntent(enemy, 0),
-      player: { health: run.player.health, block: 0, energy: DEFAULT_PLAYER_ENERGY + getEnergyBonus(run) },
+      firstTurn: true,
+      grimoire_used: false,
+      coal_pendant_used: false,
+      sigil_fired: false,
+      seal_used_this_turn: false,
+      player: { health: run.player.health, block: startingBlock, energy: DEFAULT_PLAYER_ENERGY + getEnergyBonus(run), charged: false },
       hand: [],
       drawPile: shuffleCards(run.player.deck.map(createCardFromId)),
       discardPile: [],
       exhaustPile: [],
+      exhaustedThisTurn: 0,
       enemy
-    }, 5);
+    }, drawCount);
   }
 
-  function createVictoryRewards(nodeType, nodeId = "r0c0") {
+  function createVictoryRewards(nodeType, nodeId = "r0c0", run = null) {
+    const merchantBonus = run && hasRelic(run, "merchant_ledger") ? 1 : 0;
+    const cardCount = 3 + merchantBonus;
+
+    if (nodeType === "elite") {
+      const relicPool = RELICS.filter((r) => r.rarity === "common" || r.rarity === "uncommon");
+      return {
+        cards: createRewardCardOptions(cardCount),
+        gold: 25,
+        relic: null,
+        relics: pickUniqueItems(relicPool, 3),
+        removeCard: true
+      };
+    }
+
+    const bossRelicPool = RELICS.filter((r) => r.rarity === "uncommon" || r.rarity === "rare");
+    const relicIndex = nodeId.length % bossRelicPool.length;
     return {
-      cards: createRewardCardOptions(nodeId.length % 7),
-      gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
-      relic: ["elite", "boss"].includes(nodeType) ? RELICS[nodeType === "boss" ? 2 : 1] : null,
-      removeCard: nodeType === "elite"
+      cards: createRewardCardOptions(cardCount),
+      gold: nodeType === "boss" ? 50 : 12,
+      relic: nodeType === "boss" ? bossRelicPool[relicIndex] : null,
+      relics: [],
+      removeCard: false
     };
   }
 
@@ -353,29 +415,51 @@
   }
 
   function applyVictory(run, combat) {
-    const rewards = createVictoryRewards(combat.nodeType, run.map.currentNodeId || "r0c0");
+    const rewards = createVictoryRewards(combat.nodeType, run.map.currentNodeId || "r0c0", run);
+    const boneTokenHeal = hasRelic(run, "bone_token") ? 3 : 0;
     return {
       ...run,
-      player: { ...run.player, health: combat.player.health, gold: run.player.gold + rewards.gold },
+      player: { ...run.player, health: combat.player.health + boneTokenHeal, gold: run.player.gold + rewards.gold },
       combat,
       pendingRewards: rewards
     };
   }
 
-  function playCardAtIndex(combat, handIndex) {
+  function playCardAtIndex(combat, handIndex, run = null) {
     const card = combat.hand[handIndex];
     if (!card) throw new Error("Card not found in hand");
     if (combat.turn !== "player") throw new Error("It is not the player's turn");
-    if (combat.player.energy < card.cost) throw new Error("Not enough energy");
+
+    // Effective cost (costReduceIfHexed reduces cost by 1 if enemy is hexed)
+    let effectiveCost = card.costReduceIfHexed && (combat.enemy.hex || 0) > 0
+      ? Math.max(0, card.cost - card.costReduceIfHexed)
+      : card.cost;
+
+    // Time-Locked Seal: first card costing 1 or less each turn costs 0
+    if (run && hasRelic(run, "time_locked_seal") && !combat.seal_used_this_turn && effectiveCost <= 1) {
+      effectiveCost = 0;
+    }
+
+    if (combat.player.energy < effectiveCost) throw new Error("Not enough energy");
 
     let next = clone(combat);
-    next.player.energy -= card.cost;
+
+    // Mark seal as used this turn (for any card with cost ≤ 1, whether or not it was discounted)
+    if (run && hasRelic(run, "time_locked_seal") && !next.seal_used_this_turn && card.cost <= 1) {
+      next.seal_used_this_turn = true;
+    }
+
+    next.player.energy -= effectiveCost;
     next.hand.splice(handIndex, 1);
 
-    if (card.damage || card.bonusVsHex || card.bonusVsExhaust) {
-      const totalDamage = (card.damage || 0)
-        + (((next.enemy.hex || 0) > 0 && card.bonusVsHex) ? card.bonusVsHex : 0)
-        + (((next.exhaustPile || []).length > 0 && card.bonusVsExhaust) ? card.bonusVsExhaust : 0);
+    if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted) {
+      const hexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHex ? card.bonusVsHex : 0;
+      const exhaustBonus = (next.exhaustPile || []).length > 0 && card.bonusVsExhaust ? card.bonusVsExhaust : 0;
+      const harvesterHexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHexedOrExhausted ? card.bonusVsHexedOrExhausted : 0;
+      const harvesterExhaustBonus = (next.exhaustedThisTurn || 0) > 0 && card.bonusVsHexedOrExhausted ? card.bonusVsHexedOrExhausted : 0;
+      // Hex Nail: attack cards deal +2 damage to hexed enemies
+      const hexNailBonus = run && hasRelic(run, "hex_nail") && card.type === "attack" && (next.enemy.hex || 0) > 0 ? 2 : 0;
+      const totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus;
       const blocked = Math.min(next.enemy.block || 0, totalDamage);
       const remainingDamage = totalDamage - blocked;
       next.enemy.block = (next.enemy.block || 0) - blocked;
@@ -383,13 +467,68 @@
     }
     if (card.block) {
       next.player.block += card.block + (((next.player.energy ?? 0) >= 2 && card.bonusBlockIfHighEnergy) ? card.bonusBlockIfHighEnergy : 0);
+      if (card.bonusBlockIfHexed && (next.enemy.hex || 0) > 0) {
+        next.player.block += card.bonusBlockIfHexed;
+      }
     }
     if (card.energyGain) next.player.energy += card.energyGain;
-    if (card.hex) next.enemy.hex = (next.enemy.hex || 0) + card.hex;
+    if (card.energyPerExhausted) next.player.energy += (next.exhaustedThisTurn || 0);
+    if (card.selfDamage) next.player.health = Math.max(0, next.player.health - card.selfDamage);
+    if (card.hex) {
+      const hexAmount = card.hex + (run && hasRelic(run, "worn_grimoire") && !next.grimoire_used ? 1 : 0);
+      if (run && hasRelic(run, "worn_grimoire") && !next.grimoire_used && card.hex > 0) {
+        next.grimoire_used = true;
+      }
+      next.enemy.hex = (next.enemy.hex || 0) + hexAmount;
+      // Sigil Engine: first time enemy reaches 3+ hex, deal 8 damage
+      if (run && hasRelic(run, "sigil_engine") && !next.sigil_fired && (next.enemy.hex || 0) >= 3) {
+        const sigBlocked = Math.min(next.enemy.block || 0, 8);
+        next.enemy.block = (next.enemy.block || 0) - sigBlocked;
+        next.enemy.health -= (8 - sigBlocked);
+        next.sigil_fired = true;
+      }
+    }
+    if (card.setCharged) {
+      next.player.charged = true;
+      // Volt Shard: when becoming Charged, gain 1 block and draw 1
+      if (run && hasRelic(run, "volt_shard")) {
+        next.player.block += 1;
+        next = drawCards(next, 1);
+      }
+    }
     if (card.draw) next = drawCards(next, card.draw);
+    if (card.drawIfCharged && next.player.charged) next = drawCards(next, card.drawIfCharged);
+    if (card.energyIfCharged && next.player.charged) next.player.energy += card.energyIfCharged;
+
+    // exhaustFromHand: exhaust a random card from the current hand (after removal of played card)
+    if (card.exhaustFromHand && next.hand.length > 0) {
+      const randomIndex = Math.floor(Math.random() * next.hand.length);
+      const exhausted = next.hand.splice(randomIndex, 1)[0];
+      next.exhaustPile = [...(next.exhaustPile || []), exhausted];
+      next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
+      // Coal Pendant: first exhaust each combat draws 1 card
+      if (run && hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
+        next = drawCards(next, 1);
+        next.coal_pendant_used = true;
+      }
+      // Cinder Box: gain 2 block per exhaust
+      if (run && hasRelic(run, "cinder_box")) {
+        next.player.block += 2;
+      }
+    }
 
     if (card.exhaust) {
       next.exhaustPile = [...(next.exhaustPile || []), card];
+      next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
+      // Coal Pendant: first exhaust each combat draws 1 card
+      if (run && hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
+        next = drawCards(next, 1);
+        next.coal_pendant_used = true;
+      }
+      // Cinder Box: gain 2 block per exhaust
+      if (run && hasRelic(run, "cinder_box")) {
+        next.player.block += 2;
+      }
     }
     else {
       next.discardPile = [...(next.discardPile || []), card];
@@ -451,12 +590,23 @@
     let next = applyEnemyIntent(combat, combat.enemyIntent);
     next.player.block = 0;
     next.player.energy = DEFAULT_PLAYER_ENERGY + getEnergyBonus(run);
+    next.player.charged = false;
+    next.exhaustedThisTurn = 0;
+    next.firstTurn = false;
+    next.seal_used_this_turn = false;
 
     if (next.player.health <= 0) {
-      next.state = "defeat";
-      next.turn = null;
-      next.enemyIntent = null;
-      return next;
+      // Phoenix Ash: survive death once per run at 1 HP
+      if (run && hasRelic(run, "phoenix_ash") && !run.phoenix_used) {
+        next.player.health = 1;
+        run.phoenix_used = true;
+      }
+      else {
+        next.state = "defeat";
+        next.turn = null;
+        next.enemyIntent = null;
+        return next;
+      }
     }
 
     next.discardPile = [...(next.discardPile || []), ...(next.hand || [])];
@@ -473,49 +623,72 @@
     const nextRun = { ...run, relics: [...(run.relics || []), relic], player: { ...run.player } };
     if (relic.id === "iron_core") nextRun.player.health += 5;
     if (relic.id === "feather_charm") nextRun.player.gold += 15;
+    // All other relics have no immediate acquisition effect; they trigger during combat or post-combat
     return nextRun;
   }
 
   function describeCard(card) {
     const parts = [];
+    if (card.rarity) parts.push(`[${card.rarity}]`);
     if (card.cost !== undefined) parts.push(`Cost ${card.cost}`);
+    if (card.costReduceIfHexed) parts.push(`(costs ${card.costReduceIfHexed} less if Hexed)`);
     if (card.damage) parts.push(`Dmg ${card.damage}`);
     if (card.block) parts.push(`Block ${card.block}`);
     if (card.draw) parts.push(`Draw ${card.draw}`);
     if (card.energyGain) parts.push(`+${card.energyGain} energy`);
+    if (card.energyPerExhausted) parts.push("+1 energy per exhausted this turn");
     if (card.hex) parts.push(`Hex ${card.hex}`);
     if (card.bonusVsHex) parts.push(`+${card.bonusVsHex} vs Hex`);
     if (card.bonusVsExhaust) parts.push(`+${card.bonusVsExhaust} vs Exhaust`);
-    if (card.bonusBlockIfHighEnergy) parts.push(`+${card.bonusBlockIfHighEnergy} block if charged`);
+    if (card.bonusVsHexedOrExhausted) parts.push(`+${card.bonusVsHexedOrExhausted} if Hexed, +${card.bonusVsHexedOrExhausted} if Exhausted this turn`);
+    if (card.bonusBlockIfHighEnergy) parts.push(`+${card.bonusBlockIfHighEnergy} block if 2+ energy`);
     if (card.bonusBlockIfHexed) parts.push(`+${card.bonusBlockIfHexed} block vs Hexed`);
+    if (card.setCharged) parts.push("Become Charged");
+    if (card.drawIfCharged) parts.push(`Draw ${card.drawIfCharged} if Charged`);
+    if (card.selfDamage) parts.push(`Lose ${card.selfDamage} HP`);
+    if (card.exhaustFromHand) parts.push("Exhaust a random card from hand");
     if (card.exhaust) parts.push("Exhaust");
     return parts.join(" • ");
   }
 
   function finishNode(run) {
-    const isBossRow = run.map.currentNodeId === `r${run.map.rows - 1}c1`;
+    const currentNode = run.map.nodes.find((n) => n.id === run.map.currentNodeId);
+    const isBossNode = currentNode && currentNode.type === "boss";
     return {
       ...run,
       combat: null,
       pendingRewards: null,
       event: null,
-      state: isBossRow ? "won" : "in_progress"
+      state: isBossNode ? "won" : "in_progress"
     };
   }
 
+  function afterCardSelection(run) {
+    if (run.pendingRewards && run.pendingRewards.removeCard) {
+      return { ...run, pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true } };
+    }
+    return finishNode(run);
+  }
+
   function claimCardReward(run, card) {
-    return finishNode({
+    return afterCardSelection({
       ...run,
       player: { ...run.player, deck: [...run.player.deck, card.id] }
     });
   }
 
+  function claimRelicFromChoices(run, relic) {
+    // Elite flow: pick one of 3 relics, then move to card selection phase
+    const updated = applyRelic(run, relic);
+    return { ...updated, pendingRewards: { ...updated.pendingRewards, relics: [] } };
+  }
+
   function claimRelicReward(run, relic) {
-    return finishNode(applyRelic(run, relic));
+    return afterCardSelection(applyRelic(run, relic));
   }
 
   function skipRewards(run) {
-    return finishNode(run);
+    return afterCardSelection(run);
   }
 
   function claimEventOption(run, option) {
@@ -583,7 +756,9 @@
     exhaustPileCount: document.getElementById("exhaust-pile-count"),
     combatTurn: document.getElementById("combat-turn"),
     endStateCard: document.getElementById("end-state-card"),
-    endStateText: document.getElementById("end-state-text")
+    endStateText: document.getElementById("end-state-text"),
+    combatSection: document.querySelector("section.combat"),
+    rewardsSection: document.querySelector("section.rewards")
   };
 
   let currentRun = startNewRun();
@@ -660,7 +835,7 @@
       button.disabled = combat.turn !== "player" || combat.state !== "active";
       button.addEventListener("click", () => {
         try {
-          const updatedCombat = playCardAtIndex(currentRun.combat, index);
+          const updatedCombat = playCardAtIndex(currentRun.combat, index, currentRun);
           currentRun = updatedCombat.state === "victory"
             ? applyVictory(currentRun, updatedCombat)
             : { ...currentRun, combat: updatedCombat, player: { ...currentRun.player, health: updatedCombat.player.health } };
@@ -674,6 +849,19 @@
       });
       elements.handActions.appendChild(button);
     });
+
+    if (combat.state === "active") {
+      const debugButton = document.createElement("button");
+      debugButton.className = "node-button";
+      debugButton.textContent = "[debug] Skip combat";
+      debugButton.addEventListener("click", () => {
+        const wonCombat = { ...currentRun.combat, state: "victory", enemy: { ...currentRun.combat.enemy, health: 0 } };
+        currentRun = applyVictory(currentRun, wonCombat);
+        render();
+        setStatus(`[debug] Skipped combat against ${wonCombat.enemy.name}.`);
+      });
+      elements.handActions.appendChild(debugButton);
+    }
   }
 
   function renderRewards() {
@@ -692,6 +880,9 @@
           button.innerHTML = `${option.label}<br />${option.cards
             .map((card) => `${card.name} (${describeCard(card)})`)
             .join('<br />')}`;
+        }
+        else if (option.relic) {
+          button.innerHTML = `${option.label}<br />${option.relic.description}`;
         }
         else {
           button.textContent = option.label;
@@ -712,14 +903,34 @@
       return;
     }
 
-    const { cards, gold, relic, removeCard } = currentRun.pendingRewards;
-    elements.rewardSummary.textContent = removeCard
-      ? "Choose a card to remove from your deck."
-      : `Victory rewards: +${gold} gold${relic ? ` and optional relic ${relic.name}` : ""}. Pick exactly one reward or skip.`;
+    const { cards, gold, relic, relics = [], removeCard } = currentRun.pendingRewards;
+    const inRemovalPhase = removeCard && cards.length === 0 && !relic && relics.length === 0;
 
-    if (removeCard) {
+    if (inRemovalPhase) {
+      elements.rewardSummary.textContent = "Elite bonus: remove a card from your deck below, or skip removal.";
       return;
     }
+
+    // Elite phase 1: pick one of 3 relics
+    if (relics.length > 0) {
+      elements.rewardSummary.textContent = `Elite rewards: +${gold} gold. Choose a relic, then pick a card reward.`;
+      relics.forEach((r) => {
+        const button = document.createElement("button");
+        button.className = "node-button";
+        button.innerHTML = `${r.name}<br />${r.description}<br />Claim relic`;
+        button.addEventListener("click", () => {
+          currentRun = claimRelicFromChoices(currentRun, r);
+          render();
+          setStatus(`Claimed relic ${r.name}.`);
+        });
+        elements.rewardActions.appendChild(button);
+      });
+      return;
+    }
+
+    elements.rewardSummary.textContent = removeCard
+      ? `Elite rewards: pick a card reward or skip, then remove a card below.`
+      : `Victory rewards: +${gold} gold${relic ? ` and optional relic ${relic.name}` : ""}. Pick exactly one reward or skip.`;
 
     cards.forEach((card) => {
       const button = document.createElement("button");
@@ -736,7 +947,7 @@
     if (relic) {
       const relicButton = document.createElement("button");
       relicButton.className = "node-button";
-      relicButton.innerHTML = `${relic.name}<br />Claim relic`;
+      relicButton.innerHTML = `${relic.name}<br />${relic.description}<br />Claim relic`;
       relicButton.addEventListener("click", () => {
         currentRun = claimRelicReward(currentRun, relic);
         render();
@@ -772,6 +983,17 @@
       });
       elements.removalActions.appendChild(button);
     });
+
+    const skipRemovalButton = document.createElement("button");
+    skipRemovalButton.className = "node-button";
+    skipRemovalButton.textContent = "Skip removal";
+    skipRemovalButton.addEventListener("click", () => {
+      currentRun = finishNode(currentRun);
+      removalModeOpen = false;
+      render();
+      setStatus("Skipped card removal.");
+    });
+    elements.removalActions.appendChild(skipRemovalButton);
   }
 
   function renderEndState() {
@@ -811,6 +1033,11 @@
       item.textContent = `${relic.name} — ${relic.description}`;
       elements.relicList.appendChild(item);
     });
+
+    const hasCombat = !!(currentRun.combat && currentRun.combat.state === "active");
+    const hasRewards = !!(currentRun.pendingRewards || currentRun.event);
+    elements.combatSection.classList.toggle("hidden", !hasCombat);
+    elements.rewardsSection.classList.toggle("hidden", !hasRewards);
 
     renderMap();
     renderCombat();

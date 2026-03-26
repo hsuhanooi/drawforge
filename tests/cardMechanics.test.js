@@ -7,7 +7,12 @@ const {
   punishCardDefinition,
   burnoutCardDefinition,
   crackdownCardDefinition,
-  momentumCardDefinition
+  momentumCardDefinition,
+  chargeUpCardDefinition,
+  arcLashCardDefinition,
+  bloodPactCardDefinition,
+  graveFuelCardDefinition,
+  harvesterCardDefinition
 } = require("../src/cards");
 
 describe("advanced card mechanics", () => {
@@ -79,5 +84,107 @@ describe("advanced card mechanics", () => {
     const played = playCard({ ...combat, hand: [momentum] }, momentum).combat;
 
     expect(played.player.block).toBe(7);
+  });
+});
+
+describe("charged mechanic", () => {
+  it("charge_up sets player.charged to true", () => {
+    const chargeUp = chargeUpCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 20 }
+    }));
+    const withHand = { ...combat, hand: [chargeUp], player: { ...combat.player, charged: false } };
+
+    const result = playCard(withHand, chargeUp);
+
+    expect(result.rejected).toBe(false);
+    expect(result.combat.player.charged).toBe(true);
+  });
+
+  it("arc_lash draws only when charged", () => {
+    const arcLash = arcLashCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 30 }
+    }));
+    const withHand = { ...combat, hand: [arcLash], player: { ...combat.player, charged: false } };
+
+    const result = playCard(withHand, arcLash);
+
+    // drawCount accumulates via effect but the node-based playCard does not execute draw mechanics
+    // The effect sets drawCount; the actual draw happens downstream in the node/browser layer
+    // Here we just confirm the effect fires (health decreases) and drawCount when uncharged stays 0
+    expect(result.combat.enemy.health).toBeLessThan(30);
+    expect(result.combat.drawCount || 0).toBe(0);
+  });
+
+  it("arc_lash increments drawCount when charged", () => {
+    const arcLash = arcLashCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 30 }
+    }));
+    const charged = { ...combat, hand: [arcLash], player: { ...combat.player, charged: true }, drawCount: 0 };
+
+    const result = playCard(charged, arcLash);
+
+    expect(result.combat.drawCount).toBe(1);
+  });
+});
+
+describe("exhaustedThisTurn counter", () => {
+  it("grave_fuel gains energy equal to exhaustedThisTurn on the combat state", () => {
+    const graveFuel = graveFuelCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 20 }
+    }));
+    const withHand = {
+      ...combat,
+      hand: [graveFuel],
+      exhaustedThisTurn: 3,
+      player: { ...combat.player, energy: 1 }
+    };
+
+    const result = playCard(withHand, graveFuel);
+
+    expect(result.rejected).toBe(false);
+    // Started with 1 energy, spent 1 on grave_fuel, gained 3 from exhaustedThisTurn
+    expect(result.combat.player.energy).toBe(3);
+  });
+
+  it("blood_pact applies self-damage and grants energy", () => {
+    const bloodPact = bloodPactCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 20 }
+    }));
+    const withHand = { ...combat, hand: [bloodPact], player: { ...combat.player, energy: 0 } };
+
+    const result = playCard(withHand, bloodPact);
+
+    expect(result.rejected).toBe(false);
+    expect(result.combat.player.health).toBe(77); // 80 - 3 self-damage
+    expect(result.combat.player.energy).toBe(2); // 0 - 0 cost + 2 energy gain
+  });
+
+  it("harvester deals bonus damage vs hexed and vs exhausted this turn", () => {
+    const harvester = harvesterCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 30 }
+    }));
+    const hexedAndExhausted = {
+      ...combat,
+      hand: [harvester],
+      enemy: { ...combat.enemy, hex: 1 },
+      exhaustedThisTurn: 1
+    };
+
+    const result = playCard(hexedAndExhausted, harvester);
+
+    // 4 base + 4 hex bonus + 4 exhaust bonus = 12
+    expect(result.combat.enemy.health).toBe(30 - 12);
   });
 });

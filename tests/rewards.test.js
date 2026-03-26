@@ -57,4 +57,41 @@ describe("combat rewards", () => {
     expect(eliteRewards.relic).not.toBeNull();
     expect(bossRewards.gold).toBeGreaterThan(eliteRewards.gold);
   });
+
+  it("elite rewards include card options alongside the removeCard flag", () => {
+    const eliteRewards = createVictoryRewards("elite");
+
+    expect(Array.isArray(eliteRewards.cards)).toBe(true);
+    expect(eliteRewards.cards.length).toBeGreaterThan(0);
+    expect(eliteRewards.removeCard).toBe(true);
+  });
+
+  it("normal combat rewards do not set removeCard", () => {
+    const combatRewards = createVictoryRewards("combat");
+
+    expect(combatRewards.removeCard).toBeFalsy();
+    expect(combatRewards.cards.length).toBeGreaterThan(0);
+  });
+
+  it("reward pool includes new cards from the expanded set", () => {
+    const options = createRewardOptions(29);
+    const ids = options.map((card) => card.id);
+    expect(ids).toEqual(expect.arrayContaining([
+      "mark_of_ruin", "hexblade", "reapers_clause", "fire_sale", "cremate",
+      "grave_fuel", "brand_the_soul", "harvester", "charge_up", "arc_lash",
+      "blood_pact", "spite_shield"
+    ]));
+  });
+
+  it("weighted rarity pool produces more commons than rares over many samples", () => {
+    // Run 100 reward draws of 1 card each and count rarity occurrences
+    let commonCount = 0;
+    let rareCount = 0;
+    for (let i = 0; i < 100; i += 1) {
+      const [card] = createRewardOptions(1);
+      if (card.rarity === "common") commonCount += 1;
+      if (card.rarity === "rare") rareCount += 1;
+    }
+    expect(commonCount).toBeGreaterThan(rareCount);
+  });
 });

@@ -33,4 +33,11 @@ describe("expanded run content", () => {
     expect(bossRewards.relic).not.toBeNull();
     expect(bossRewards.gold).toBeGreaterThan(eliteRewards.gold);
   });
+
+  it("elite rewards include a relic with rarity common or uncommon", () => {
+    for (let i = 0; i < 20; i += 1) {
+      const eliteRewards = createVictoryRewards("elite");
+      expect(["common", "uncommon"]).toContain(eliteRewards.relic.rarity);
+    }
+  });
 });

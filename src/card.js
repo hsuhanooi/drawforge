@@ -7,13 +7,14 @@
  * @param {CardDefinitionInput} definition
  * @returns {Card}
  */
-const createCard = ({ id, name, cost, type, effect, exhaust = false }) => ({
+const createCard = ({ id, name, cost, type, effect, exhaust = false, rarity = "common" }) => ({
   id,
   name,
   cost,
   type,
   effect,
-  exhaust
+  exhaust,
+  rarity
 });
 
 module.exports = {

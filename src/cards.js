@@ -21,6 +21,21 @@ const DETONATE_SIGIL_DAMAGE = 7;
 const DETONATE_SIGIL_HEX_BONUS = 10;
 const LINGERING_CURSE_HEX = 2;
 
+// New card constants
+const CREMATE_BLOCK = 6;
+const MARK_OF_RUIN_HEX = 1;
+const HEXBLADE_DAMAGE = 7;
+const HEXBLADE_HEX = 1;
+const REAPERS_CLAUSE_DAMAGE = 10;
+const BRAND_THE_SOUL_HEX = 1;
+const HARVESTER_DAMAGE = 4;
+const HARVESTER_BONUS = 4;
+const ARC_LASH_DAMAGE = 7;
+const BLOOD_PACT_SELF_DAMAGE = 3;
+const BLOOD_PACT_ENERGY = 2;
+const SPITE_SHIELD_BLOCK = 6;
+const SPITE_SHIELD_HEX = 1;
+
 /** @returns {Card} */
 const strikeCardDefinition = () =>
   createCard({
@@ -28,6 +43,7 @@ const strikeCardDefinition = () =>
     name: "Strike",
     cost: 1,
     type: "attack",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -45,6 +61,7 @@ const defendCardDefinition = () =>
     name: "Defend",
     cost: 1,
     type: "skill",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -62,6 +79,7 @@ const bashCardDefinition = () =>
     name: "Bash",
     cost: 2,
     type: "attack",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -79,6 +97,7 @@ const barrierCardDefinition = () =>
     name: "Barrier",
     cost: 2,
     type: "skill",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -96,6 +115,7 @@ const quickStrikeCardDefinition = () =>
     name: "Quick Strike",
     cost: 0,
     type: "attack",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -113,6 +133,7 @@ const focusCardDefinition = () =>
     name: "Focus",
     cost: 1,
     type: "skill",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -130,6 +151,7 @@ const volleyCardDefinition = () =>
     name: "Volley",
     cost: 1,
     type: "attack",
+    rarity: "common",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -149,6 +171,7 @@ const surgeCardDefinition = () =>
     cost: 0,
     type: "skill",
     exhaust: true,
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -167,6 +190,7 @@ const hexCardDefinition = () =>
     cost: 1,
     type: "skill",
     exhaust: true,
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -184,6 +208,7 @@ const punishCardDefinition = () =>
     name: "Punish",
     cost: 1,
     type: "attack",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -201,6 +226,7 @@ const burnoutCardDefinition = () =>
     name: "Burnout",
     cost: 1,
     type: "attack",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -218,6 +244,7 @@ const crackdownCardDefinition = () =>
     name: "Crackdown",
     cost: 2,
     type: "attack",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -235,6 +262,7 @@ const momentumCardDefinition = () =>
     name: "Momentum",
     cost: 1,
     type: "skill",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -253,6 +281,7 @@ const witherCardDefinition = () =>
     name: "Wither",
     cost: 1,
     type: "skill",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -271,6 +300,7 @@ const siphonWardCardDefinition = () =>
     name: "Siphon Ward",
     cost: 1,
     type: "skill",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -288,6 +318,7 @@ const detonateSigilCardDefinition = () =>
     name: "Detonate Sigil",
     cost: 2,
     type: "attack",
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
@@ -306,12 +337,245 @@ const lingeringCurseCardDefinition = () =>
     cost: 1,
     type: "skill",
     exhaust: true,
+    rarity: "uncommon",
     /** @param {CombatState} state */
     effect: (state) => ({
       ...state,
       enemy: {
         ...state.enemy,
         hex: (state.enemy.hex || 0) + LINGERING_CURSE_HEX
+      }
+    })
+  });
+
+// ── New cards ──────────────────────────────────────────────────────────────
+
+/** @returns {Card} */
+const markOfRuinCardDefinition = () =>
+  createCard({
+    id: "mark_of_ruin",
+    name: "Mark of Ruin",
+    cost: 1,
+    type: "skill",
+    rarity: "common",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        hex: (state.enemy.hex || 0) + MARK_OF_RUIN_HEX
+      },
+      drawCount: (state.drawCount || 0) + 1
+    })
+  });
+
+/** @returns {Card} */
+const hexbladeCardDefinition = () =>
+  createCard({
+    id: "hexblade",
+    name: "Hexblade",
+    cost: 1,
+    type: "attack",
+    rarity: "common",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - HEXBLADE_DAMAGE,
+        hex: (state.enemy.hex || 0) + HEXBLADE_HEX
+      }
+    })
+  });
+
+/** @returns {Card} */
+const reaperSClauseCardDefinition = () =>
+  createCard({
+    id: "reapers_clause",
+    name: "Reaper's Clause",
+    cost: 2,
+    type: "attack",
+    rarity: "uncommon",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - REAPERS_CLAUSE_DAMAGE
+      }
+    })
+  });
+
+/** @returns {Card} */
+const fireSaleCardDefinition = () =>
+  createCard({
+    id: "fire_sale",
+    name: "Fire Sale",
+    cost: 0,
+    type: "skill",
+    rarity: "common",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      exhaustFromHand: true,
+      drawCount: (state.drawCount || 0) + 2
+    })
+  });
+
+/** @returns {Card} */
+const cremateCardDefinition = () =>
+  createCard({
+    id: "cremate",
+    name: "Cremate",
+    cost: 1,
+    type: "skill",
+    rarity: "common",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        block: state.player.block + CREMATE_BLOCK
+      },
+      exhaustFromHand: true
+    })
+  });
+
+/** @returns {Card} */
+const graveFuelCardDefinition = () =>
+  createCard({
+    id: "grave_fuel",
+    name: "Grave Fuel",
+    cost: 1,
+    type: "skill",
+    rarity: "rare",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        energy: (state.player.energy ?? 0) + (state.exhaustedThisTurn || 0)
+      }
+    })
+  });
+
+/** @returns {Card} */
+const brandTheSoulCardDefinition = () =>
+  createCard({
+    id: "brand_the_soul",
+    name: "Brand the Soul",
+    cost: 1,
+    type: "skill",
+    rarity: "uncommon",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        hex: (state.enemy.hex || 0) + BRAND_THE_SOUL_HEX
+      },
+      exhaustFromHand: true
+    })
+  });
+
+/** @returns {Card} */
+const harvesterCardDefinition = () =>
+  createCard({
+    id: "harvester",
+    name: "Harvester",
+    cost: 1,
+    type: "attack",
+    rarity: "rare",
+    /** @param {CombatState} state */
+    effect: (state) => {
+      const hexBonus = (state.enemy.hex || 0) > 0 ? HARVESTER_BONUS : 0;
+      const exhaustBonus = (state.exhaustedThisTurn || 0) > 0 ? HARVESTER_BONUS : 0;
+      return {
+        ...state,
+        enemy: {
+          ...state.enemy,
+          health: state.enemy.health - HARVESTER_DAMAGE - hexBonus - exhaustBonus
+        }
+      };
+    }
+  });
+
+/** @returns {Card} */
+const chargeUpCardDefinition = () =>
+  createCard({
+    id: "charge_up",
+    name: "Charge Up",
+    cost: 1,
+    type: "skill",
+    rarity: "common",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        charged: true
+      },
+      drawCount: (state.drawCount || 0) + 1
+    })
+  });
+
+/** @returns {Card} */
+const arcLashCardDefinition = () =>
+  createCard({
+    id: "arc_lash",
+    name: "Arc Lash",
+    cost: 1,
+    type: "attack",
+    rarity: "common",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - ARC_LASH_DAMAGE
+      },
+      drawCount: state.player.charged ? (state.drawCount || 0) + 1 : (state.drawCount || 0)
+    })
+  });
+
+/** @returns {Card} */
+const bloodPactCardDefinition = () =>
+  createCard({
+    id: "blood_pact",
+    name: "Blood Pact",
+    cost: 0,
+    type: "skill",
+    rarity: "rare",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        health: state.player.health - BLOOD_PACT_SELF_DAMAGE,
+        energy: (state.player.energy ?? 0) + BLOOD_PACT_ENERGY
+      },
+      drawCount: (state.drawCount || 0) + 1
+    })
+  });
+
+/** @returns {Card} */
+const spiteShieldCardDefinition = () =>
+  createCard({
+    id: "spite_shield",
+    name: "Spite Shield",
+    cost: 1,
+    type: "skill",
+    rarity: "uncommon",
+    /** @param {CombatState} state */
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        block: state.player.block + SPITE_SHIELD_BLOCK
+      },
+      enemy: {
+        ...state.enemy,
+        hex: (state.enemy.hex || 0) + SPITE_SHIELD_HEX
       }
     })
   });
@@ -332,6 +596,18 @@ module.exports = {
   DETONATE_SIGIL_DAMAGE,
   DETONATE_SIGIL_HEX_BONUS,
   LINGERING_CURSE_HEX,
+  MARK_OF_RUIN_HEX,
+  HEXBLADE_DAMAGE,
+  HEXBLADE_HEX,
+  REAPERS_CLAUSE_DAMAGE,
+  CREMATE_BLOCK,
+  HARVESTER_DAMAGE,
+  HARVESTER_BONUS,
+  ARC_LASH_DAMAGE,
+  BLOOD_PACT_SELF_DAMAGE,
+  BLOOD_PACT_ENERGY,
+  SPITE_SHIELD_BLOCK,
+  SPITE_SHIELD_HEX,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
@@ -348,5 +624,17 @@ module.exports = {
   witherCardDefinition,
   siphonWardCardDefinition,
   detonateSigilCardDefinition,
-  lingeringCurseCardDefinition
+  lingeringCurseCardDefinition,
+  markOfRuinCardDefinition,
+  hexbladeCardDefinition,
+  reaperSClauseCardDefinition,
+  fireSaleCardDefinition,
+  cremateCardDefinition,
+  graveFuelCardDefinition,
+  brandTheSoulCardDefinition,
+  harvesterCardDefinition,
+  chargeUpCardDefinition,
+  arcLashCardDefinition,
+  bloodPactCardDefinition,
+  spiteShieldCardDefinition
 };

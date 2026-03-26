@@ -1,6 +1,18 @@
 const { createBalanceConfig } = require("./balance");
 
-const getNodeType = (row, col, rows) => {
+const sample = (items, count, rng = Math.random) => {
+  const pool = [...items];
+  const chosen = [];
+
+  while (pool.length > 0 && chosen.length < count) {
+    const index = Math.floor(rng() * pool.length);
+    chosen.push(pool.splice(index, 1)[0]);
+  }
+
+  return chosen;
+};
+
+const getNodeType = (row, col, rows, rowTypeSelections = {}) => {
   if (row === rows - 1) {
     return "boss";
   }
@@ -9,16 +21,42 @@ const getNodeType = (row, col, rows) => {
     return "elite";
   }
 
-  if (row > 0 && row % 2 === 1 && col === 1) {
+  if (rowTypeSelections.events?.has(col)) {
     return "event";
+  }
+
+  if (rowTypeSelections.elites?.has(col)) {
+    return "elite";
   }
 
   return "combat";
 };
 
+const buildRowTypeSelections = (rows, columns, rng = Math.random) => {
+  const selections = new Map();
+
+  for (let row = 0; row < rows; row += 1) {
+    if (row === rows - 1 || row === rows - 2) {
+      continue;
+    }
+
+    const availableCols = Array.from({ length: columns }, (_, index) => index);
+    const events = row > 0 ? new Set(sample(availableCols, 1, rng)) : new Set();
+    const nonEventCols = availableCols.filter((col) => !events.has(col));
+    const elites = row > 0 && row % 2 === 0 && row < rows - 2
+      ? new Set(sample(nonEventCols, 1, rng))
+      : new Set();
+
+    selections.set(row, { events, elites });
+  }
+
+  return selections;
+};
+
 const generateMap = (options = {}, balanceOverrides = {}) => {
   const balance = createBalanceConfig(balanceOverrides);
-  const { rows = balance.map.rows, columns = balance.map.columns } = options;
+  const { rows = balance.map.rows, columns = balance.map.columns, rng = Math.random } = options;
+  const rowTypeSelections = buildRowTypeSelections(rows, columns, rng);
   const nodes = [];
 
   for (let row = 0; row < rows; row += 1) {
@@ -27,7 +65,7 @@ const generateMap = (options = {}, balanceOverrides = {}) => {
         id: `r${row}c${col}`,
         row,
         col,
-        type: getNodeType(row, col, rows),
+        type: getNodeType(row, col, rows, rowTypeSelections.get(row) || {}),
         next: []
       });
     }

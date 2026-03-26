@@ -20,32 +20,35 @@ const {
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
 
-const createRewardOptions = (count, balanceOverrides = {}) => {
+const rewardPool = [
+  strikeCardDefinition,
+  defendCardDefinition,
+  bashCardDefinition,
+  barrierCardDefinition,
+  quickStrikeCardDefinition,
+  focusCardDefinition,
+  volleyCardDefinition,
+  surgeCardDefinition,
+  hexCardDefinition,
+  punishCardDefinition,
+  burnoutCardDefinition,
+  crackdownCardDefinition,
+  momentumCardDefinition,
+  witherCardDefinition,
+  siphonWardCardDefinition,
+  detonateSigilCardDefinition,
+  lingeringCurseCardDefinition
+];
+
+const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) => {
   const balance = createBalanceConfig(balanceOverrides);
-  const optionCount = count ?? balance.rewards.cardOptionCount;
-  const pool = [
-    strikeCardDefinition,
-    defendCardDefinition,
-    bashCardDefinition,
-    barrierCardDefinition,
-    quickStrikeCardDefinition,
-    focusCardDefinition,
-    volleyCardDefinition,
-    surgeCardDefinition,
-    hexCardDefinition,
-    punishCardDefinition,
-    burnoutCardDefinition,
-    crackdownCardDefinition,
-    momentumCardDefinition,
-    witherCardDefinition,
-    siphonWardCardDefinition,
-    detonateSigilCardDefinition,
-    lingeringCurseCardDefinition
-  ];
+  const optionCount = Math.min(count ?? balance.rewards.cardOptionCount, rewardPool.length);
+  const pool = [...rewardPool];
   const options = [];
 
   for (let i = 0; i < optionCount; i += 1) {
-    const factory = pool[i % pool.length];
+    const index = Math.floor(rng() * pool.length);
+    const [factory] = pool.splice(index, 1);
     options.push(factory());
   }
 

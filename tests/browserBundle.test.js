@@ -15,7 +15,7 @@ const extractBlock = (source, startMarker, endMarker) => {
 describe("browser bundle regression coverage", () => {
   it("defines every browser reward/event card id inside the browser card library", () => {
     const cardLibraryBlock = extractBlock(appJs, "const CARD_LIBRARY = {", "\n  };\n\n  const RELICS");
-    const rewardIdsBlock = extractBlock(appJs, "const ids = [", "];\n    return [0, 1, 2].map");
+    const rewardIdsBlock = extractBlock(appJs, "const ids = [", "];\n    return pickUniqueItems");
     const eventTemplateBlock = extractBlock(appJs, "const EVENT_TEMPLATES = [", "\n  ];\n\n  function clone");
 
     const libraryIds = [...cardLibraryBlock.matchAll(/\n\s+([a-z_]+):\s+\{/g)].map((match) => match[1]);

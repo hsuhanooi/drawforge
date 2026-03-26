@@ -63,9 +63,9 @@
     {
       id: "forge",
       text: "An old forge lets you sharpen your deck with a free reward card or extra gold.",
-      createOptions: (node) => [
+      createOptions: () => [
         { id: "gold", label: "Take 20 gold", effect: "gold", amount: 20 },
-        { id: "card", label: "Take a forged card reward", effect: "reward_cards", cards: createRewardCardOptions((node.row + node.col + 1) % 13) },
+        { id: "card", label: "Take a forged card reward", effect: "reward_cards", cards: createRewardCardOptions(3) },
         { id: "remove", label: "Burn away a weak card", effect: "remove" }
       ]
     },
@@ -93,9 +93,19 @@
     return { ...card };
   }
 
-  function createRewardCardOptions(offset = 0) {
+  function pickUniqueItems(items, count) {
+    const pool = [...items];
+    const chosen = [];
+    while (pool.length > 0 && chosen.length < count) {
+      const index = Math.floor(Math.random() * pool.length);
+      chosen.push(pool.splice(index, 1)[0]);
+    }
+    return chosen;
+  }
+
+  function createRewardCardOptions(count = 3) {
     const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum", "wither", "siphon_ward", "detonate_sigil", "lingering_curse"];
-    return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
+    return pickUniqueItems(ids, count).map((cardId) => createCardFromId(cardId));
   }
 
   function shuffleCards(cards) {
@@ -107,10 +117,26 @@
     return shuffled;
   }
 
-  function getNodeType(row, col, rows) {
+  function buildRowTypeSelections(rows, columns) {
+    const selections = new Map();
+    for (let row = 0; row < rows; row += 1) {
+      if (row === rows - 1 || row === rows - 2) {
+        continue;
+      }
+      const cols = Array.from({ length: columns }, (_, index) => index);
+      const events = row > 0 ? new Set(pickUniqueItems(cols, 1)) : new Set();
+      const nonEventCols = cols.filter((col) => !events.has(col));
+      const elites = row > 0 && row % 2 === 0 && row < rows - 2 ? new Set(pickUniqueItems(nonEventCols, 1)) : new Set();
+      selections.set(row, { events, elites });
+    }
+    return selections;
+  }
+
+  function getNodeType(row, col, rows, rowTypeSelections = {}) {
     if (row === rows - 1) return "boss";
     if (row === rows - 2) return "elite";
-    if (row > 0 && row % 2 === 1 && col === 1) return "event";
+    if (rowTypeSelections.events && rowTypeSelections.events.has(col)) return "event";
+    if (rowTypeSelections.elites && rowTypeSelections.elites.has(col)) return "elite";
     return "combat";
   }
 
@@ -189,10 +215,11 @@
   }
 
   function generateMap({ rows = 5, columns = 3 } = {}) {
+    const rowTypeSelections = buildRowTypeSelections(rows, columns);
     const nodes = [];
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < columns; col += 1) {
-        nodes.push({ id: `r${row}c${col}`, row, col, type: getNodeType(row, col, rows), next: [] });
+        nodes.push({ id: `r${row}c${col}`, row, col, type: getNodeType(row, col, rows, rowTypeSelections.get(row) || {}), next: [] });
       }
     }
     const byId = new Map(nodes.map((node) => [node.id, node]));

@@ -46,3 +46,4 @@
 - Extended the browser combat UI to track exhaust pile count and enemy hex stacks, and expanded the browser reward/event card pool so the new mechanics can appear in actual runs.
 - Added core Jest coverage for advanced card mechanics, including exhaust-pile routing and bonus damage against hexed enemies.
 - Fixed a browser rerender bug that made reward selection appear broken: the reward handler was working, but `renderCombat()` crashed because `combatEnemyHex` and `exhaustPileCount` were missing from the DOM elements map. After fixing those bindings, selecting a reward now clears the reward panel and updates the deck/state correctly.
+- Fixed a browser draw/reshuffle bug: played cards were not being returned to discard, which caused reshuffle turns to come back with only 4 cards. Restored the correct routing so normal cards go to discard, exhaust cards go to exhaust, end turn discards the remaining hand, and reshuffle turns now refill to a full 5-card hand.

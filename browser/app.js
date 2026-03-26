@@ -306,15 +306,24 @@
     next.player.energy -= card.cost;
     next.hand.splice(handIndex, 1);
 
-    if (card.damage) {
-      const blocked = Math.min(next.enemy.block || 0, card.damage);
-      const remainingDamage = card.damage - blocked;
+    if (card.damage || card.bonusVsHex) {
+      const totalDamage = (card.damage || 0) + (((next.enemy.hex || 0) > 0 && card.bonusVsHex) ? card.bonusVsHex : 0);
+      const blocked = Math.min(next.enemy.block || 0, totalDamage);
+      const remainingDamage = totalDamage - blocked;
       next.enemy.block = (next.enemy.block || 0) - blocked;
       next.enemy.health -= remainingDamage;
     }
     if (card.block) next.player.block += card.block;
     if (card.energyGain) next.player.energy += card.energyGain;
+    if (card.hex) next.enemy.hex = (next.enemy.hex || 0) + card.hex;
     if (card.draw) next = drawCards(next, card.draw);
+
+    if (card.exhaust) {
+      next.exhaustPile = [...(next.exhaustPile || []), card];
+    }
+    else {
+      next.discardPile = [...(next.discardPile || []), card];
+    }
 
     if (next.enemy.health <= 0) {
       next.enemy.health = 0;
@@ -379,6 +388,9 @@
       next.enemyIntent = null;
       return next;
     }
+
+    next.discardPile = [...(next.discardPile || []), ...(next.hand || [])];
+    next.hand = [];
 
     next.turn = "player";
     next.enemyTurnNumber = (combat.enemyTurnNumber || 0) + 1;

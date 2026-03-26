@@ -18,10 +18,10 @@ describe("combat rewards", () => {
   });
 
   it("can generate expanded reward cards from the larger pool", () => {
-    const options = createRewardOptions(7);
+    const options = createRewardOptions(13);
     const ids = options.map((card) => card.id);
 
-    expect(ids).toEqual(expect.arrayContaining(["bash", "barrier", "quick_strike", "focus", "volley"]));
+    expect(ids).toEqual(expect.arrayContaining(["bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum"]));
   });
 
   it("adds the selected reward card to the deck", () => {

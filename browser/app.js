@@ -49,8 +49,9 @@
       text: "A roadside camp gives you time to recover or prepare for the next fight.",
       createOptions: () => [
         { id: "heal", label: "Recover 12 health", effect: "heal", amount: 12 },
-        { id: "focus", label: "Add Focus to your deck", effect: "add_card", card: createCardFromId("focus") },
-        { id: "volley", label: "Add Volley to your deck", effect: "add_card", card: createCardFromId("volley") }
+        { id: "surge", label: "Add Surge to your deck", effect: "add_card", card: createCardFromId("surge") },
+        { id: "hex", label: "Add Hex to your deck", effect: "add_card", card: createCardFromId("hex") },
+        { id: "momentum", label: "Add Momentum to your deck", effect: "add_card", card: createCardFromId("momentum") }
       ]
     }
   ];
@@ -64,7 +65,7 @@
   }
 
   function createRewardCardOptions(offset = 0) {
-    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish"];
+    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum"];
     return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
   }
 
@@ -306,14 +307,18 @@
     next.player.energy -= card.cost;
     next.hand.splice(handIndex, 1);
 
-    if (card.damage || card.bonusVsHex) {
-      const totalDamage = (card.damage || 0) + (((next.enemy.hex || 0) > 0 && card.bonusVsHex) ? card.bonusVsHex : 0);
+    if (card.damage || card.bonusVsHex || card.bonusVsExhaust) {
+      const totalDamage = (card.damage || 0)
+        + (((next.enemy.hex || 0) > 0 && card.bonusVsHex) ? card.bonusVsHex : 0)
+        + (((next.exhaustPile || []).length > 0 && card.bonusVsExhaust) ? card.bonusVsExhaust : 0);
       const blocked = Math.min(next.enemy.block || 0, totalDamage);
       const remainingDamage = totalDamage - blocked;
       next.enemy.block = (next.enemy.block || 0) - blocked;
       next.enemy.health -= remainingDamage;
     }
-    if (card.block) next.player.block += card.block;
+    if (card.block) {
+      next.player.block += card.block + (((next.player.energy ?? 0) >= 2 && card.bonusBlockIfHighEnergy) ? card.bonusBlockIfHighEnergy : 0);
+    }
     if (card.energyGain) next.player.energy += card.energyGain;
     if (card.hex) next.enemy.hex = (next.enemy.hex || 0) + card.hex;
     if (card.draw) next = drawCards(next, card.draw);
@@ -764,6 +769,18 @@
     const nextCombat = resolveEndTurn(currentRun.combat, currentRun);
     currentRun = nextCombat.state === "defeat"
       ? { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: 0 }, state: "lost" }
+      : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
+    render();
+    setStatus(nextCombat.state === "defeat"
+      ? `${resolvedIntentLabel} You were defeated. Start a new run to try again.`
+      : nextCombat.reshuffled
+        ? `${resolvedIntentLabel} Then the discard pile was reshuffled into the draw pile.`
+        : resolvedIntentLabel);
+  });
+
+  render();
+})();
+at, player: { ...currentRun.player, health: 0 }, state: "lost" }
       : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
     render();
     setStatus(nextCombat.state === "defeat"

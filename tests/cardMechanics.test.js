@@ -4,7 +4,10 @@ const { playCard } = require("../src/playCard");
 const {
   surgeCardDefinition,
   hexCardDefinition,
-  punishCardDefinition
+  punishCardDefinition,
+  burnoutCardDefinition,
+  crackdownCardDefinition,
+  momentumCardDefinition
 } = require("../src/cards");
 
 describe("advanced card mechanics", () => {
@@ -36,5 +39,45 @@ describe("advanced card mechanics", () => {
 
     expect(hexed.enemy.hex).toBe(1);
     expect(punished.enemy.health).toBe(10);
+  });
+
+  it("burnout deals more damage if a card has been exhausted", () => {
+    const surge = surgeCardDefinition();
+    const burnout = burnoutCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 20 }
+    }));
+
+    const surged = playCard({ ...combat, hand: [surge], exhaustPile: [] }, surge).combat;
+    const burned = playCard({ ...surged, hand: [burnout] }, burnout).combat;
+
+    expect(burned.enemy.health).toBe(8);
+  });
+
+  it("crackdown is a stronger payoff against hexed enemies", () => {
+    const hex = hexCardDefinition();
+    const crackdown = crackdownCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 25 }
+    }));
+
+    const hexed = playCard({ ...combat, hand: [hex], exhaustPile: [] }, hex).combat;
+    const cracked = playCard({ ...hexed, hand: [crackdown] }, crackdown).combat;
+
+    expect(cracked.enemy.health).toBe(11);
+  });
+
+  it("momentum rewards having extra energy available", () => {
+    const momentum = momentumCardDefinition();
+    const combat = startPlayerTurn(createCombatEncounter({
+      player: { health: 80 },
+      enemy: { id: "slime", health: 20 }
+    }));
+
+    const played = playCard({ ...combat, hand: [momentum] }, momentum).combat;
+
+    expect(played.player.block).toBe(7);
   });
 });

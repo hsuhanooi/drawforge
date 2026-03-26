@@ -8,7 +8,10 @@ const {
   volleyCardDefinition,
   surgeCardDefinition,
   hexCardDefinition,
-  punishCardDefinition
+  punishCardDefinition,
+  burnoutCardDefinition,
+  crackdownCardDefinition,
+  momentumCardDefinition
 } = require("./cards");
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
@@ -59,4 +62,6 @@ module.exports = {
   createRewardOptions,
   addRewardCardToDeck,
   createVictoryRewards
+};
+ds
 };

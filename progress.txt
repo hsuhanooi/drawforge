@@ -41,3 +41,4 @@
 - Added enemy behavior variety with deterministic intent sequences for normal, elite, and boss enemies. Enemy actions now support attack, multi-hit attack, block, and buff behaviors instead of every encounter being a flat single-hit attack.
 - Updated the browser combat UI to display real readable enemy intent labels and verified through DOM automation that intents advance between turns (for example, Slime rotates from `Slam for 6` to `Harden: gain 6 block`).
 - Added visible enemy block to the browser combat panel and fixed the UI wiring so DOM-based testing can read both current intent and current enemy block directly from the page.
+- Improved enemy-action feedback in the browser by surfacing the resolved intent label in the status text after enemy turns (for example, after ending a turn against Slime the UI now reports `Slam for 6` instead of a generic message).

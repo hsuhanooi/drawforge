@@ -743,16 +743,17 @@
       setStatus("No active combat.", true);
       return;
     }
+    const resolvedIntentLabel = currentRun.combat.enemyIntent?.label || "Enemy acted.";
     const nextCombat = resolveEndTurn(currentRun.combat, currentRun);
     currentRun = nextCombat.state === "defeat"
       ? { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: 0 }, state: "lost" }
       : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
     render();
     setStatus(nextCombat.state === "defeat"
-      ? "You were defeated. Start a new run to try again."
+      ? `${resolvedIntentLabel} You were defeated. Start a new run to try again.`
       : nextCombat.reshuffled
-        ? "Ended turn, reshuffled discard into draw pile, and resolved enemy attack."
-        : "Ended turn and resolved enemy attack.");
+        ? `${resolvedIntentLabel} Then the discard pile was reshuffled into the draw pile.`
+        : resolvedIntentLabel);
   });
 
   render();

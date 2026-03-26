@@ -1,6 +1,21 @@
 /* eslint-env browser */
 (() => {
   const STORAGE_KEY = "drawforge.run";
+
+  async function loadBundleMeta() {
+    try {
+      const response = await fetch('/meta.json', { cache: 'no-store' });
+      if (!response.ok) return;
+      const meta = await response.json();
+      const versionEl = document.getElementById('app-version');
+      if (versionEl) {
+        versionEl.textContent = `${meta.version} • ${meta.shortSha}`;
+        versionEl.title = `app.js sha256 ${meta.appJsSha256}`;
+      }
+    } catch (error) {
+      // Ignore meta fetch errors; the app can still run.
+    }
+  }
   const DEFAULT_PLAYER_HEALTH = 80;
   const DEFAULT_PLAYER_GOLD = 99;
   const DEFAULT_PLAYER_ENERGY = 3;
@@ -15,8 +30,14 @@
     bash: { id: "bash", name: "Bash", cost: 2, type: "attack", damage: 8 },
     barrier: { id: "barrier", name: "Barrier", cost: 2, type: "skill", block: 8 },
     quick_strike: { id: "quick_strike", name: "Quick Strike", cost: 0, type: "attack", damage: 4 },
-    focus: { id: "focus", name: "Focus", cost: 1, type: "skill", energyGain: 1, draw: 1 },
-    volley: { id: "volley", name: "Volley", cost: 1, type: "attack", damage: 5, draw: 1 }
+    focus: { id: "focus", name: "Focus", cost: 1, type: "skill", energyGain: 1 },
+    volley: { id: "volley", name: "Volley", cost: 1, type: "attack", damage: 5, draw: 1 },
+    surge: { id: "surge", name: "Surge", cost: 0, type: "skill", energyGain: 2, exhaust: true },
+    hex: { id: "hex", name: "Hex", cost: 1, type: "skill", hex: 1, exhaust: true },
+    punish: { id: "punish", name: "Punish", cost: 1, type: "attack", damage: 6, bonusVsHex: 4 },
+    burnout: { id: "burnout", name: "Burnout", cost: 1, type: "attack", damage: 6, bonusVsExhaust: 6 },
+    crackdown: { id: "crackdown", name: "Crackdown", cost: 2, type: "attack", damage: 8, bonusVsHex: 6 },
+    momentum: { id: "momentum", name: "Momentum", cost: 1, type: "skill", block: 5, draw: 1, bonusBlockIfHighEnergy: 2 }
   };
 
   const RELICS = [
@@ -40,7 +61,7 @@
       text: "An old forge lets you sharpen your deck with a free reward card or extra gold.",
       createOptions: (node) => [
         { id: "gold", label: "Take 20 gold", effect: "gold", amount: 20 },
-        { id: "card", label: "Take a forged card reward", effect: "reward_cards", cards: createRewardCardOptions((node.row + node.col + 1) % 7) },
+        { id: "card", label: "Take a forged card reward", effect: "reward_cards", cards: createRewardCardOptions((node.row + node.col + 1) % 13) },
         { id: "remove", label: "Burn away a weak card", effect: "remove" }
       ]
     },
@@ -61,12 +82,25 @@
   }
 
   function createCardFromId(cardId) {
-    return { ...CARD_LIBRARY[cardId] };
+    const card = CARD_LIBRARY[cardId];
+    if (!card) {
+      throw new Error(`Unknown card id: ${cardId}`);
+    }
+    return { ...card };
   }
 
   function createRewardCardOptions(offset = 0) {
     const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum"];
     return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
+  }
+
+  function shuffleCards(cards) {
+    const shuffled = [...cards];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   function getNodeType(row, col, rows) {
@@ -239,7 +273,7 @@
       enemyIntent: resolveEnemyIntent(enemy, 0),
       player: { health: run.player.health, block: 0, energy: DEFAULT_PLAYER_ENERGY + getEnergyBonus(run) },
       hand: [],
-      drawPile: run.player.deck.map(createCardFromId),
+      drawPile: shuffleCards(run.player.deck.map(createCardFromId)),
       discardPile: [],
       exhaustPile: [],
       enemy
@@ -411,6 +445,21 @@
     return nextRun;
   }
 
+  function describeCard(card) {
+    const parts = [];
+    if (card.cost !== undefined) parts.push(`Cost ${card.cost}`);
+    if (card.damage) parts.push(`Dmg ${card.damage}`);
+    if (card.block) parts.push(`Block ${card.block}`);
+    if (card.draw) parts.push(`Draw ${card.draw}`);
+    if (card.energyGain) parts.push(`+${card.energyGain} energy`);
+    if (card.hex) parts.push(`Hex ${card.hex}`);
+    if (card.bonusVsHex) parts.push(`+${card.bonusVsHex} vs Hex`);
+    if (card.bonusVsExhaust) parts.push(`+${card.bonusVsExhaust} vs Exhaust`);
+    if (card.bonusBlockIfHighEnergy) parts.push(`+${card.bonusBlockIfHighEnergy} block if charged`);
+    if (card.exhaust) parts.push("Exhaust");
+    return parts.join(" • ");
+  }
+
   function finishNode(run) {
     const isBossRow = run.map.currentNodeId === `r${run.map.rows - 1}c1`;
     return {
@@ -575,17 +624,7 @@
     combat.hand.forEach((card, index) => {
       const button = document.createElement("button");
       button.className = "node-button";
-      const extras = [];
-      if (card.damage) extras.push(`Dmg ${card.damage}`);
-      if (card.block) extras.push(`Block ${card.block}`);
-      if (card.draw) extras.push(`Draw ${card.draw}`);
-      if (card.energyGain) extras.push(`+${card.energyGain} energy`);
-      if (card.hex) extras.push(`Hex ${card.hex}`);
-      if (card.bonusVsHex) extras.push(`+${card.bonusVsHex} vs Hex`);
-      if (card.bonusVsExhaust) extras.push(`+${card.bonusVsExhaust} vs Exhaust`);
-      if (card.bonusBlockIfHighEnergy) extras.push(`+${card.bonusBlockIfHighEnergy} block if charged`);
-      if (card.exhaust) extras.push("Exhaust");
-      button.innerHTML = `${card.name}<br />Cost: ${card.cost}<br />${extras.join(" • ") || card.type}`;
+      button.innerHTML = `${card.name}<br />${describeCard(card)}`;
       button.disabled = combat.turn !== "player" || combat.state !== "active";
       button.addEventListener("click", () => {
         try {
@@ -607,12 +646,25 @@
 
   function renderRewards() {
     elements.rewardActions.innerHTML = "";
+
     if (currentRun.event) {
       elements.rewardSummary.textContent = `[${currentRun.event.kind}] ${currentRun.event.text}`;
       currentRun.event.options.forEach((option) => {
         const button = document.createElement("button");
         button.className = "node-button";
-        button.textContent = option.label;
+
+        if (option.card) {
+          button.innerHTML = `${option.label}<br />${describeCard(option.card)}`;
+        }
+        else if (option.cards) {
+          button.innerHTML = `${option.label}<br />${option.cards
+            .map((card) => `${card.name} (${describeCard(card)})`)
+            .join('<br />')}`;
+        }
+        else {
+          button.textContent = option.label;
+        }
+
         button.addEventListener("click", () => {
           currentRun = claimEventOption(currentRun, option);
           render();
@@ -633,12 +685,14 @@
       ? "Choose a card to remove from your deck."
       : `Victory rewards: +${gold} gold${relic ? ` and optional relic ${relic.name}` : ""}. Pick exactly one reward or skip.`;
 
-    if (removeCard) return;
+    if (removeCard) {
+      return;
+    }
 
     cards.forEach((card) => {
       const button = document.createElement("button");
       button.className = "node-button";
-      button.innerHTML = `${card.name}<br />Add to deck`;
+      button.innerHTML = `${card.name}<br />${describeCard(card)}<br />Add to deck`;
       button.addEventListener("click", () => {
         currentRun = claimCardReward(currentRun, card);
         render();
@@ -785,5 +839,6 @@
         : resolvedIntentLabel);
   });
 
+  loadBundleMeta();
   render();
 })();

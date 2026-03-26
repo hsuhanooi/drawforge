@@ -563,11 +563,13 @@
     elements.combatPlayerEnergy.textContent = String(combat.player.energy);
     elements.combatEnemyHealth.textContent = `${combat.enemy.name} (${combat.enemy.health})`;
     elements.combatEnemyBlock.textContent = String(combat.enemy.block || 0);
+    elements.combatEnemyHex.textContent = String(combat.enemy.hex || 0);
     elements.combatEnemyIntent.textContent = combat.state === "active"
       ? (combat.enemyIntent ? combat.enemyIntent.label : `Attack for ${combat.enemy.damage}`)
       : combat.state;
     elements.drawPileCount.textContent = String(combat.drawPile.length);
     elements.discardPileCount.textContent = String(combat.discardPile.length);
+    elements.exhaustPileCount.textContent = String((combat.exhaustPile || []).length);
     elements.combatTurn.textContent = combat.turn || combat.state;
 
     combat.hand.forEach((card, index) => {
@@ -578,6 +580,11 @@
       if (card.block) extras.push(`Block ${card.block}`);
       if (card.draw) extras.push(`Draw ${card.draw}`);
       if (card.energyGain) extras.push(`+${card.energyGain} energy`);
+      if (card.hex) extras.push(`Hex ${card.hex}`);
+      if (card.bonusVsHex) extras.push(`+${card.bonusVsHex} vs Hex`);
+      if (card.bonusVsExhaust) extras.push(`+${card.bonusVsExhaust} vs Exhaust`);
+      if (card.bonusBlockIfHighEnergy) extras.push(`+${card.bonusBlockIfHighEnergy} block if charged`);
+      if (card.exhaust) extras.push("Exhaust");
       button.innerHTML = `${card.name}<br />Cost: ${card.cost}<br />${extras.join(" • ") || card.type}`;
       button.disabled = combat.turn !== "player" || combat.state !== "active";
       button.addEventListener("click", () => {
@@ -769,18 +776,6 @@
     const nextCombat = resolveEndTurn(currentRun.combat, currentRun);
     currentRun = nextCombat.state === "defeat"
       ? { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: 0 }, state: "lost" }
-      : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
-    render();
-    setStatus(nextCombat.state === "defeat"
-      ? `${resolvedIntentLabel} You were defeated. Start a new run to try again.`
-      : nextCombat.reshuffled
-        ? `${resolvedIntentLabel} Then the discard pile was reshuffled into the draw pile.`
-        : resolvedIntentLabel);
-  });
-
-  render();
-})();
-at, player: { ...currentRun.player, health: 0 }, state: "lost" }
       : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
     render();
     setStatus(nextCombat.state === "defeat"

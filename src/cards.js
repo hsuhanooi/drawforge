@@ -7,6 +7,9 @@ const BARRIER_BLOCK = 8;
 const QUICK_STRIKE_DAMAGE = 4;
 const VOLLEY_DAMAGE = 5;
 const HEX_DAMAGE_BONUS = 4;
+const BURNOUT_DAMAGE = 12;
+const CRACKDOWN_DAMAGE = 14;
+const MOMENTUM_BLOCK = 7;
 
 const strikeCardDefinition = () =>
   createCard({
@@ -161,6 +164,52 @@ const punishCardDefinition = () =>
     })
   });
 
+const burnoutCardDefinition = () =>
+  createCard({
+    id: "burnout",
+    name: "Burnout",
+    cost: 1,
+    type: "attack",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - ((state.exhaustPile || []).length > 0 ? BURNOUT_DAMAGE : STRIKE_DAMAGE)
+      }
+    })
+  });
+
+const crackdownCardDefinition = () =>
+  createCard({
+    id: "crackdown",
+    name: "Crackdown",
+    cost: 2,
+    type: "attack",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - ((state.enemy.hex || 0) > 0 ? CRACKDOWN_DAMAGE : BASH_DAMAGE)
+      }
+    })
+  });
+
+const momentumCardDefinition = () =>
+  createCard({
+    id: "momentum",
+    name: "Momentum",
+    cost: 1,
+    type: "skill",
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        block: state.player.block + ((state.player.energy ?? 0) >= 2 ? MOMENTUM_BLOCK : DEFEND_BLOCK)
+      },
+      drawCount: (state.drawCount || 0) + 1
+    })
+  });
+
 module.exports = {
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
@@ -181,5 +230,8 @@ module.exports = {
   volleyCardDefinition,
   surgeCardDefinition,
   hexCardDefinition,
-  punishCardDefinition
+  punishCardDefinition,
+  burnoutCardDefinition,
+  crackdownCardDefinition,
+  momentumCardDefinition
 };

@@ -29,7 +29,10 @@ const createRewardOptions = (count, balanceOverrides = {}) => {
     volleyCardDefinition,
     surgeCardDefinition,
     hexCardDefinition,
-    punishCardDefinition
+    punishCardDefinition,
+    burnoutCardDefinition,
+    crackdownCardDefinition,
+    momentumCardDefinition
   ];
   const options = [];
 
@@ -62,6 +65,4 @@ module.exports = {
   createRewardOptions,
   addRewardCardToDeck,
   createVictoryRewards
-};
-ds
 };

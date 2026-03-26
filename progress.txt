@@ -47,3 +47,7 @@
 - Added core Jest coverage for advanced card mechanics, including exhaust-pile routing and bonus damage against hexed enemies.
 - Fixed a browser rerender bug that made reward selection appear broken: the reward handler was working, but `renderCombat()` crashed because `combatEnemyHex` and `exhaustPileCount` were missing from the DOM elements map. After fixing those bindings, selecting a reward now clears the reward panel and updates the deck/state correctly.
 - Fixed a browser draw/reshuffle bug: played cards were not being returned to discard, which caused reshuffle turns to come back with only 4 cards. Restored the correct routing so normal cards go to discard, exhaust cards go to exhaust, end turn discards the remaining hand, and reshuffle turns now refill to a full 5-card hand.
+- Added payoff/synergy cards for the newer mechanics: `burnout` (exhaust payoff), `crackdown` (stronger hex payoff), and `momentum` (tempo/energy payoff). Extended both the core reward pool and the browser card library so those cards can appear in runs.
+- Added test coverage for the new payoff cards and updated reward-pool tests to reflect the expanded deterministic card set.
+- Fixed the browser UI display path for synergy mechanics so `Enemy Hex` and `Exhaust` counters render correctly during injected/browser-driven regression scenarios.
+- Added a deterministic DOM synergy regression flow that loads a `Hex` + `Crackdown` hand, verifies hex/exhaust counters change in the browser, and confirms the payoff damage lands as expected.

@@ -1,5 +1,23 @@
 const { createCombatEncounter } = require("./combat");
-const { strikeCardDefinition, defendCardDefinition } = require("./cards");
+const {
+  strikeCardDefinition,
+  defendCardDefinition,
+  bashCardDefinition,
+  barrierCardDefinition,
+  quickStrikeCardDefinition,
+  focusCardDefinition,
+  volleyCardDefinition,
+  surgeCardDefinition,
+  hexCardDefinition,
+  punishCardDefinition,
+  burnoutCardDefinition,
+  crackdownCardDefinition,
+  momentumCardDefinition,
+  witherCardDefinition,
+  siphonWardCardDefinition,
+  detonateSigilCardDefinition,
+  lingeringCurseCardDefinition
+} = require("./cards");
 const { createDeckState, drawCards } = require("./deckZones");
 const { startPlayerTurn } = require("./energy");
 const { performEnemyAttack } = require("./enemy");
@@ -8,7 +26,22 @@ const { endPlayerTurn, startPlayerTurnAfterEnemy } = require("./turns");
 
 const cardFactories = {
   strike: strikeCardDefinition,
-  defend: defendCardDefinition
+  defend: defendCardDefinition,
+  bash: bashCardDefinition,
+  barrier: barrierCardDefinition,
+  quick_strike: quickStrikeCardDefinition,
+  focus: focusCardDefinition,
+  volley: volleyCardDefinition,
+  surge: surgeCardDefinition,
+  hex: hexCardDefinition,
+  punish: punishCardDefinition,
+  burnout: burnoutCardDefinition,
+  crackdown: crackdownCardDefinition,
+  momentum: momentumCardDefinition,
+  wither: witherCardDefinition,
+  siphon_ward: siphonWardCardDefinition,
+  detonate_sigil: detonateSigilCardDefinition,
+  lingering_curse: lingeringCurseCardDefinition
 };
 
 const createCardFromId = (cardId) => {

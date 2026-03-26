@@ -37,7 +37,11 @@
     punish: { id: "punish", name: "Punish", cost: 1, type: "attack", damage: 6, bonusVsHex: 4 },
     burnout: { id: "burnout", name: "Burnout", cost: 1, type: "attack", damage: 6, bonusVsExhaust: 6 },
     crackdown: { id: "crackdown", name: "Crackdown", cost: 2, type: "attack", damage: 8, bonusVsHex: 6 },
-    momentum: { id: "momentum", name: "Momentum", cost: 1, type: "skill", block: 5, draw: 1, bonusBlockIfHighEnergy: 2 }
+    momentum: { id: "momentum", name: "Momentum", cost: 1, type: "skill", block: 5, draw: 1, bonusBlockIfHighEnergy: 2 },
+    wither: { id: "wither", name: "Wither", cost: 1, type: "skill", damage: 3, hex: 1 },
+    siphon_ward: { id: "siphon_ward", name: "Siphon Ward", cost: 1, type: "skill", block: 4, bonusBlockIfHexed: 4 },
+    detonate_sigil: { id: "detonate_sigil", name: "Detonate Sigil", cost: 2, type: "attack", damage: 7, bonusVsHex: 10 },
+    lingering_curse: { id: "lingering_curse", name: "Lingering Curse", cost: 1, type: "skill", hex: 2, exhaust: true }
   };
 
   const RELICS = [
@@ -90,7 +94,7 @@
   }
 
   function createRewardCardOptions(offset = 0) {
-    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum"];
+    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum", "wither", "siphon_ward", "detonate_sigil", "lingering_curse"];
     return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
   }
 
@@ -456,6 +460,7 @@
     if (card.bonusVsHex) parts.push(`+${card.bonusVsHex} vs Hex`);
     if (card.bonusVsExhaust) parts.push(`+${card.bonusVsExhaust} vs Exhaust`);
     if (card.bonusBlockIfHighEnergy) parts.push(`+${card.bonusBlockIfHighEnergy} block if charged`);
+    if (card.bonusBlockIfHexed) parts.push(`+${card.bonusBlockIfHexed} block vs Hexed`);
     if (card.exhaust) parts.push("Exhaust");
     return parts.join(" • ");
   }

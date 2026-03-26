@@ -10,6 +10,11 @@ const HEX_DAMAGE_BONUS = 4;
 const BURNOUT_DAMAGE = 12;
 const CRACKDOWN_DAMAGE = 14;
 const MOMENTUM_BLOCK = 7;
+const WITHER_DAMAGE = 3;
+const SIPHON_WARD_BLOCK = 4;
+const DETONATE_SIGIL_DAMAGE = 7;
+const DETONATE_SIGIL_HEX_BONUS = 10;
+const LINGERING_CURSE_HEX = 2;
 
 const strikeCardDefinition = () =>
   createCard({
@@ -210,6 +215,68 @@ const momentumCardDefinition = () =>
     })
   });
 
+const witherCardDefinition = () =>
+  createCard({
+    id: "wither",
+    name: "Wither",
+    cost: 1,
+    type: "skill",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - WITHER_DAMAGE,
+        hex: (state.enemy.hex || 0) + 1
+      }
+    })
+  });
+
+const siphonWardCardDefinition = () =>
+  createCard({
+    id: "siphon_ward",
+    name: "Siphon Ward",
+    cost: 1,
+    type: "skill",
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        block: state.player.block + SIPHON_WARD_BLOCK + ((state.enemy.hex || 0) > 0 ? 4 : 0)
+      }
+    })
+  });
+
+const detonateSigilCardDefinition = () =>
+  createCard({
+    id: "detonate_sigil",
+    name: "Detonate Sigil",
+    cost: 2,
+    type: "attack",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - (DETONATE_SIGIL_DAMAGE + ((state.enemy.hex || 0) > 0 ? DETONATE_SIGIL_HEX_BONUS : 0))
+      }
+    })
+  });
+
+const lingeringCurseCardDefinition = () =>
+  createCard({
+    id: "lingering_curse",
+    name: "Lingering Curse",
+    cost: 1,
+    type: "skill",
+    exhaust: true,
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        hex: (state.enemy.hex || 0) + LINGERING_CURSE_HEX
+      }
+    })
+  });
+
 module.exports = {
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
@@ -221,6 +288,11 @@ module.exports = {
   BURNOUT_DAMAGE,
   CRACKDOWN_DAMAGE,
   MOMENTUM_BLOCK,
+  WITHER_DAMAGE,
+  SIPHON_WARD_BLOCK,
+  DETONATE_SIGIL_DAMAGE,
+  DETONATE_SIGIL_HEX_BONUS,
+  LINGERING_CURSE_HEX,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
@@ -233,5 +305,9 @@ module.exports = {
   punishCardDefinition,
   burnoutCardDefinition,
   crackdownCardDefinition,
-  momentumCardDefinition
+  momentumCardDefinition,
+  witherCardDefinition,
+  siphonWardCardDefinition,
+  detonateSigilCardDefinition,
+  lingeringCurseCardDefinition
 };

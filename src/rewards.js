@@ -11,7 +11,11 @@ const {
   punishCardDefinition,
   burnoutCardDefinition,
   crackdownCardDefinition,
-  momentumCardDefinition
+  momentumCardDefinition,
+  witherCardDefinition,
+  siphonWardCardDefinition,
+  detonateSigilCardDefinition,
+  lingeringCurseCardDefinition
 } = require("./cards");
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
@@ -32,7 +36,11 @@ const createRewardOptions = (count, balanceOverrides = {}) => {
     punishCardDefinition,
     burnoutCardDefinition,
     crackdownCardDefinition,
-    momentumCardDefinition
+    momentumCardDefinition,
+    witherCardDefinition,
+    siphonWardCardDefinition,
+    detonateSigilCardDefinition,
+    lingeringCurseCardDefinition
   ];
   const options = [];
 

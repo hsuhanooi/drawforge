@@ -6,13 +6,22 @@ const {
   BARRIER_BLOCK,
   QUICK_STRIKE_DAMAGE,
   VOLLEY_DAMAGE,
+  WITHER_DAMAGE,
+  SIPHON_WARD_BLOCK,
+  DETONATE_SIGIL_DAMAGE,
+  DETONATE_SIGIL_HEX_BONUS,
+  LINGERING_CURSE_HEX,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
   barrierCardDefinition,
   quickStrikeCardDefinition,
   focusCardDefinition,
-  volleyCardDefinition
+  volleyCardDefinition,
+  witherCardDefinition,
+  siphonWardCardDefinition,
+  detonateSigilCardDefinition,
+  lingeringCurseCardDefinition
 } = require("../src/cards");
 const { executeCardEffect } = require("../src/combatEngine");
 
@@ -46,6 +55,10 @@ describe("card definitions", () => {
     const quickStrike = quickStrikeCardDefinition();
     const focus = focusCardDefinition();
     const volley = volleyCardDefinition();
+    const wither = witherCardDefinition();
+    const siphonWard = siphonWardCardDefinition();
+    const detonateSigil = detonateSigilCardDefinition();
+    const lingeringCurse = lingeringCurseCardDefinition();
 
     expect(strike.id).toBe("strike");
     expect(strike.cost).toBe(1);
@@ -59,6 +72,11 @@ describe("card definitions", () => {
     expect(quickStrike.cost).toBe(0);
     expect(focus.id).toBe("focus");
     expect(volley.id).toBe("volley");
+    expect(wither.id).toBe("wither");
+    expect(siphonWard.id).toBe("siphon_ward");
+    expect(detonateSigil.id).toBe("detonate_sigil");
+    expect(lingeringCurse.id).toBe("lingering_curse");
+    expect(lingeringCurse.exhaust).toBe(true);
   });
 
   it("executes a strike effect via the combat engine", () => {
@@ -95,7 +113,7 @@ describe("card definitions", () => {
     const volley = volleyCardDefinition();
     const state = {
       player: { health: 80, block: 1, energy: 2 },
-      enemy: { health: 20 }
+      enemy: { health: 20, hex: 0 }
     };
 
     expect(executeCardEffect(bash, state).enemy.health).toBe(20 - BASH_DAMAGE);
@@ -103,5 +121,34 @@ describe("card definitions", () => {
     expect(executeCardEffect(quickStrike, state).enemy.health).toBe(20 - QUICK_STRIKE_DAMAGE);
     expect(executeCardEffect(focus, state).player.energy).toBe(3);
     expect(executeCardEffect(volley, state).enemy.health).toBe(20 - VOLLEY_DAMAGE);
+  });
+
+  it("executes hex package card effects", () => {
+    const wither = witherCardDefinition();
+    const siphonWard = siphonWardCardDefinition();
+    const detonateSigil = detonateSigilCardDefinition();
+    const lingeringCurse = lingeringCurseCardDefinition();
+    const baseState = {
+      player: { health: 80, block: 2, energy: 2 },
+      enemy: { health: 30, hex: 0 },
+      exhaustPile: []
+    };
+    const hexedState = {
+      ...baseState,
+      enemy: { ...baseState.enemy, hex: 1 }
+    };
+
+    const afterWither = executeCardEffect(wither, baseState);
+    expect(afterWither.enemy.health).toBe(30 - WITHER_DAMAGE);
+    expect(afterWither.enemy.hex).toBe(1);
+
+    const afterWard = executeCardEffect(siphonWard, hexedState);
+    expect(afterWard.player.block).toBe(2 + SIPHON_WARD_BLOCK + 4);
+
+    const afterSigil = executeCardEffect(detonateSigil, hexedState);
+    expect(afterSigil.enemy.health).toBe(30 - DETONATE_SIGIL_DAMAGE - DETONATE_SIGIL_HEX_BONUS);
+
+    const afterCurse = executeCardEffect(lingeringCurse, baseState);
+    expect(afterCurse.enemy.hex).toBe(LINGERING_CURSE_HEX);
   });
 });

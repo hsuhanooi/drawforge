@@ -10,11 +10,13 @@ const {
 describe("browser combat helpers", () => {
   it("creates card instances from card ids", () => {
     const strike = createCardFromId("strike");
-    const cards = instantiateCards(["strike", "defend"]);
+    const detonateSigil = createCardFromId("detonate_sigil");
+    const cards = instantiateCards(["strike", "lingering_curse"]);
 
     expect(strike.id).toBe("strike");
+    expect(detonateSigil.id).toBe("detonate_sigil");
     expect(cards).toHaveLength(2);
-    expect(cards[1].id).toBe("defend");
+    expect(cards[1].id).toBe("lingering_curse");
   });
 
   it("starts combat with a drawn opening hand and energy", () => {

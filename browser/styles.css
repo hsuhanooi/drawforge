@@ -11,8 +11,25 @@ body {
   padding: 24px;
 }
 
+.header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .subtitle {
   color: #cbd5e1;
+}
+
+.version-pill {
+  font-size: 12px;
+  color: #cbd5e1;
+  border: 1px solid #374151;
+  background: #0f172a;
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
 }
 
 .card {

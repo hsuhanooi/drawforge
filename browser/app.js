@@ -74,36 +74,39 @@
     { id: "phoenix_ash", name: "Phoenix Ash", description: "Once per run, if you would die, survive at 1 HP instead", rarity: "rare" }
   ];
 
-  const EVENT_TEMPLATES = [
-    {
-      id: "shrine",
-      text: "A quiet shrine offers healing, a relic, or a chance to refine your deck.",
-      createOptions: (node) => [
-        { id: "heal", label: "Recover 10 health", effect: "heal" },
-        { id: "relic", label: `Take ${RELICS[(node.row + node.col) % RELICS.length].name}`, effect: "relic", relic: RELICS[(node.row + node.col) % RELICS.length] },
-        { id: "remove", label: "Enter card removal", effect: "remove" }
-      ]
-    },
-    {
-      id: "forge",
-      text: "An old forge lets you sharpen your deck with a free reward card or extra gold.",
-      createOptions: () => [
-        { id: "gold", label: "Take 20 gold", effect: "gold", amount: 20 },
-        { id: "card", label: "Take a forged card reward", effect: "reward_cards", cards: createRewardCardOptions(3) },
-        { id: "remove", label: "Burn away a weak card", effect: "remove" }
-      ]
-    },
-    {
-      id: "camp",
-      text: "A roadside camp gives you time to recover or prepare for the next fight.",
-      createOptions: () => [
-        { id: "heal", label: "Recover 12 health", effect: "heal", amount: 12 },
-        { id: "surge", label: "Add Surge to your deck", effect: "add_card", card: createCardFromId("surge") },
-        { id: "hex", label: "Add Hex to your deck", effect: "add_card", card: createCardFromId("hex") },
-        { id: "momentum", label: "Add Momentum to your deck", effect: "add_card", card: createCardFromId("momentum") }
-      ]
+  async function fetchEventState(node) {
+    const response = await fetch(`/event.json?nodeId=${encodeURIComponent(node.id)}&row=${node.row}&col=${node.col}`, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Unable to load event for ${node.id}`);
     }
-  ];
+    const event = await response.json();
+    return {
+      ...event,
+      options: event.options.map((option) => hydrateEventOption(option))
+    };
+  }
+
+  function createEventLabel(option) {
+    if (option.effect === "heal") return `Recover ${option.amount} health`;
+    if (option.effect === "gold") return `Take ${option.amount} gold`;
+    if (option.effect === "remove") return "Enter card removal";
+    if (option.effect === "relic") return `Take ${option.relic.name}`;
+    if (option.effect === "reward_cards") return "Take a forged card reward";
+    if (option.effect === "add_card") return `Add ${option.card.name} to your deck`;
+    return option.id;
+  }
+
+  function hydrateEventOption(option) {
+    const nextOption = { ...option };
+    if (nextOption.card && nextOption.card.id) {
+      nextOption.card = createCardFromId(nextOption.card.id);
+    }
+    if (Array.isArray(nextOption.cards)) {
+      nextOption.cards = nextOption.cards.map((card) => createCardFromId(card.id));
+    }
+    nextOption.label = createEventLabel(nextOption);
+    return nextOption;
+  }
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -382,17 +385,7 @@
     };
   }
 
-  function createEventState(node) {
-    const template = EVENT_TEMPLATES[(node.row + node.col) % EVENT_TEMPLATES.length];
-    return {
-      id: `event-${node.id}`,
-      kind: template.id,
-      text: template.text,
-      options: template.createOptions(node)
-    };
-  }
-
-  function enterNode(run, nodeId) {
+  async function enterNode(run, nodeId) {
     const node = run.map.nodes.find((candidate) => candidate.id === nodeId);
     if (!node) throw new Error("Node not found");
     if (run.map.currentNodeId === null && node.row !== 0) throw new Error("Invalid starting node");
@@ -408,7 +401,7 @@
     }
     if (node.type === "event") {
       nextRun.combat = null;
-      nextRun.event = createEventState(node);
+      nextRun.event = await fetchEventState(node);
       return nextRun;
     }
     return nextRun;
@@ -783,9 +776,9 @@
       const button = document.createElement("button");
       button.className = "node-button";
       button.innerHTML = `Node ${node.id}<br />${node.type.toUpperCase()}<br />Row ${node.row}, Col ${node.col}`;
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         try {
-          currentRun = enterNode(currentRun, node.id);
+          currentRun = await enterNode(currentRun, node.id);
           render();
           setStatus(`Entered ${node.id} (${node.type}).`);
         } catch (error) {

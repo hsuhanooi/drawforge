@@ -2,6 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { createEventForNode } = require("./src/events");
 
 const port = process.env.PORT || 3000;
 const browserDir = path.join(__dirname, "browser");
@@ -36,19 +37,38 @@ const renderIndexHtml = () => {
     .replace("__APP_SHA_TITLE__", `app.js sha256 ${meta.appJsSha256}`);
 };
 
+const sendJson = (res, status, payload, cacheControl = "no-store") => {
+  res.writeHead(status, {
+    "Content-Type": contentTypes[".json"],
+    "Cache-Control": cacheControl
+  });
+  res.end(JSON.stringify(payload, null, 2));
+};
+
 const server = http.createServer((req, res) => {
   const meta = getBundleMeta();
+  const requestUrl = new URL(req.url, `http://localhost:${port}`);
 
-  if (req.url === "/meta.json") {
-    res.writeHead(200, {
-      "Content-Type": contentTypes[".json"],
-      "Cache-Control": "no-store"
-    });
-    res.end(JSON.stringify(meta, null, 2));
+  if (requestUrl.pathname === "/meta.json") {
+    sendJson(res, 200, meta);
     return;
   }
 
-  if (req.url === "/" || req.url === "/index.html") {
+  if (requestUrl.pathname === "/event.json") {
+    const nodeId = requestUrl.searchParams.get("nodeId") || "r0c0";
+    const row = Number(requestUrl.searchParams.get("row"));
+    const col = Number(requestUrl.searchParams.get("col"));
+
+    if (!Number.isInteger(row) || !Number.isInteger(col)) {
+      sendJson(res, 400, { error: "row and col query params are required integers" });
+      return;
+    }
+
+    sendJson(res, 200, createEventForNode({ id: nodeId, row, col }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/" || requestUrl.pathname === "/index.html") {
     res.writeHead(200, {
       "Content-Type": contentTypes[".html"],
       "Cache-Control": "no-store"
@@ -57,7 +77,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.url === meta.hashedJsPath) {
+  if (requestUrl.pathname === meta.hashedJsPath) {
     fs.readFile(appJsPath, (error, contents) => {
       if (error) {
         res.writeHead(500);
@@ -73,8 +93,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const requestPath = req.url;
-  const filePath = path.join(browserDir, requestPath);
+  const filePath = path.join(browserDir, requestUrl.pathname);
 
   if (!filePath.startsWith(browserDir)) {
     res.writeHead(403);
@@ -102,3 +121,5 @@ server.listen(port, () => {
   const meta = getBundleMeta();
   console.log(`Drawforge browser demo running at http://localhost:${port} (${meta.shortSha})`);
 });
+
+module.exports = server;

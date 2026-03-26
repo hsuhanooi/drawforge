@@ -1,10 +1,10 @@
 // @ts-check
 
-/** @typedef {import("./types").Card} Card */
-/** @typedef {import("./types").CardFactory} CardFactory */
-/** @typedef {import("./types").CardId} CardId */
-/** @typedef {import("./types").RunStateLike} RunStateLike */
-/** @typedef {import("./types").CombatStateLike} CombatStateLike */
+/** @typedef {import("./domain").Card} Card */
+/** @typedef {import("./domain").CardFactory} CardFactory */
+/** @typedef {import("./domain").CardId} CardId */
+/** @typedef {import("./domain").RunState} RunState */
+/** @typedef {import("./domain").CombatState} CombatState */
 
 const { createCombatEncounter } = require("./combat");
 const {
@@ -24,7 +24,19 @@ const {
   witherCardDefinition,
   siphonWardCardDefinition,
   detonateSigilCardDefinition,
-  lingeringCurseCardDefinition
+  lingeringCurseCardDefinition,
+  markOfRuinCardDefinition,
+  hexbladeCardDefinition,
+  reapersClauseCardDefinition,
+  fireSaleCardDefinition,
+  cremateCardDefinition,
+  graveFuelCardDefinition,
+  brandTheSoulCardDefinition,
+  harvesterCardDefinition,
+  chargeUpCardDefinition,
+  arcLashCardDefinition,
+  bloodPactCardDefinition,
+  spiteShieldCardDefinition
 } = require("./cards");
 const { createDeckState, drawCards } = require("./deckZones");
 const { startPlayerTurn } = require("./energy");
@@ -50,7 +62,19 @@ const cardFactories = {
   wither: witherCardDefinition,
   siphon_ward: siphonWardCardDefinition,
   detonate_sigil: detonateSigilCardDefinition,
-  lingering_curse: lingeringCurseCardDefinition
+  lingering_curse: lingeringCurseCardDefinition,
+  mark_of_ruin: markOfRuinCardDefinition,
+  hexblade: hexbladeCardDefinition,
+  reapers_clause: reapersClauseCardDefinition,
+  fire_sale: fireSaleCardDefinition,
+  cremate: cremateCardDefinition,
+  grave_fuel: graveFuelCardDefinition,
+  brand_the_soul: brandTheSoulCardDefinition,
+  harvester: harvesterCardDefinition,
+  charge_up: chargeUpCardDefinition,
+  arc_lash: arcLashCardDefinition,
+  blood_pact: bloodPactCardDefinition,
+  spite_shield: spiteShieldCardDefinition
 };
 
 /**
@@ -59,6 +83,9 @@ const cardFactories = {
  */
 const createCardFromId = (cardId) => {
   const factory = cardFactories[cardId];
+  if (!factory) {
+    throw new Error(`Unknown card id: ${cardId}`);
+  }
   return factory();
 };
 
@@ -69,8 +96,9 @@ const createCardFromId = (cardId) => {
 const instantiateCards = (cardIds) => cardIds.map(createCardFromId);
 
 /**
- * @param {RunStateLike} run
+ * @param {RunState} run
  * @param {{ id: string, health: number, damage?: number, intents?: Array<{ type: string, value?: number, label: string, hits?: number }> }} [enemy]
+ * @returns {CombatState}
  */
 const startCombatForRun = (run, enemy = { id: "slime", health: 30 }) => {
   const deckState = createDeckState(instantiateCards(run.player.deck), (cards) => cards);
@@ -93,7 +121,7 @@ const startCombatForRun = (run, enemy = { id: "slime", health: 30 }) => {
 };
 
 /**
- * @param {CombatStateLike & { hand: Card[] }} combat
+ * @param {CombatState} combat
  * @param {number} handIndex
  */
 const playCardAtIndex = (combat, handIndex) => {
@@ -118,7 +146,8 @@ const playCardAtIndex = (combat, handIndex) => {
 };
 
 /**
- * @param {CombatStateLike} combat
+ * @param {CombatState} combat
+ * @returns {CombatState}
  */
 const resolveEndTurn = (combat) => {
   const enemyTurn = endPlayerTurn(combat);

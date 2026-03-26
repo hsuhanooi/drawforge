@@ -1,3 +1,11 @@
+// @ts-check
+
+/** @typedef {import("./types").Card} Card */
+/** @typedef {import("./types").CardFactory} CardFactory */
+/** @typedef {import("./types").CardId} CardId */
+/** @typedef {import("./types").RunStateLike} RunStateLike */
+/** @typedef {import("./types").CombatStateLike} CombatStateLike */
+
 const { createCombatEncounter } = require("./combat");
 const {
   strikeCardDefinition,
@@ -24,6 +32,7 @@ const { performEnemyAttack } = require("./enemy");
 const { playCard } = require("./playCard");
 const { endPlayerTurn, startPlayerTurnAfterEnemy } = require("./turns");
 
+/** @type {Record<CardId, CardFactory>} */
 const cardFactories = {
   strike: strikeCardDefinition,
   defend: defendCardDefinition,
@@ -44,17 +53,25 @@ const cardFactories = {
   lingering_curse: lingeringCurseCardDefinition
 };
 
+/**
+ * @param {CardId} cardId
+ * @returns {Card}
+ */
 const createCardFromId = (cardId) => {
   const factory = cardFactories[cardId];
-  if (!factory) {
-    throw new Error(`Unknown card id: ${cardId}`);
-  }
-
   return factory();
 };
 
+/**
+ * @param {CardId[]} cardIds
+ * @returns {Card[]}
+ */
 const instantiateCards = (cardIds) => cardIds.map(createCardFromId);
 
+/**
+ * @param {RunStateLike} run
+ * @param {{ id: string, health: number, damage?: number, intents?: Array<{ type: string, value?: number, label: string, hits?: number }> }} [enemy]
+ */
 const startCombatForRun = (run, enemy = { id: "slime", health: 30 }) => {
   const deckState = createDeckState(instantiateCards(run.player.deck), (cards) => cards);
   const combat = startPlayerTurn(
@@ -75,6 +92,10 @@ const startCombatForRun = (run, enemy = { id: "slime", health: 30 }) => {
   return drawCards(withDeck, 5, (cards) => cards);
 };
 
+/**
+ * @param {CombatStateLike & { hand: Card[] }} combat
+ * @param {number} handIndex
+ */
 const playCardAtIndex = (combat, handIndex) => {
   const card = combat.hand[handIndex];
   if (!card) {
@@ -96,6 +117,9 @@ const playCardAtIndex = (combat, handIndex) => {
   return result;
 };
 
+/**
+ * @param {CombatStateLike} combat
+ */
 const resolveEndTurn = (combat) => {
   const enemyTurn = endPlayerTurn(combat);
   const afterEnemy = performEnemyAttack(enemyTurn);

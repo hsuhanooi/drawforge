@@ -1,7 +1,19 @@
+// @ts-check
+
+/** @typedef {import("./types").EventNodeInput} EventNodeInput */
+/** @typedef {import("./types").EventState} EventState */
+
 const { createRelicReward } = require("./relics");
 const { createRewardOptions } = require("./rewards");
-const { focusCardDefinition, volleyCardDefinition } = require("./cards");
+const {
+  focusCardDefinition,
+  volleyCardDefinition
+} = require("./cards");
 
+/**
+ * @param {EventNodeInput} node
+ * @returns {EventState}
+ */
 const createEventForNode = (node) => {
   const index = (node.row + node.col) % 3;
 

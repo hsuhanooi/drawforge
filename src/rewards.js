@@ -1,3 +1,8 @@
+// @ts-check
+
+/** @typedef {import("./types").Card} Card */
+/** @typedef {import("./types").CardFactory} CardFactory */
+
 const {
   strikeCardDefinition,
   defendCardDefinition,
@@ -20,6 +25,7 @@ const {
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
 
+/** @type {CardFactory[]} */
 const rewardPool = [
   strikeCardDefinition,
   defendCardDefinition,
@@ -40,10 +46,17 @@ const rewardPool = [
   lingeringCurseCardDefinition
 ];
 
+/**
+ * @param {number | undefined} count
+ * @param {object} [balanceOverrides]
+ * @param {() => number} [rng]
+ * @returns {Card[]}
+ */
 const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) => {
   const balance = createBalanceConfig(balanceOverrides);
   const optionCount = Math.min(count ?? balance.rewards.cardOptionCount, rewardPool.length);
   const pool = [...rewardPool];
+  /** @type {Card[]} */
   const options = [];
 
   for (let i = 0; i < optionCount; i += 1) {
@@ -55,8 +68,16 @@ const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) =>
   return options;
 };
 
+/**
+ * @param {string[]} deck
+ * @param {Card} card
+ */
 const addRewardCardToDeck = (deck, card) => [...deck, card.id];
 
+/**
+ * @param {"combat" | "elite" | "boss"} [nodeType]
+ * @param {object} [balanceOverrides]
+ */
 const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
   const cards = createRewardOptions(undefined, balanceOverrides);
   const rewards = {

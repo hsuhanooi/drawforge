@@ -16,6 +16,10 @@
   "include": [
     "src/domain.ts",
     "src/card.js",
-    "src/cards.js"
+    "src/cards.js",
+    "src/balance.js",
+    "src/relics.js",
+    "src/rewards.js",
+    "src/events.js"
   ]
 }

@@ -1,3 +1,8 @@
+// @ts-check
+
+/** @typedef {import("./domain").RelicReward} RelicReward */
+
+/** @type {RelicReward[]} */
 const RELICS = [
   {
     id: "iron_core",
@@ -16,8 +21,16 @@ const RELICS = [
   }
 ];
 
+/**
+ * @param {number} [index]
+ * @returns {RelicReward}
+ */
 const createRelicReward = (index = 0) => RELICS[index % RELICS.length];
 
+/**
+ * @param {{ player: { health: number, gold: number }, relics?: RelicReward[] } & Record<string, unknown>} run
+ * @param {RelicReward} relic
+ */
 const addRelicToRun = (run, relic) => {
   const relics = [...(run.relics || []), relic];
   const nextPlayer = { ...run.player };
@@ -37,6 +50,10 @@ const addRelicToRun = (run, relic) => {
   };
 };
 
+/**
+ * @param {{ relics?: RelicReward[] }} run
+ * @returns {number}
+ */
 const getCombatEnergyBonus = (run) => ((run.relics || []).some((relic) => relic.id === "ember_ring") ? 1 : 0);
 
 module.exports = {

@@ -1,7 +1,8 @@
 // @ts-check
 
-/** @typedef {import("./types").Card} Card */
-/** @typedef {import("./types").CardFactory} CardFactory */
+/** @typedef {import("./domain").Card} Card */
+/** @typedef {import("./domain").CardFactory} CardFactory */
+/** @typedef {import("./domain").RelicReward} RelicReward */
 
 const {
   strikeCardDefinition,
@@ -71,22 +72,25 @@ const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) =>
 /**
  * @param {string[]} deck
  * @param {Card} card
+ * @returns {string[]}
  */
 const addRewardCardToDeck = (deck, card) => [...deck, card.id];
 
 /**
  * @param {"combat" | "elite" | "boss"} [nodeType]
  * @param {object} [balanceOverrides]
+ * @returns {{ cards: Card[], gold: number, relic: RelicReward | null }}
  */
 const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
   const cards = createRewardOptions(undefined, balanceOverrides);
+  /** @type {{ cards: Card[], gold: number, relic: RelicReward | null }} */
   const rewards = {
     cards,
     gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
     relic: null
   };
 
-  if (["elite", "boss"].includes(nodeType)) {
+  if (nodeType === "elite" || nodeType === "boss") {
     rewards.relic = createRelicReward(nodeType === "boss" ? 2 : 1);
   }
 

@@ -1,7 +1,7 @@
 // @ts-check
 
-/** @typedef {import("./types").EventNodeInput} EventNodeInput */
-/** @typedef {import("./types").EventState} EventState */
+/** @typedef {import("./domain").EventState} EventState */
+/** @typedef {import("./domain").MapNode} MapNode */
 
 const { createRelicReward } = require("./relics");
 const { createRewardOptions } = require("./rewards");
@@ -11,7 +11,7 @@ const {
 } = require("./cards");
 
 /**
- * @param {EventNodeInput} node
+ * @param {Pick<MapNode, "id" | "row" | "col">} node
  * @returns {EventState}
  */
 const createEventForNode = (node) => {

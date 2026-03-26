@@ -1,6 +1,19 @@
+// @ts-check
+
 const { DEFAULT_PLAYER_HEALTH, DEFAULT_PLAYER_GOLD, DEFAULT_PLAYER_ENERGY } = require("./constants");
 const { STRIKE_DAMAGE, DEFEND_BLOCK } = require("./cards");
 
+/**
+ * @typedef {{
+ *   player: { health: number, gold: number, energy: number },
+ *   cards: { strikeDamage: number, defendBlock: number },
+ *   enemy: { basicAttackDamage: number, basicEnemyHealth: number },
+ *   rewards: { cardOptionCount: number },
+ *   map: { rows: number, columns: number }
+ * }} BalanceConfig
+ */
+
+/** @type {BalanceConfig} */
 const DEFAULT_BALANCE = {
   player: {
     health: DEFAULT_PLAYER_HEALTH,
@@ -24,11 +37,21 @@ const DEFAULT_BALANCE = {
   }
 };
 
+/**
+ * @template T
+ * @param {T} defaults
+ * @param {Partial<T>} [overrides]
+ * @returns {T}
+ */
 const mergeSection = (defaults, overrides = {}) => ({
   ...defaults,
   ...overrides
 });
 
+/**
+ * @param {Partial<BalanceConfig>} [overrides]
+ * @returns {BalanceConfig}
+ */
 const createBalanceConfig = (overrides = {}) => ({
   player: mergeSection(DEFAULT_BALANCE.player, overrides.player),
   cards: mergeSection(DEFAULT_BALANCE.cards, overrides.cards),

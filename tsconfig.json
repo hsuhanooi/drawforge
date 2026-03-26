@@ -6,12 +6,16 @@
     "ignoreDeprecations": "6.0",
     "strict": true,
     "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "types": ["node", "jest"]
   },
   "include": [
-    "src/domain.ts"
+    "src/domain.ts",
+    "src/card.js",
+    "src/cards.js"
   ]
 }

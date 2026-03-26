@@ -1,3 +1,8 @@
+// @ts-check
+
+/** @typedef {import("./domain").CombatMutationState} CombatMutationState */
+/** @typedef {import("./domain").Card} Card */
+
 const { createCard } = require("./card");
 
 const STRIKE_DAMAGE = 6;
@@ -16,12 +21,14 @@ const DETONATE_SIGIL_DAMAGE = 7;
 const DETONATE_SIGIL_HEX_BONUS = 10;
 const LINGERING_CURSE_HEX = 2;
 
+/** @returns {Card} */
 const strikeCardDefinition = () =>
   createCard({
     id: "strike",
     name: "Strike",
     cost: 1,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -31,12 +38,14 @@ const strikeCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const defendCardDefinition = () =>
   createCard({
     id: "defend",
     name: "Defend",
     cost: 1,
     type: "skill",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -46,12 +55,14 @@ const defendCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const bashCardDefinition = () =>
   createCard({
     id: "bash",
     name: "Bash",
     cost: 2,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -61,12 +72,14 @@ const bashCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const barrierCardDefinition = () =>
   createCard({
     id: "barrier",
     name: "Barrier",
     cost: 2,
     type: "skill",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -76,12 +89,14 @@ const barrierCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const quickStrikeCardDefinition = () =>
   createCard({
     id: "quick_strike",
     name: "Quick Strike",
     cost: 0,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -91,12 +106,14 @@ const quickStrikeCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const focusCardDefinition = () =>
   createCard({
     id: "focus",
     name: "Focus",
     cost: 1,
     type: "skill",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -106,12 +123,14 @@ const focusCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const volleyCardDefinition = () =>
   createCard({
     id: "volley",
     name: "Volley",
     cost: 1,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -122,6 +141,7 @@ const volleyCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const surgeCardDefinition = () =>
   createCard({
     id: "surge",
@@ -129,6 +149,7 @@ const surgeCardDefinition = () =>
     cost: 0,
     type: "skill",
     exhaust: true,
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -138,6 +159,7 @@ const surgeCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const hexCardDefinition = () =>
   createCard({
     id: "hex",
@@ -145,6 +167,7 @@ const hexCardDefinition = () =>
     cost: 1,
     type: "skill",
     exhaust: true,
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -154,12 +177,14 @@ const hexCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const punishCardDefinition = () =>
   createCard({
     id: "punish",
     name: "Punish",
     cost: 1,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -169,12 +194,14 @@ const punishCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const burnoutCardDefinition = () =>
   createCard({
     id: "burnout",
     name: "Burnout",
     cost: 1,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -184,12 +211,14 @@ const burnoutCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const crackdownCardDefinition = () =>
   createCard({
     id: "crackdown",
     name: "Crackdown",
     cost: 2,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -199,12 +228,14 @@ const crackdownCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const momentumCardDefinition = () =>
   createCard({
     id: "momentum",
     name: "Momentum",
     cost: 1,
     type: "skill",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -215,12 +246,14 @@ const momentumCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const witherCardDefinition = () =>
   createCard({
     id: "wither",
     name: "Wither",
     cost: 1,
     type: "skill",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -231,12 +264,14 @@ const witherCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const siphonWardCardDefinition = () =>
   createCard({
     id: "siphon_ward",
     name: "Siphon Ward",
     cost: 1,
     type: "skill",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       player: {
@@ -246,12 +281,14 @@ const siphonWardCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const detonateSigilCardDefinition = () =>
   createCard({
     id: "detonate_sigil",
     name: "Detonate Sigil",
     cost: 2,
     type: "attack",
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {
@@ -261,6 +298,7 @@ const detonateSigilCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
 const lingeringCurseCardDefinition = () =>
   createCard({
     id: "lingering_curse",
@@ -268,6 +306,7 @@ const lingeringCurseCardDefinition = () =>
     cost: 1,
     type: "skill",
     exhaust: true,
+    /** @param {CombatMutationState} state */
     effect: (state) => ({
       ...state,
       enemy: {

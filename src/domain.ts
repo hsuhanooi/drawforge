@@ -21,13 +21,36 @@ export const CARD_IDS = [
 export type CardId = (typeof CARD_IDS)[number];
 export type CardType = "attack" | "skill";
 export type EventKind = "shrine" | "forge" | "camp";
-export type EventEffect = "heal" | "relic" | "remove" | "gold" | "reward_cards" | "add_card";
+
+export interface IntentLike {
+  type: string;
+  value?: number;
+  label: string;
+  hits?: number;
+}
+
+export interface CombatMutationState {
+  player: {
+    health: number;
+    block: number;
+    energy?: number;
+  };
+  enemy: {
+    health: number;
+    hex?: number;
+    damage?: number;
+    intents?: IntentLike[];
+  };
+  drawCount?: number;
+  exhaustPile?: unknown[];
+}
 
 export interface Card {
   id: CardId;
   name: string;
   cost: number;
   type: CardType;
+  effect: (state: CombatMutationState) => CombatMutationState;
   exhaust?: boolean;
   damage?: number;
   block?: number;
@@ -38,6 +61,15 @@ export interface Card {
   bonusVsExhaust?: number;
   bonusBlockIfHighEnergy?: number;
   bonusBlockIfHexed?: number;
+}
+
+export interface CardDefinitionInput {
+  id: CardId;
+  name: string;
+  cost: number;
+  type: CardType;
+  effect: (state: CombatMutationState) => CombatMutationState;
+  exhaust?: boolean;
 }
 
 export interface RelicReward {
@@ -84,3 +116,5 @@ export interface RunState {
     columns?: number;
   };
 }
+
+export type CardFactory = () => Card;

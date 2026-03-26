@@ -32,6 +32,8 @@ const startCombatForRun = (run, enemy = { id: "slime", health: 30 }) => {
   );
   const withDeck = {
     ...combat,
+    enemyTurnNumber: 0,
+    enemyIntent: enemy.intents ? enemy.intents[0] : { type: "attack", value: enemy.damage || 6, label: `Attack for ${enemy.damage || 6}` },
     drawPile: deckState.drawPile,
     hand: deckState.hand,
     discardPile: deckState.discardPile

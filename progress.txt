@@ -38,3 +38,5 @@
 - Refactored the browser app into a cleaner event/card loop with richer reward-card generation and multiple event outcomes, while keeping save/load and the existing run loop intact.
 - Added utility/replacement cards `focus` and `volley`, extended both the browser card library and the core reward pool to include them, and added test coverage for their card definitions/effects.
 - Added deterministic multi-template event generation in a dedicated `src/events.js` module and expanded event outcomes to include gold, reward-card offers, and add-card results in addition to healing/relic/removal choices.
+- Added enemy behavior variety with deterministic intent sequences for normal, elite, and boss enemies. Enemy actions now support attack, multi-hit attack, block, and buff behaviors instead of every encounter being a flat single-hit attack.
+- Updated the browser combat UI to display real readable enemy intent labels and verified through DOM automation that intents advance between turns (for example, Slime rotates from `Slam for 6` to `Harden: gain 6 block`).

@@ -1,4 +1,4 @@
-const { createEnemyForNode } = require("../src/enemies");
+const { createEnemyForNode, resolveEnemyIntent } = require("../src/enemies");
 
 describe("enemy selection", () => {
   it("creates deterministic basic enemies for combat nodes", () => {
@@ -7,6 +7,7 @@ describe("enemy selection", () => {
     expect(enemy).toHaveProperty("id");
     expect(enemy).toHaveProperty("health");
     expect(enemy).toHaveProperty("damage");
+    expect(Array.isArray(enemy.intents)).toBe(true);
   });
 
   it("creates stronger enemies for elite and boss nodes", () => {
@@ -16,5 +17,13 @@ describe("enemy selection", () => {
     expect(elite.health).toBeGreaterThan(30);
     expect(boss.health).toBeGreaterThan(elite.health);
     expect(boss.damage).toBeGreaterThan(elite.damage);
+  });
+
+  it("provides readable intent labels", () => {
+    const fangling = createEnemyForNode({ row: 0, col: 1, type: "combat" });
+    const intent = resolveEnemyIntent(fangling, 0);
+
+    expect(intent).toHaveProperty("label");
+    expect(typeof intent.label).toBe("string");
   });
 });

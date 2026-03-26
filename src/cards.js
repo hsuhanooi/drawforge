@@ -6,6 +6,7 @@ const BASH_DAMAGE = 8;
 const BARRIER_BLOCK = 8;
 const QUICK_STRIKE_DAMAGE = 4;
 const VOLLEY_DAMAGE = 5;
+const HEX_DAMAGE_BONUS = 4;
 
 const strikeCardDefinition = () =>
   createCard({
@@ -108,6 +109,54 @@ const volleyCardDefinition = () =>
       enemy: {
         ...state.enemy,
         health: state.enemy.health - VOLLEY_DAMAGE
+      },
+      drawCount: (state.drawCount || 0) + 1
+    })
+  });
+
+const surgeCardDefinition = () =>
+  createCard({
+    id: "surge",
+    name: "Surge",
+    cost: 0,
+    type: "skill",
+    exhaust: true,
+    effect: (state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        energy: (state.player.energy ?? 0) + 2
+      }
+    })
+  });
+
+const hexCardDefinition = () =>
+  createCard({
+    id: "hex",
+    name: "Hex",
+    cost: 1,
+    type: "skill",
+    exhaust: true,
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        hex: (state.enemy.hex || 0) + 1
+      }
+    })
+  });
+
+const punishCardDefinition = () =>
+  createCard({
+    id: "punish",
+    name: "Punish",
+    cost: 1,
+    type: "attack",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - (STRIKE_DAMAGE + ((state.enemy.hex || 0) > 0 ? HEX_DAMAGE_BONUS : 0))
       }
     })
   });
@@ -119,11 +168,15 @@ module.exports = {
   BARRIER_BLOCK,
   QUICK_STRIKE_DAMAGE,
   VOLLEY_DAMAGE,
+  HEX_DAMAGE_BONUS,
   strikeCardDefinition,
   defendCardDefinition,
   bashCardDefinition,
   barrierCardDefinition,
   quickStrikeCardDefinition,
   focusCardDefinition,
-  volleyCardDefinition
+  volleyCardDefinition,
+  surgeCardDefinition,
+  hexCardDefinition,
+  punishCardDefinition
 };

@@ -29,12 +29,14 @@ const playCard = (combat, card) => {
   );
   const nextHand = removeCardFromHand(afterEffect.hand, card);
 
+  const destinationKey = card.exhaust ? "exhaustPile" : "discardPile";
+
   return {
     rejected: false,
     combat: {
       ...afterEffect,
       hand: nextHand,
-      discardPile: [...afterEffect.discardPile, card]
+      [destinationKey]: [...(afterEffect[destinationKey] || []), card]
     }
   };
 };

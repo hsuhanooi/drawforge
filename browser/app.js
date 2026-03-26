@@ -64,7 +64,7 @@
   }
 
   function createRewardCardOptions(offset = 0) {
-    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley"];
+    const ids = ["strike", "defend", "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish"];
     return [0, 1, 2].map((index) => createCardFromId(ids[(offset + index) % ids.length]));
   }
 
@@ -240,6 +240,7 @@
       hand: [],
       drawPile: run.player.deck.map(createCardFromId),
       discardPile: [],
+      exhaustPile: [],
       enemy
     }, 5);
   }
@@ -304,7 +305,6 @@
     let next = clone(combat);
     next.player.energy -= card.cost;
     next.hand.splice(handIndex, 1);
-    next.discardPile.push(card);
 
     if (card.damage) {
       const blocked = Math.min(next.enemy.block || 0, card.damage);
@@ -529,9 +529,12 @@
       elements.combatPlayerBlock.textContent = "-";
       elements.combatPlayerEnergy.textContent = "-";
       elements.combatEnemyHealth.textContent = "-";
+      elements.combatEnemyBlock.textContent = "-";
+      elements.combatEnemyHex.textContent = "-";
       elements.combatEnemyIntent.textContent = "-";
       elements.drawPileCount.textContent = "-";
       elements.discardPileCount.textContent = "-";
+      elements.exhaustPileCount.textContent = "-";
       elements.combatTurn.textContent = "-";
       return;
     }

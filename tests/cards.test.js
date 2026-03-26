@@ -31,7 +31,8 @@ describe("card model", () => {
       name: "Test",
       cost: 2,
       type: "attack",
-      effect: expect.any(Function)
+      effect: expect.any(Function),
+      exhaust: false
     });
   });
 });

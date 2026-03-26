@@ -42,3 +42,6 @@
 - Updated the browser combat UI to display real readable enemy intent labels and verified through DOM automation that intents advance between turns (for example, Slime rotates from `Slam for 6` to `Harden: gain 6 block`).
 - Added visible enemy block to the browser combat panel and fixed the UI wiring so DOM-based testing can read both current intent and current enemy block directly from the page.
 - Improved enemy-action feedback in the browser by surfacing the resolved intent label in the status text after enemy turns (for example, after ending a turn against Slime the UI now reports `Slam for 6` instead of a generic message).
+- Added a new mechanics layer for cards: exhaust-style one-shots (`surge`, `hex`), temporary energy gain, and a simple debuff interaction where `punish` deals bonus damage against hexed enemies.
+- Extended the browser combat UI to track exhaust pile count and enemy hex stacks, and expanded the browser reward/event card pool so the new mechanics can appear in actual runs.
+- Added core Jest coverage for advanced card mechanics, including exhaust-pile routing and bonus damage against hexed enemies.

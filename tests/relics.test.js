@@ -39,14 +39,14 @@ describe("relic system", () => {
   });
 
   it("all relics have a rarity field", () => {
-    const validRarities = new Set(["common", "uncommon", "rare"]);
+    const validRarities = new Set(["common", "uncommon", "rare", "boss"]);
     for (const relic of RELICS) {
       expect(validRarities.has(relic.rarity)).toBe(true);
     }
   });
 
-  it("has 15 relics total", () => {
-    expect(RELICS).toHaveLength(15);
+  it("has 39 relics total", () => {
+    expect(RELICS).toHaveLength(39);
   });
 
   it("tier 1 reward (elite) only returns common or uncommon relics", () => {

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drawforge</title>
+  <link rel="stylesheet" href="play.css" />
+</head>
+<body>
+
+<!-- ─── Start Screen ──────────────────────────────────────────────── -->
+<div id="screen-start" class="screen">
+  <h1>DRAWFORGE</h1>
+  <p>A roguelike deckbuilder</p>
+  <button class="btn" id="start-new-run-btn">New Run</button>
+  <button class="btn" id="start-load-run-btn" style="margin-top:8px;border-color:var(--border);background:transparent">Continue</button>
+</div>
+
+<!-- ─── Map Screen ────────────────────────────────────────────────── -->
+<div id="screen-map" class="screen hidden">
+  <div id="map-header">
+    <div class="stat">
+      <span class="stat-label">❤️</span>
+      <span class="stat-value hp" id="map-hp">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">💰</span>
+      <span class="stat-value gold" id="map-gold">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">🃏</span>
+      <span class="stat-value" id="map-deck-count">—</span>
+    </div>
+    <button class="deck-btn" id="map-deck-btn">View Deck</button>
+    <div class="relic-strip" id="map-relic-strip"></div>
+  </div>
+  <div id="map-container">
+    <div id="map-canvas">
+      <svg id="map-svg"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Combat Screen ────────────────────────────────────────────── -->
+<div id="screen-combat" class="screen hidden">
+  <div id="combat-topbar">
+    <span id="combat-floor-label">COMBAT</span>
+    <div class="stat" style="margin-left:16px">
+      <span class="stat-label">Turn</span>
+      <span class="stat-value" id="combat-turn-label">—</span>
+    </div>
+    <button class="deck-btn" id="combat-deck-btn" style="margin-left:16px">Deck</button>
+    <div class="relic-strip" id="combat-relic-strip"></div>
+  </div>
+
+  <div id="combat-arena">
+    <!-- Player panel -->
+    <div class="combatant-panel" id="player-panel">
+      <div class="combatant-avatar" id="player-avatar">🧙</div>
+      <div class="combatant-name">You</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar-label">
+          <span class="hp-current" id="player-hp-current">—</span>
+          <span class="hp-max" id="player-hp-max">—</span>
+        </div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill" id="player-hp-bar" style="width:100%"></div></div>
+      </div>
+      <div class="energy-pips" id="energy-pips"></div>
+      <div class="status-badges" id="player-badges"></div>
+    </div>
+
+    <!-- Turn indicator (center) -->
+    <div id="turn-indicator">
+      <div id="turn-label">TURN</div>
+      <div id="turn-icon">⚔️</div>
+    </div>
+
+    <!-- Enemy panel -->
+    <div class="combatant-panel" id="enemy-panel">
+      <div class="intent-box" id="intent-box">
+        <div class="intent-label">Next Action</div>
+        <div class="intent-action" id="intent-action">—</div>
+      </div>
+      <div class="combatant-avatar" id="enemy-avatar">👹</div>
+      <div class="combatant-name" id="enemy-name">Enemy</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar-label">
+          <span class="hp-current" id="enemy-hp-current">—</span>
+          <span class="hp-max" id="enemy-hp-max">—</span>
+        </div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill" id="enemy-hp-bar" style="width:100%"></div></div>
+      </div>
+      <div class="status-badges" id="enemy-badges"></div>
+    </div>
+  </div>
+
+  <!-- Turn banner overlay -->
+  <div id="turn-banner"><span id="turn-banner-text">YOUR TURN</span></div>
+
+  <!-- Bottom: piles + hand + end turn -->
+  <div id="combat-bottom">
+    <div id="pile-counters">
+      <div class="pile-counter">
+        <span class="pile-icon">🎴</span>
+        <span class="pile-num" id="draw-count">0</span>
+        <span>Draw</span>
+      </div>
+      <div class="pile-counter">
+        <span class="pile-icon">🔃</span>
+        <span class="pile-num" id="discard-count">0</span>
+        <span>Discard</span>
+      </div>
+      <div class="pile-counter">
+        <span class="pile-icon">🔥</span>
+        <span class="pile-num" id="exhaust-count">0</span>
+        <span>Exhaust</span>
+      </div>
+    </div>
+    <div id="hand-area"></div>
+    <button id="end-turn-btn">End Turn</button>
+  </div>
+</div>
+
+<!-- ─── Reward / Event Screen ─────────────────────────────────────── -->
+<div id="screen-reward" class="screen hidden">
+  <!-- Card rewards -->
+  <div id="reward-content">
+    <div id="reward-header">Combat Victory</div>
+    <div id="reward-subtitle">Choose a card to add to your deck</div>
+    <div id="reward-cards-row"></div>
+    <button id="reward-skip-btn">Skip</button>
+  </div>
+
+  <!-- Event panel (shown instead of reward-content for events) -->
+  <div id="event-panel" class="hidden">
+    <div id="event-title">Event</div>
+    <div id="event-text"></div>
+    <div id="event-choices"></div>
+  </div>
+
+  <!-- Elite relic choice -->
+  <div id="relic-choice-panel" class="hidden">
+    <div id="relic-choice-label">Choose a Relic</div>
+    <div id="reward-cards-row-relics" style="display:flex;gap:20px;justify-content:center;margin-top:16px"></div>
+  </div>
+
+  <!-- Card removal panel -->
+  <div id="removal-panel" class="hidden">
+    <div id="removal-title">Remove a Card</div>
+    <div id="removal-subtitle">Select a card to permanently remove from your deck</div>
+    <div id="removal-cards"></div>
+    <button id="removal-skip-btn" class="btn" style="margin-top:8px;border-color:var(--border);background:transparent;font-size:12px">Skip Removal</button>
+  </div>
+</div>
+
+<!-- ─── Deck Overlay ──────────────────────────────────────────────── -->
+<div id="deck-overlay" class="hidden">
+  <div id="deck-panel">
+    <div id="deck-panel-header">
+      <span id="deck-panel-title">Your Deck</span>
+      <button id="deck-close-btn">✕</button>
+    </div>
+    <div id="deck-panel-cards"></div>
+  </div>
+</div>
+
+<!-- ─── End State Overlay ─────────────────────────────────────────── -->
+<div id="screen-end" class="hidden">
+  <div id="end-icon">🏆</div>
+  <div id="end-title">VICTORY</div>
+  <div id="end-stats"></div>
+  <button class="btn" id="end-new-run-btn">New Run</button>
+</div>
+
+<script src="play.js"></script>
+</body>
+</html>

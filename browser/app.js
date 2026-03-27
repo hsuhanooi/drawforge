@@ -29,7 +29,6 @@
     return payload;
   }
 
-  const DEFAULT_PLAYER_ENERGY = 3;
   const CARD_LIBRARY = {
     strike: { id: "strike", name: "Strike", cost: 1, type: "attack", rarity: "common", damage: 6 },
     defend: { id: "defend", name: "Defend", cost: 1, type: "skill", rarity: "common", block: 5 },
@@ -84,99 +83,12 @@
     return nextOption;
   }
 
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
-
   function createCardFromId(cardId) {
     const card = CARD_LIBRARY[cardId];
     if (!card) {
       throw new Error(`Unknown card id: ${cardId}`);
     }
     return { ...card };
-  }
-
-  function shuffleCards(cards) {
-    const shuffled = [...cards];
-    for (let i = shuffled.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }
-
-  function createEnemyForNode(node) {
-    if (node.type === "elite") {
-      return {
-        id: "cultist_captain",
-        name: "Cultist Captain",
-        health: 45,
-        damage: 9,
-        rewardGold: 25,
-        intents: [
-          { type: "attack", value: 9, label: "Heavy attack for 9" },
-          { type: "buff", value: 2, label: "Rally: gain +2 future damage" },
-          { type: "attack", value: 11, label: "Heavy attack for 11" }
-        ]
-      };
-    }
-    if (node.type === "boss") {
-      return {
-        id: "spire_guardian",
-        name: "Spire Guardian",
-        health: 70,
-        damage: 12,
-        rewardGold: 50,
-        intents: [
-          { type: "attack", value: 12, label: "Crush for 12" },
-          { type: "block", value: 10, label: "Fortify: gain 10 block" },
-          { type: "multi_attack", value: 4, hits: 3, label: "Barrage: 3x4" }
-        ]
-      };
-    }
-    const enemies = [
-      {
-        id: "slime",
-        name: "Slime",
-        health: 30,
-        damage: 6,
-        rewardGold: 12,
-        intents: [
-          { type: "attack", value: 6, label: "Slam for 6" },
-          { type: "block", value: 6, label: "Harden: gain 6 block" }
-        ]
-      },
-      {
-        id: "fangling",
-        name: "Fangling",
-        health: 26,
-        damage: 7,
-        rewardGold: 12,
-        intents: [
-          { type: "multi_attack", value: 3, hits: 2, label: "Flurry: 2x3" },
-          { type: "attack", value: 8, label: "Pounce for 8" }
-        ]
-      },
-      {
-        id: "mossling",
-        name: "Mossling",
-        health: 34,
-        damage: 5,
-        rewardGold: 12,
-        intents: [
-          { type: "buff", value: 2, label: "Grow: gain +2 future damage" },
-          { type: "attack", value: 7, label: "Vine lash for 7" }
-        ]
-      }
-    ];
-    return enemies[(node.row + node.col) % enemies.length];
-  }
-
-  function resolveEnemyIntent(enemy, turnNumber = 0) {
-    const intents = enemy.intents && enemy.intents.length > 0
-      ? enemy.intents
-      : [{ type: "attack", value: enemy.damage, label: `Attack for ${enemy.damage}` }];
-    return intents[turnNumber % intents.length];
   }
 
   async function startNewRun() {
@@ -212,54 +124,6 @@
     return run.map.nodes.filter((node) => currentNode.next.includes(node.id));
   }
 
-  function drawCards(combat, count) {
-    const next = clone(combat);
-    next.reshuffled = false;
-    for (let i = 0; i < count; i += 1) {
-      if (next.drawPile.length === 0 && next.discardPile.length > 0) {
-        next.drawPile = [...next.discardPile];
-        next.discardPile = [];
-        next.reshuffled = true;
-      }
-      if (next.drawPile.length === 0) break;
-      next.hand.push(next.drawPile.shift());
-    }
-    return next;
-  }
-
-  function getEnergyBonus(run) {
-    return (run.relics || []).some((relic) => relic.id === "ember_ring") ? 1 : 0;
-  }
-
-  function hasRelic(run, id) {
-    return (run.relics || []).some((r) => r.id === id);
-  }
-
-  function startCombat(run, node) {
-    const enemy = createEnemyForNode(node);
-    const drawCount = hasRelic(run, "quickened_loop") ? 6 : 5;
-    const startingBlock = hasRelic(run, "rusted_buckler") ? 4 : 0;
-    return drawCards({
-      state: "active",
-      turn: "player",
-      nodeType: node.type,
-      enemyTurnNumber: 0,
-      enemyIntent: resolveEnemyIntent(enemy, 0),
-      firstTurn: true,
-      grimoire_used: false,
-      coal_pendant_used: false,
-      sigil_fired: false,
-      seal_used_this_turn: false,
-      player: { health: run.player.health, block: startingBlock, energy: DEFAULT_PLAYER_ENERGY + getEnergyBonus(run), charged: false },
-      hand: [],
-      drawPile: shuffleCards(run.player.deck.map(createCardFromId)),
-      discardPile: [],
-      exhaustPile: [],
-      exhaustedThisTurn: 0,
-      enemy
-    }, drawCount);
-  }
-
   async function enterNode(run, nodeId) {
     const result = await fetchJson("/run/enter-node.json", {
       method: "POST",
@@ -268,7 +132,6 @@
     const nextRun = result.run;
 
     if (["combat", "elite", "boss"].includes(result.node.type)) {
-      nextRun.combat = startCombat(nextRun, result.node);
       nextRun.event = null;
       return nextRun;
     }
@@ -281,200 +144,6 @@
     }
 
     return nextRun;
-  }
-
-  function playCardAtIndex(combat, handIndex, run = null) {
-    const card = combat.hand[handIndex];
-    if (!card) throw new Error("Card not found in hand");
-    if (combat.turn !== "player") throw new Error("It is not the player's turn");
-
-    // Effective cost (costReduceIfHexed reduces cost by 1 if enemy is hexed)
-    let effectiveCost = card.costReduceIfHexed && (combat.enemy.hex || 0) > 0
-      ? Math.max(0, card.cost - card.costReduceIfHexed)
-      : card.cost;
-
-    // Time-Locked Seal: first card costing 1 or less each turn costs 0
-    if (run && hasRelic(run, "time_locked_seal") && !combat.seal_used_this_turn && effectiveCost <= 1) {
-      effectiveCost = 0;
-    }
-
-    if (combat.player.energy < effectiveCost) throw new Error("Not enough energy");
-
-    let next = clone(combat);
-
-    // Mark seal as used this turn (for any card with cost ≤ 1, whether or not it was discounted)
-    if (run && hasRelic(run, "time_locked_seal") && !next.seal_used_this_turn && card.cost <= 1) {
-      next.seal_used_this_turn = true;
-    }
-
-    next.player.energy -= effectiveCost;
-    next.hand.splice(handIndex, 1);
-
-    if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted) {
-      const hexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHex ? card.bonusVsHex : 0;
-      const exhaustBonus = (next.exhaustPile || []).length > 0 && card.bonusVsExhaust ? card.bonusVsExhaust : 0;
-      const harvesterHexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHexedOrExhausted ? card.bonusVsHexedOrExhausted : 0;
-      const harvesterExhaustBonus = (next.exhaustedThisTurn || 0) > 0 && card.bonusVsHexedOrExhausted ? card.bonusVsHexedOrExhausted : 0;
-      // Hex Nail: attack cards deal +2 damage to hexed enemies
-      const hexNailBonus = run && hasRelic(run, "hex_nail") && card.type === "attack" && (next.enemy.hex || 0) > 0 ? 2 : 0;
-      const totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus;
-      const blocked = Math.min(next.enemy.block || 0, totalDamage);
-      const remainingDamage = totalDamage - blocked;
-      next.enemy.block = (next.enemy.block || 0) - blocked;
-      next.enemy.health -= remainingDamage;
-    }
-    if (card.block) {
-      next.player.block += card.block + (((next.player.energy ?? 0) >= 2 && card.bonusBlockIfHighEnergy) ? card.bonusBlockIfHighEnergy : 0);
-      if (card.bonusBlockIfHexed && (next.enemy.hex || 0) > 0) {
-        next.player.block += card.bonusBlockIfHexed;
-      }
-    }
-    if (card.energyGain) next.player.energy += card.energyGain;
-    if (card.energyPerExhausted) next.player.energy += (next.exhaustedThisTurn || 0);
-    if (card.selfDamage) next.player.health = Math.max(0, next.player.health - card.selfDamage);
-    if (card.hex) {
-      const hexAmount = card.hex + (run && hasRelic(run, "worn_grimoire") && !next.grimoire_used ? 1 : 0);
-      if (run && hasRelic(run, "worn_grimoire") && !next.grimoire_used && card.hex > 0) {
-        next.grimoire_used = true;
-      }
-      next.enemy.hex = (next.enemy.hex || 0) + hexAmount;
-      // Sigil Engine: first time enemy reaches 3+ hex, deal 8 damage
-      if (run && hasRelic(run, "sigil_engine") && !next.sigil_fired && (next.enemy.hex || 0) >= 3) {
-        const sigBlocked = Math.min(next.enemy.block || 0, 8);
-        next.enemy.block = (next.enemy.block || 0) - sigBlocked;
-        next.enemy.health -= (8 - sigBlocked);
-        next.sigil_fired = true;
-      }
-    }
-    if (card.setCharged) {
-      next.player.charged = true;
-      // Volt Shard: when becoming Charged, gain 1 block and draw 1
-      if (run && hasRelic(run, "volt_shard")) {
-        next.player.block += 1;
-        next = drawCards(next, 1);
-      }
-    }
-    if (card.draw) next = drawCards(next, card.draw);
-    if (card.drawIfCharged && next.player.charged) next = drawCards(next, card.drawIfCharged);
-    if (card.energyIfCharged && next.player.charged) next.player.energy += card.energyIfCharged;
-
-    // exhaustFromHand: exhaust a random card from the current hand (after removal of played card)
-    if (card.exhaustFromHand && next.hand.length > 0) {
-      const randomIndex = Math.floor(Math.random() * next.hand.length);
-      const exhausted = next.hand.splice(randomIndex, 1)[0];
-      next.exhaustPile = [...(next.exhaustPile || []), exhausted];
-      next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
-      // Coal Pendant: first exhaust each combat draws 1 card
-      if (run && hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
-        next = drawCards(next, 1);
-        next.coal_pendant_used = true;
-      }
-      // Cinder Box: gain 2 block per exhaust
-      if (run && hasRelic(run, "cinder_box")) {
-        next.player.block += 2;
-      }
-    }
-
-    if (card.exhaust) {
-      next.exhaustPile = [...(next.exhaustPile || []), card];
-      next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
-      // Coal Pendant: first exhaust each combat draws 1 card
-      if (run && hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
-        next = drawCards(next, 1);
-        next.coal_pendant_used = true;
-      }
-      // Cinder Box: gain 2 block per exhaust
-      if (run && hasRelic(run, "cinder_box")) {
-        next.player.block += 2;
-      }
-    }
-    else {
-      next.discardPile = [...(next.discardPile || []), card];
-    }
-
-    if (next.enemy.health <= 0) {
-      next.enemy.health = 0;
-      next.state = "victory";
-      next.turn = null;
-    }
-
-    return next;
-  }
-
-  function applyEnemyIntent(combat, intent) {
-    if (!intent) {
-      return combat;
-    }
-
-    let next = clone(combat);
-
-    if (intent.type === "attack") {
-      const blocked = Math.min(next.player.block, intent.value);
-      const remainingDamage = intent.value - blocked;
-      next.player.block -= blocked;
-      next.player.health = Math.max(0, next.player.health - remainingDamage);
-      return next;
-    }
-
-    if (intent.type === "multi_attack") {
-      for (let i = 0; i < (intent.hits || 1); i += 1) {
-        const blocked = Math.min(next.player.block, intent.value);
-        const remainingDamage = intent.value - blocked;
-        next.player.block -= blocked;
-        next.player.health = Math.max(0, next.player.health - remainingDamage);
-        if (next.player.health <= 0) {
-          break;
-        }
-      }
-      return next;
-    }
-
-    if (intent.type === "block") {
-      next.enemy.block = (next.enemy.block || 0) + intent.value;
-      return next;
-    }
-
-    if (intent.type === "buff") {
-      next.enemy.damage = (next.enemy.damage || 0) + intent.value;
-      return next;
-    }
-
-    return next;
-  }
-
-  function resolveEndTurn(combat, run) {
-    if (combat.state !== "active") return combat;
-
-    let next = applyEnemyIntent(combat, combat.enemyIntent);
-    next.player.block = 0;
-    next.player.energy = DEFAULT_PLAYER_ENERGY + getEnergyBonus(run);
-    next.player.charged = false;
-    next.exhaustedThisTurn = 0;
-    next.firstTurn = false;
-    next.seal_used_this_turn = false;
-
-    if (next.player.health <= 0) {
-      // Phoenix Ash: survive death once per run at 1 HP
-      if (run && hasRelic(run, "phoenix_ash") && !run.phoenix_used) {
-        next.player.health = 1;
-        run.phoenix_used = true;
-      }
-      else {
-        next.state = "defeat";
-        next.turn = null;
-        next.enemyIntent = null;
-        return next;
-      }
-    }
-
-    next.discardPile = [...(next.discardPile || []), ...(next.hand || [])];
-    next.hand = [];
-
-    next.turn = "player";
-    next.enemyTurnNumber = (combat.enemyTurnNumber || 0) + 1;
-    next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemyTurnNumber);
-    next = drawCards(next, 5);
-    return next;
   }
 
   function describeCard(card) {
@@ -499,6 +168,20 @@
     if (card.exhaustFromHand) parts.push("Exhaust a random card from hand");
     if (card.exhaust) parts.push("Exhaust");
     return parts.join(" • ");
+  }
+
+  async function playCardAction(run, handIndex) {
+    return fetchJson("/run/play-card.json", {
+      method: "POST",
+      body: JSON.stringify({ run, handIndex })
+    });
+  }
+
+  async function endTurnAction(run) {
+    return fetchJson("/run/end-turn.json", {
+      method: "POST",
+      body: JSON.stringify({ run })
+    });
   }
 
   async function applyVictory(run, combat) {
@@ -665,10 +348,11 @@
       button.disabled = combat.turn !== "player" || combat.state !== "active";
       button.addEventListener("click", async () => {
         try {
-          const updatedCombat = playCardAtIndex(currentRun.combat, index, currentRun);
-          currentRun = updatedCombat.state === "victory"
-            ? await applyVictory(currentRun, updatedCombat)
-            : { ...currentRun, combat: updatedCombat, player: { ...currentRun.player, health: updatedCombat.player.health } };
+          currentRun = await playCardAction(currentRun, index);
+          const updatedCombat = currentRun.combat;
+          if (updatedCombat.state === "victory") {
+            currentRun = await applyVictory(currentRun, updatedCombat);
+          }
           render();
           setStatus(updatedCombat.state === "victory"
             ? `Won the ${updatedCombat.enemy.name} fight.`
@@ -914,16 +598,14 @@
     setStatus("Saved run cleared.");
   });
 
-  document.getElementById("end-turn-button").addEventListener("click", () => {
+  document.getElementById("end-turn-button").addEventListener("click", async () => {
     if (!currentRun.combat) {
       setStatus("No active combat.", true);
       return;
     }
     const resolvedIntentLabel = currentRun.combat.enemyIntent?.label || "Enemy acted.";
-    const nextCombat = resolveEndTurn(currentRun.combat, currentRun);
-    currentRun = nextCombat.state === "defeat"
-      ? { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: 0 }, state: "lost" }
-      : { ...currentRun, combat: nextCombat, player: { ...currentRun.player, health: nextCombat.player.health } };
+    currentRun = await endTurnAction(currentRun);
+    const nextCombat = currentRun.combat;
     render();
     setStatus(nextCombat.state === "defeat"
       ? `${resolvedIntentLabel} You were defeated. Start a new run to try again.`

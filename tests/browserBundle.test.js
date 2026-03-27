@@ -49,6 +49,14 @@ describe("browser bundle regression coverage", () => {
     expect(appJs).toContain('fetchJson("/run/finish-node.json"');
   });
 
+  it("uses server-backed endpoints for combat progression and no longer keeps a browser combat engine", () => {
+    expect(appJs).toContain('fetchJson("/run/play-card.json"');
+    expect(appJs).toContain('fetchJson("/run/end-turn.json"');
+    expect(appJs).not.toContain("function startCombat(run, node)");
+    expect(appJs).not.toContain("function playCardAtIndex(combat, handIndex");
+    expect(appJs).not.toContain("function resolveEndTurn(combat, run)");
+  });
+
   it("does not keep a browser-owned relic catalog anymore", () => {
     expect(appJs).not.toContain("const RELICS = [");
   });
@@ -79,28 +87,5 @@ describe("browser bundle regression coverage", () => {
     const eventRenderBlock = extractBlock(appJs, "currentRun.event.options.forEach", "if (!currentRun.pendingRewards)");
     expect(eventRenderBlock).toContain("describeCard(option.card)");
     expect(eventRenderBlock).toContain("describeCard(card)");
-  });
-
-  it("passive relic effects are wired into playCardAtIndex", () => {
-    const playBlock = extractBlock(appJs, "function playCardAtIndex(combat, handIndex", "function applyEnemyIntent");
-    expect(playBlock).toContain("hex_nail");
-    expect(playBlock).toContain("worn_grimoire");
-    expect(playBlock).toContain("coal_pendant");
-    expect(playBlock).toContain("cinder_box");
-    expect(playBlock).toContain("volt_shard");
-    expect(playBlock).toContain("sigil_engine");
-    expect(playBlock).toContain("time_locked_seal");
-  });
-
-  it("phoenix_ash survival check is in resolveEndTurn", () => {
-    const endTurnBlock = extractBlock(appJs, "function resolveEndTurn(combat, run)", "function describeCard(card)");
-    expect(endTurnBlock).toContain("phoenix_ash");
-    expect(endTurnBlock).toContain("phoenix_used");
-  });
-
-  it("rusted_buckler and quickened_loop are wired into startCombat", () => {
-    const startCombatBlock = extractBlock(appJs, "function startCombat(run, node)", "async function enterNode(run, nodeId)");
-    expect(startCombatBlock).toContain("rusted_buckler");
-    expect(startCombatBlock).toContain("quickened_loop");
   });
 });

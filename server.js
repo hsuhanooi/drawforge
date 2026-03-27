@@ -14,6 +14,11 @@ const {
   removeCardFromDeck,
   finishNode
 } = require("./src/browserPostNodeActions");
+const {
+  startCombatForNode,
+  playCombatCard,
+  endCombatTurn
+} = require("./src/browserCombatActions");
 
 const port = process.env.PORT || 3000;
 const browserDir = path.join(__dirname, "browser");
@@ -103,9 +108,32 @@ const server = http.createServer(async (req, res) => {
     try {
       const { run, nodeId } = await readJsonBody(req);
       const result = enterBrowserNode(run, nodeId);
+      if (["combat", "elite", "boss"].includes(result.node.type)) {
+        result.run.combat = startCombatForNode(result.run, result.node);
+      }
       sendJson(res, 200, result);
     } catch (error) {
       sendJson(res, 400, { error: error.message || "Unable to enter node" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/play-card.json" && req.method === "POST") {
+    try {
+      const { run, handIndex } = await readJsonBody(req);
+      sendJson(res, 200, playCombatCard(run, handIndex));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to play card" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/end-turn.json" && req.method === "POST") {
+    try {
+      const { run } = await readJsonBody(req);
+      sendJson(res, 200, endCombatTurn(run));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to end turn" });
     }
     return;
   }

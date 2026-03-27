@@ -1198,3 +1198,269 @@ canvas.card-art-canvas {
 ::-webkit-scrollbar-track { background: var(--bg2); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a4570; }
+
+/* ─── Deck Choice Screen ─────────────────────────────────────────── */
+#screen-deck-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 40px 20px;
+}
+#deck-choice-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+#deck-choice-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+#deck-choice-row {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.deck-choice-option {
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  width: 200px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.deck-choice-option:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(79,142,247,0.3);
+  transform: translateY(-4px);
+}
+.deck-choice-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
+.deck-choice-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+.deck-choice-cards {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+.deck-choice-pip {
+  font-size: 11px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--text-muted);
+}
+
+/* ─── Shop Screen ────────────────────────────────────────────────── */
+#screen-shop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 20px 40px;
+  overflow-y: auto;
+}
+#shop-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 800px;
+  justify-content: space-between;
+}
+#shop-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+#shop-gold-display {
+  font-size: 1.1rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+#shop-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 820px;
+}
+.shop-section { display: flex; flex-direction: column; gap: 12px; }
+.shop-section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+#shop-cards-row, #shop-services-row, #shop-relic-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.shop-card-wrap {
+  position: relative;
+  cursor: pointer;
+}
+.shop-card-wrap.sold .card-component {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.shop-price-tag {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: #000;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 5;
+}
+.shop-price-tag.unaffordable { background: var(--red); color: #fff; }
+.shop-service-btn {
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--text);
+  text-align: left;
+}
+.shop-service-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(79,142,247,0.25);
+}
+.shop-service-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.shop-service-name { font-size: 0.95rem; font-weight: 700; }
+.shop-service-desc { font-size: 0.78rem; color: var(--text-muted); }
+.shop-service-cost { font-size: 0.85rem; color: var(--gold); font-weight: 600; }
+.shop-service-btn.sold .shop-service-cost::before { content: "✓ "; color: #40e880; }
+
+/* ─── Rest / Campfire Screen ─────────────────────────────────────── */
+#screen-rest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 20px;
+}
+#rest-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+#rest-subtitle { font-size: 0.9rem; color: var(--text-muted); }
+#rest-options-row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.rest-option-btn {
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 28px;
+  cursor: pointer;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  color: var(--text);
+}
+.rest-option-btn:hover {
+  border-color: var(--orange);
+  box-shadow: 0 0 20px rgba(255,130,0,0.25);
+  transform: translateY(-3px);
+}
+.rest-option-icon { font-size: 2.2rem; }
+.rest-option-name { font-size: 1rem; font-weight: 700; }
+.rest-option-desc { font-size: 0.8rem; color: var(--text-muted); text-align: center; line-height: 1.4; }
+
+#upgrade-panel {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+#upgrade-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+#upgrade-cards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Upgraded card badge */
+.card-component.upgraded .card-name::after {
+  content: " +";
+  color: var(--gold);
+  font-weight: 900;
+}
+.card-component.upgraded {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(200,160,0,0.3);
+}
+
+/* ─── Passive Trait Badge ─────────────────────────────────────────── */
+.badge.passive {
+  background: rgba(255,100,0,0.18);
+  border-color: rgba(255,130,0,0.45);
+  color: var(--orange);
+}
+.badge.regen  { background: rgba(40,220,80,0.15); border-color: rgba(40,200,60,0.4); color: #40e880; }
+.badge.thorns { background: rgba(180,0,0,0.18);   border-color: rgba(200,40,0,0.4);  color: #e84040; }
+
+/* ─── Act label ───────────────────────────────────────────────────── */
+#act-label {
+  font-size: 0.7rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-left: 8px;
+}

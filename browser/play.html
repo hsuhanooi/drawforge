@@ -153,6 +153,48 @@
   </div>
 </div>
 
+<!-- ─── Deck Choice Screen ────────────────────────────────────────── -->
+<div id="screen-deck-choice" class="screen hidden">
+  <div id="deck-choice-title">Choose Your Starting Deck</div>
+  <div id="deck-choice-subtitle">Your first choice shapes the whole run</div>
+  <div id="deck-choice-row"></div>
+</div>
+
+<!-- ─── Shop Screen ───────────────────────────────────────────────── -->
+<div id="screen-shop" class="screen hidden">
+  <div id="shop-header">
+    <div id="shop-title">⚒️ The Forge Merchant</div>
+    <div id="shop-gold-display">Gold: <span id="shop-gold">0</span></div>
+  </div>
+  <div id="shop-sections">
+    <div class="shop-section">
+      <div class="shop-section-label">Cards for Sale</div>
+      <div id="shop-cards-row"></div>
+    </div>
+    <div class="shop-section">
+      <div class="shop-section-label">Services</div>
+      <div id="shop-services-row"></div>
+    </div>
+    <div class="shop-section" id="shop-relic-section">
+      <div class="shop-section-label">Relic</div>
+      <div id="shop-relic-row"></div>
+    </div>
+  </div>
+  <button id="shop-leave-btn" class="btn">Leave Shop</button>
+</div>
+
+<!-- ─── Rest / Campfire Screen ───────────────────────────────────── -->
+<div id="screen-rest" class="screen hidden">
+  <div id="rest-title">🔥 Campfire</div>
+  <div id="rest-subtitle">Take a moment to rest or prepare</div>
+  <div id="rest-options-row"></div>
+  <div id="upgrade-panel" class="hidden">
+    <div id="upgrade-title">Choose a card to upgrade</div>
+    <div id="upgrade-cards"></div>
+    <button id="upgrade-cancel-btn" class="btn" style="margin-top:10px;font-size:13px;border-color:var(--border);background:transparent">Cancel</button>
+  </div>
+</div>
+
 <!-- ─── Deck Overlay ──────────────────────────────────────────────── -->
 <div id="deck-overlay" class="hidden">
   <div id="deck-panel">

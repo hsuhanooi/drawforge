@@ -11,7 +11,7 @@
     "defend","defend","defend","defend","defend"
   ];
 
-  const NODE_ICONS = { combat: "⚔️", elite: "⭐", boss: "👑", event: "❓" };
+  const NODE_ICONS = { combat: "⚔️", elite: "⭐", boss: "👑", event: "❓", shop: "🛒", rest: "🔥" };
   const ENEMY_ICONS = {
     // Early zone
     slime:"🟢", fangling:"🦷", bone_sprite:"💀", ashrat:"🐀",
@@ -173,10 +173,15 @@
   // ─── Core Utilities ───────────────────────────────────────────────
   function clone(v) { return JSON.parse(JSON.stringify(v)); }
 
-  function createCardFromId(id) {
+  function createCardFromId(id, run = null) {
     const card = CARD_LIBRARY[id];
     if (!card) throw new Error(`Unknown card: ${id}`);
-    return { ...card };
+    const base = { ...card };
+    // Apply any upgrades the player has acquired at campfire
+    if (run && run.player.upgrades && run.player.upgrades[id]) {
+      return applyCardUpgrade(base);
+    }
+    return base;
   }
 
   function pickUniqueItems(items, count) {
@@ -219,30 +224,77 @@
     return s;
   }
 
+  // ─── Starter Decks ────────────────────────────────────────────────
+  const STARTER_DECKS = [
+    {
+      id: "ironclad",
+      name: "Ironclad",
+      icon: "⚔️",
+      description: "Reliable damage and defense. Great for learning the game.",
+      cards: ["strike","strike","strike","strike","strike","defend","defend","defend","defend","bash"]
+    },
+    {
+      id: "hexbinder",
+      name: "Hexbinder",
+      icon: "💀",
+      description: "Apply Hex, then punish with bonus damage. High ceiling.",
+      cards: ["strike","strike","strike","strike","defend","defend","defend","mark_of_ruin","mark_of_ruin","wither"]
+    },
+    {
+      id: "ashwalker",
+      name: "Ashwalker",
+      icon: "🔥",
+      description: "Burn through your hand to gain block and energy.",
+      cards: ["strike","strike","strike","strike","defend","defend","defend","fire_sale","fire_sale","cremate"]
+    }
+  ];
+
   // ─── Map Generation ───────────────────────────────────────────────
+  // 9-row, 2-act structure:
+  //   Rows 0-1: Act 1 early combat/events
+  //   Row  2:   Act 1 Elite (guaranteed)
+  //   Row  3:   Act 1 Mid-Boss
+  //   Row  4:   Shop (guaranteed)
+  //   Rows 5-6: Act 2 combat/events
+  //   Row  7:   Act 2 Elite (guaranteed)
+  //   Row  8:   Final Boss
+  const MID_BOSS_ROW = 3;
+  const SHOP_ROW = 4;
+  const FINAL_BOSS_ROW = 8;
+
+  function getActForRow(row) { return row <= 3 ? 1 : 2; }
+
+  const REST_ROW = 6; // Guaranteed rest site mid-Act 2
+
   function buildRowTypeSelections(rows, columns) {
     const sel = new Map();
     for (let row = 0; row < rows; row++) {
-      if (row === rows - 1 || row === rows - 2) continue;
+      // Fixed rows: final boss, penultimate elite, mid-boss, shop, rest
+      if (row === FINAL_BOSS_ROW || row === FINAL_BOSS_ROW - 1 ||
+          row === MID_BOSS_ROW || row === SHOP_ROW || row === REST_ROW) continue;
       const cols = Array.from({ length: columns }, (_, i) => i);
       const events = row > 0 ? new Set(pickUniqueItems(cols, 1)) : new Set();
       const nonEvent = cols.filter((c) => !events.has(c));
-      const elites = row > 0 && row % 2 === 0 && row < rows - 2
-        ? new Set(pickUniqueItems(nonEvent, 1)) : new Set();
+      // Elites in Act 1 row 2 and Act 2 row 5
+      const canHaveElite = (row === 2) || (row === 5);
+      const elites = canHaveElite ? new Set(pickUniqueItems(nonEvent, 1)) : new Set();
       sel.set(row, { events, elites });
     }
     return sel;
   }
 
   function getNodeType(row, col, rows, sel = {}) {
-    if (row === rows - 1) return "boss";
-    if (row === rows - 2) return "elite";
+    if (row === FINAL_BOSS_ROW) return "boss";
+    if (row === FINAL_BOSS_ROW - 1) return "elite"; // Row 7
+    if (row === MID_BOSS_ROW) return "boss";         // Row 3 mid-boss
+    if (row === SHOP_ROW) return "shop";             // Row 4
+    if (row === REST_ROW) return "rest";             // Row 6
     if (sel.events && sel.events.has(col)) return "event";
     if (sel.elites && sel.elites.has(col)) return "elite";
     return "combat";
   }
 
-  function generateMap({ rows = 5, columns = 3 } = {}) {
+  function generateMap({ rows = 9, columns = 3 } = {}) {
     const sel = buildRowTypeSelections(rows, columns);
     const nodes = [];
     for (let row = 0; row < rows; row++) {
@@ -269,8 +321,32 @@
   // ─── Enemy Factory ────────────────────────────────────────────────
   // Each enemy has intents that cycle by turn number.
   // "buff" intents add to enemy.strengthBuff — applied to all subsequent attacks.
+  // "passive" field: { type, value } — applied at start of each player turn.
 
-  // ── Boss Pool ────────────────────────────────────────────────────────
+  // ── Mid-Boss Pool (Row 3 — end of Act 1) ────────────────────────────
+  const MID_BOSS_POOL = [
+    { id:"iron_revenant", name:"Iron Revenant", health:55, rewardGold:35, intents:[
+      { type:"block",        value:8,  label:"Iron Wall +8" },
+      { type:"attack",       value:11, label:"Crush 11" },
+      { type:"multi_attack", value:4,  hits:3, label:"Rattle 3×4" },
+      { type:"attack",       value:14, label:"Slam 14" }
+    ]},
+    { id:"plague_herald", name:"Plague Herald", health:52, rewardGold:35, intents:[
+      { type:"buff",         value:3,  label:"Fester +3 strength" },
+      { type:"attack",       value:10, label:"Infect 10" },
+      { type:"multi_attack", value:4,  hits:3, label:"Swarm 3×4" },
+      { type:"attack",       value:13, label:"Infect 13" }
+    ]},
+    { id:"soul_engine", name:"Soul Engine", health:58, rewardGold:35, intents:[
+      { type:"attack",       value:9,  label:"Grind 9" },
+      { type:"block",        value:12, label:"Gear Up +12" },
+      { type:"multi_attack", value:5,  hits:3, label:"Crank 3×5" },
+      { type:"buff",         value:2,  label:"Overcharge +2" },
+      { type:"attack",       value:15, label:"Grind 15" }
+    ]}
+  ];
+
+  // ── Boss Pool (Row 8 — Final Boss) ────────────────────────────────────
   const BOSS_POOL = [
     { id:"spire_guardian", name:"Spire Guardian", health:70, rewardGold:50, intents:[
       { type:"attack",       value:12, label:"Crush 12" },
@@ -452,14 +528,53 @@
     ]}
   ];
 
+  // ── Act 2 Elite Pool (rows 7 — tougher elites with passives) ─────────
+  const ACT2_ELITE_POOL = [
+    { id:"ashen_colossus", name:"Ashen Colossus", health:72, rewardGold:30,
+      passive:{ type:"armored", value:5, label:"Armored +5" },
+      intents:[
+        { type:"attack",       value:13, label:"Crush 13" },
+        { type:"block",        value:8,  label:"Stone Skin +8" },
+        { type:"multi_attack", value:5,  hits:3, label:"Tremor 3×5" },
+        { type:"attack",       value:18, label:"Devastate 18" }
+      ]},
+    { id:"void_siphon", name:"Void Siphon", health:62, rewardGold:30,
+      passive:{ type:"regen", value:4, label:"Regen 4" },
+      intents:[
+        { type:"buff",         value:3,  label:"Drain +3 strength" },
+        { type:"attack",       value:11, label:"Siphon 11" },
+        { type:"multi_attack", value:5,  hits:3, label:"Torrent 3×5" },
+        { type:"attack",       value:16, label:"Consume 16" }
+      ]},
+    { id:"hex_leviathan", name:"Hex Leviathan", health:68, rewardGold:30,
+      passive:{ type:"thorns", value:3, label:"Thorns 3" },
+      intents:[
+        { type:"attack",       value:10, label:"Spike 10" },
+        { type:"buff",         value:2,  label:"Surge +2 strength" },
+        { type:"multi_attack", value:6,  hits:3, label:"Barrage 3×6" },
+        { type:"block",        value:8,  label:"Harden +8" },
+        { type:"attack",       value:15, label:"Impale 15" }
+      ]}
+  ];
+
   function createEnemyForNode(node) {
-    if (node.type === "boss")  return pickUniqueItems(BOSS_POOL, 1)[0];
-    if (node.type === "elite") return pickUniqueItems(ELITE_POOL, 1)[0];
+    if (node.type === "boss") {
+      // Row 3 = mid-boss, Row 8 = final boss
+      return clone(node.row === MID_BOSS_ROW
+        ? pickUniqueItems(MID_BOSS_POOL, 1)[0]
+        : pickUniqueItems(BOSS_POOL, 1)[0]);
+    }
+    if (node.type === "elite") {
+      // Row 7 (FINAL_BOSS_ROW - 1) = Act 2 elite
+      return clone(node.row >= FINAL_BOSS_ROW - 1
+        ? pickUniqueItems(ACT2_ELITE_POOL, 1)[0]
+        : pickUniqueItems(ELITE_POOL, 1)[0]);
+    }
     let pool;
-    if (node.row >= 2) pool = LATE_ENEMIES;
+    if (node.row >= 5) pool = LATE_ENEMIES;
     else if (node.row >= 1) pool = MID_ENEMIES;
     else pool = EARLY_ENEMIES;
-    return pickUniqueItems(pool, 1)[0];
+    return clone(pickUniqueItems(pool, 1)[0]);
   }
 
   // Random intent selection — never picks the same intent twice in a row.
@@ -511,18 +626,22 @@
     return next;
   }
 
-  function startNewRun() {
-    const [bonus] = createRewardCardOptions(1);
+  function startNewRun(starterDeckId = null) {
+    const starter = starterDeckId
+      ? STARTER_DECKS.find((d) => d.id === starterDeckId)
+      : null;
+    const deck = starter ? [...starter.cards] : [...DEFAULT_STARTER_DECK];
     return {
-      state: "in_progress",
-      player: { health: DEFAULT_PLAYER_HEALTH, maxHp: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD,
-                deck: [...DEFAULT_STARTER_DECK, bonus.id] },
+      state: starterDeckId ? "in_progress" : "choosing_deck",
+      player: { health: DEFAULT_PLAYER_HEALTH, maxHp: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD, deck },
       relics: [],
       phoenix_used: false,
       combatsWon: 0,
       combat: null,
       pendingRewards: null,
       event: null,
+      shop: null,      // shop state for current shop node
+      rest: null,      // rest state for current rest node
       map: generateMap()
     };
   }
@@ -597,7 +716,7 @@
         charged: startCharged
       },
       hand: [],
-      drawPile: shuffleCards(run.player.deck.map(createCardFromId)),
+      drawPile: shuffleCards(run.player.deck.map((id) => createCardFromId(id, run))),
       discardPile: [],
       exhaustPile: [],
       exhaustedThisTurn: 0,
@@ -669,6 +788,12 @@
       const hpDmg    = total - blocked;
       next.enemy.block  = (next.enemy.block||0) - blocked;
       next.enemy.health -= hpDmg;
+      // Thorns passive: deal passive.value back to player on each attack hit
+      if (hpDmg > 0 && next.enemy.passive && next.enemy.passive.type === "thorns") {
+        const thornDmg = Math.max(0, next.enemy.passive.value - (next.player.block||0));
+        next.player.block = Math.max(0, (next.player.block||0) - next.enemy.passive.value);
+        next.player.health = Math.max(0, next.player.health - thornDmg);
+      }
       // Mark per-combat / per-turn relic bonuses as used
       if (flickerBonus)  next.flicker_used           = true;
       if (duelistBonus)  next.duelist_used_this_turn  = true;
@@ -901,6 +1026,19 @@
     next.turn = "player";
     next.enemyTurnNumber = (combat.enemyTurnNumber||0) + 1;
     next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemyTurnNumber);
+
+    // ── Enemy passives that fire at start of player turn ─────────────
+    const passive = next.enemy.passive;
+    if (passive && next.state === "active") {
+      if (passive.type === "armored") {
+        next.enemy.block = (next.enemy.block || 0) + passive.value;
+      } else if (passive.type === "regen") {
+        const maxEhp = next.enemy._maxHp || next.enemy.health;
+        next.enemy.health = Math.min(maxEhp, next.enemy.health + passive.value);
+      }
+      // thorns fires during damage (handled in playCardAtIndex)
+    }
+
     // Empty Throne: draw 1 fewer on turn 2 (combat.firstTurn is still true when ending turn 1)
     let drawCount = 5;
     if (run && hasRelic(run,"empty_throne") && combat.firstTurn) drawCount -= 1;
@@ -979,13 +1117,15 @@
 
   function finishNode(run) {
     const node = run.map.nodes.find((n) => n.id === run.map.currentNodeId);
-    return { ...run, combat:null, pendingRewards:null, event:null,
-             state: node && node.type==="boss" ? "won" : "in_progress" };
+    const isFinalBoss = node && node.type === "boss" && node.row === FINAL_BOSS_ROW;
+    return { ...run, combat:null, pendingRewards:null, event:null, shop:null, rest:null,
+             state: isFinalBoss ? "won" : "in_progress" };
   }
 
   function afterCardSelection(run) {
-    if (run.pendingRewards && run.pendingRewards.removeCard)
+    if (run.pendingRewards && run.pendingRewards.removeCard && !run.pendingRewards.fromShop)
       return { ...run, pendingRewards:{ cards:[], gold:0, relic:null, relics:[], removeCard:true } };
+    // After shop removal: go back to shop (pendingRewards cleared, shop remains)
     return finishNode(run);
   }
 
@@ -1006,6 +1146,106 @@
     return { id:`event-${node.id}`, kind:tpl.id, title:tpl.title, text:tpl.text, options:tpl.createOptions(node) };
   }
 
+  // ─── Shop ─────────────────────────────────────────────────────────
+  // Card price: common=50, uncommon=65, rare=80. Services: remove=75, relic=140.
+  const CARD_SHOP_PRICES = { common: 50, uncommon: 65, rare: 80 };
+
+  function createShopState(run) {
+    const cards = createRewardCardOptions(3).map((card) => ({
+      card,
+      price: CARD_SHOP_PRICES[card.rarity] || 65,
+      sold: false
+    }));
+    const ownedIds = new Set((run.relics||[]).map((r) => r.id));
+    const relicPool = RELICS.filter((r) => (r.rarity==="common"||r.rarity==="uncommon") && !ownedIds.has(r.id));
+    const relic = pickUniqueItems(relicPool, 1)[0] || null;
+    return {
+      cards,
+      relic,
+      relicPrice: 140,
+      relicSold: false,
+      removeSold: false,
+      purgeSold: false
+    };
+  }
+
+  function applyShopBuyCard(run, cardIdx) {
+    const shop = run.shop;
+    const item = shop.cards[cardIdx];
+    if (!item || item.sold || run.player.gold < item.price) return run;
+    const newCards = shop.cards.map((c, i) => i === cardIdx ? { ...c, sold: true } : c);
+    return {
+      ...run,
+      player: { ...run.player, gold: run.player.gold - item.price, deck: [...run.player.deck, item.card.id] },
+      shop: { ...shop, cards: newCards }
+    };
+  }
+
+  function applyShopBuyRelic(run) {
+    const shop = run.shop;
+    if (!shop.relic || shop.relicSold || run.player.gold < shop.relicPrice) return run;
+    const next = applyRelic(run, shop.relic);
+    return { ...next, shop: { ...next.shop, relicSold: true } };
+  }
+
+  function applyShopRemove(run) {
+    const shop = run.shop;
+    if (shop.removeSold || run.player.gold < 75) return run;
+    return { ...run, player: { ...run.player, gold: run.player.gold - 75 },
+             shop: { ...shop, removeSold: true },
+             pendingRewards: { cards:[], gold:0, relic:null, relics:[], removeCard:true, fromShop:true } };
+  }
+
+  // ─── Campfire / Rest ──────────────────────────────────────────────
+  // Upgrade table: { [cardId]: { damage?, block?, cost?, draw?, energyGain? } }
+  const CARD_UPGRADES = {
+    strike:      { damage: 9 },
+    defend:      { block: 8 },
+    bash:        { damage: 11 },
+    barrier:     { block: 12 },
+    quick_strike:{ damage: 6 },
+    focus:       { cost: 0 },
+    volley:      { damage: 7 },
+    mark_of_ruin:{ cost: 0 },
+    hexblade:    { damage: 9 },
+    wither:      { damage: 4 },
+    spite_shield:{ block: 9 },
+    pommel:      { damage: 9 },
+    brace:       { block: 10 },
+    heavy_swing: { damage: 16 },
+    parry:       { block: 5 },
+    insight:     { draw: 3 },
+    static_guard:{ block: 9 },
+    arc_lash:    { damage: 10 },
+    charge_up:   { cost: 0 },
+    capacitor:   { cost: 0 },
+    hollow_ward: { block: 12 },
+    scorch_nerves:{ damage: 16 },
+    cinder_rush: { damage: 8 }
+  };
+
+  function canUpgradeCard(cardId) { return !!CARD_UPGRADES[cardId]; }
+
+  function applyCardUpgrade(card) {
+    const upgrades = CARD_UPGRADES[card.id];
+    if (!upgrades) return card;
+    return { ...card, ...upgrades, upgraded: true };
+  }
+
+  function applyRestUpgrade(run, cardId) {
+    const deck = run.player.deck.map((id) => id === cardId && !run.player.upgrades?.[cardId]
+      ? cardId  // IDs stay the same, upgraded flag stored separately
+      : id);
+    const upgrades = { ...(run.player.upgrades || {}), [cardId]: true };
+    return { ...run, player: { ...run.player, deck, upgrades }, rest: { chosen: true } };
+  }
+
+  function applyRestHeal(run) {
+    const healAmt = Math.floor((run.player.maxHp || DEFAULT_PLAYER_HEALTH) * 0.30);
+    const health  = Math.min(run.player.health + healAmt, run.player.maxHp || DEFAULT_PLAYER_HEALTH);
+    return { ...run, player: { ...run.player, health }, rest: { chosen: true } };
+  }
+
   function enterNode(run, nodeId) {
     const node = run.map.nodes.find((n) => n.id === nodeId);
     if (!node) throw new Error("Node not found");
@@ -1014,9 +1254,11 @@
       const cur = run.map.nodes.find((n) => n.id === run.map.currentNodeId);
       if (!cur || !cur.next.includes(nodeId)) throw new Error("Invalid move");
     }
-    const next = { ...run, map:{ ...run.map, currentNodeId:nodeId }, pendingRewards:null, event:null };
+    const next = { ...run, map:{ ...run.map, currentNodeId:nodeId }, pendingRewards:null, event:null, shop:null, rest:null };
     if (["combat","elite","boss"].includes(node.type)) { next.combat = startCombat(run, node); return next; }
     if (node.type === "event") { next.combat = null; next.event = createEventState(node); return next; }
+    if (node.type === "shop")  { next.combat = null; next.shop  = createShopState(run);   return next; }
+    if (node.type === "rest")  { next.combat = null; next.rest  = { chosen: false };       return next; }
     return next;
   }
 
@@ -1034,12 +1276,18 @@
   function removeCardFromDeck(run, cardId) {
     const idx = run.player.deck.indexOf(cardId);
     if (idx === -1) return run;
-    return finishNode({ ...run, player:{ ...run.player,
-      deck:[...run.player.deck.slice(0,idx), ...run.player.deck.slice(idx+1)] } });
+    const updated = { ...run, player:{ ...run.player,
+      deck:[...run.player.deck.slice(0,idx), ...run.player.deck.slice(idx+1)] } };
+    // If removal came from shop, go back to shop instead of finishing the node
+    if (run.pendingRewards && run.pendingRewards.fromShop) {
+      return { ...updated, pendingRewards: null };
+    }
+    return finishNode(updated);
   }
 
   function listAvailableNodes(run) {
-    if (run.pendingRewards || run.event || (run.combat && run.combat.state==="active")) return [];
+    if (run.pendingRewards || run.event || run.shop || run.rest ||
+        (run.combat && run.combat.state==="active")) return [];
     if (run.map.currentNodeId === null) return run.map.nodes.filter((n) => n.row === 0);
     const cur = run.map.nodes.find((n) => n.id === run.map.currentNodeId);
     if (!cur) return [];
@@ -1277,7 +1525,8 @@
       `type-${card.type}`,
       card.rarity ? `rarity-${card.rarity}` : "",
       large ? "large" : "",
-      unplayable ? "unplayable" : ""
+      unplayable ? "unplayable" : "",
+      card.upgraded ? "upgraded" : ""
     ].filter(Boolean).join(" ");
 
     el.innerHTML = `
@@ -1468,9 +1717,17 @@
     if (!combat) return;
     const maxHp = currentRun.player.maxHp || DEFAULT_PLAYER_HEALTH;
 
-    // Floor label
+    // Floor label + act label
     const nodeLabels = { combat:"Combat", elite:"Elite Encounter", boss:"Boss Battle" };
     $("combat-floor-label").textContent = nodeLabels[combat.nodeType] || "Combat";
+    let actEl = $("act-label");
+    if (!actEl) {
+      actEl = document.createElement("span");
+      actEl.id = "act-label";
+      $("combat-floor-label").after(actEl);
+    }
+    const curNode = currentRun.map.nodes.find((n) => n.id === currentRun.map.currentNodeId);
+    actEl.textContent = curNode ? (getActForRow(curNode.row) === 1 ? "Act I" : "Act II") : "";
 
     // Player stats
     setHp("player-hp-bar","player-hp-current","player-hp-max", combat.player.health, maxHp);
@@ -1503,6 +1760,12 @@
     eb.innerHTML = "";
     if ((combat.enemy.block||0) > 0) eb.innerHTML += `<span class="badge block">🛡️ ${combat.enemy.block}</span>`;
     if ((combat.enemy.hex||0) > 0)   eb.innerHTML += `<span class="badge hex">💀 Hex ${combat.enemy.hex}</span>`;
+    if (combat.enemy.passive) {
+      const p = combat.enemy.passive;
+      const badgeClass = p.type === "regen" ? "regen" : p.type === "thorns" ? "thorns" : "passive";
+      const icon = p.type === "armored" ? "⚙️" : p.type === "regen" ? "💚" : "🩸";
+      eb.innerHTML += `<span class="badge ${badgeClass}">${icon} ${p.label}</span>`;
+    }
 
     // Intent
     const intent = combat.enemyIntent;
@@ -1810,10 +2073,189 @@
     show("deck-overlay");
   }
 
+  // ─── Deck Choice Render ───────────────────────────────────────────
+  function renderDeckChoice() {
+    const row = $("deck-choice-row");
+    row.innerHTML = "";
+    STARTER_DECKS.forEach((deck) => {
+      const opt = document.createElement("div");
+      opt.className = "deck-choice-option";
+      // Summarize card counts
+      const counts = {};
+      deck.cards.forEach((id) => { counts[id] = (counts[id]||0)+1; });
+      const pips = Object.entries(counts).map(([id, n]) => {
+        const name = CARD_LIBRARY[id] ? CARD_LIBRARY[id].name : id;
+        return `<span class="deck-choice-pip">${n > 1 ? n+"× ":""}${name}</span>`;
+      }).join("");
+      opt.innerHTML = `
+        <div style="font-size:2rem">${deck.icon}</div>
+        <div class="deck-choice-name">${deck.name}</div>
+        <div class="deck-choice-desc">${deck.description}</div>
+        <div class="deck-choice-cards">${pips}</div>
+      `;
+      opt.addEventListener("click", () => {
+        currentRun = startNewRun(deck.id);
+        saveRun(currentRun);
+        render();
+      });
+      row.appendChild(opt);
+    });
+  }
+
+  // ─── Shop Render ──────────────────────────────────────────────────
+  function renderShop() {
+    const shop = currentRun.shop;
+    if (!shop) return;
+    const gold = currentRun.player.gold;
+    if ($("shop-gold")) $("shop-gold").textContent = String(gold);
+
+    // Cards
+    const cardsRow = $("shop-cards-row");
+    cardsRow.innerHTML = "";
+    shop.cards.forEach((item, idx) => {
+      const wrap = document.createElement("div");
+      wrap.className = `shop-card-wrap${item.sold ? " sold" : ""}`;
+      wrap.appendChild(makeCardEl(item.card, { large: true }));
+      const tag = document.createElement("div");
+      const affordable = gold >= item.price;
+      tag.className = `shop-price-tag${!affordable ? " unaffordable" : ""}`;
+      tag.textContent = item.sold ? "Sold" : `${item.price}g`;
+      wrap.appendChild(tag);
+      if (!item.sold) {
+        wrap.addEventListener("click", () => {
+          currentRun = applyShopBuyCard(currentRun, idx);
+          saveRun(currentRun);
+          renderShop();
+        });
+      }
+      cardsRow.appendChild(wrap);
+    });
+
+    // Services
+    const svcRow = $("shop-services-row");
+    svcRow.innerHTML = "";
+    // Remove a card
+    const removeBtn = document.createElement("button");
+    removeBtn.className = `shop-service-btn${shop.removeSold ? " sold" : ""}`;
+    removeBtn.disabled = shop.removeSold || gold < 75;
+    removeBtn.innerHTML = `<div class="shop-service-name">🔥 Remove a Card</div><div class="shop-service-desc">Permanently purge one card from your deck</div><div class="shop-service-cost">${shop.removeSold ? "Purchased" : "75g"}</div>`;
+    removeBtn.addEventListener("click", () => {
+      currentRun = applyShopRemove(currentRun);
+      saveRun(currentRun);
+      render(); // renders reward screen for removal
+    });
+    svcRow.appendChild(removeBtn);
+
+    // Relic
+    const relicSection = $("shop-relic-section");
+    const relicRow = $("shop-relic-row");
+    relicRow.innerHTML = "";
+    if (shop.relic) {
+      relicSection.style.display = "";
+      const wrap = document.createElement("div");
+      wrap.className = `shop-card-wrap${shop.relicSold ? " sold" : ""}`;
+      wrap.appendChild(makeRelicCardEl(shop.relic));
+      const tag = document.createElement("div");
+      const affordable = gold >= shop.relicPrice;
+      tag.className = `shop-price-tag${!affordable ? " unaffordable" : ""}`;
+      tag.textContent = shop.relicSold ? "Sold" : `${shop.relicPrice}g`;
+      wrap.appendChild(tag);
+      if (!shop.relicSold) {
+        wrap.addEventListener("click", () => {
+          currentRun = applyShopBuyRelic(currentRun);
+          saveRun(currentRun);
+          renderShop();
+        });
+      }
+      relicRow.appendChild(wrap);
+    } else {
+      relicSection.style.display = "none";
+    }
+  }
+
+  // ─── Rest / Campfire Render ───────────────────────────────────────
+  function renderRest() {
+    const rest = currentRun.rest;
+    if (!rest) return;
+    const restPanel = $("rest-options-row");
+    const upgCards = $("upgrade-cards");
+
+    if (rest.upgradePicking) {
+      // Show upgrade card picker
+      hide("rest-options-row");
+      show("upgrade-panel");
+      upgCards.innerHTML = "";
+      const seen = new Set();
+      currentRun.player.deck.forEach((id) => {
+        if (seen.has(id)) return;
+        seen.add(id);
+        if (!canUpgradeCard(id)) return;
+        const alreadyUpgraded = (currentRun.player.upgrades || {})[id];
+        if (alreadyUpgraded) return;
+        const card = createCardFromId(id);
+        const upgCard = applyCardUpgrade(card);
+        const el = makeCardEl(upgCard, {
+          large: true,
+          onClick: () => {
+            currentRun = applyRestUpgrade(currentRun, id);
+            saveRun(currentRun);
+            render();
+          }
+        });
+        upgCards.appendChild(el);
+      });
+      if (upgCards.children.length === 0) {
+        upgCards.innerHTML = `<p style="color:var(--text-muted);text-align:center">No upgradeable cards in your deck.</p>`;
+      }
+      return;
+    }
+
+    // Show option buttons
+    show("rest-options-row");
+    hide("upgrade-panel");
+    restPanel.innerHTML = "";
+
+    if (rest.chosen) {
+      // Done — just show leave button
+      const leaveBtn = document.createElement("button");
+      leaveBtn.className = "btn";
+      leaveBtn.textContent = "Continue";
+      leaveBtn.addEventListener("click", () => {
+        currentRun = finishNode(currentRun);
+        saveRun(currentRun);
+        render();
+      });
+      restPanel.appendChild(leaveBtn);
+      return;
+    }
+
+    const healAmt = Math.floor((currentRun.player.maxHp || DEFAULT_PLAYER_HEALTH) * 0.30);
+    const opts = [
+      { icon: "❤️", name: "Rest",    desc: `Heal ${healAmt} HP`, action: "heal" },
+      { icon: "⬆️", name: "Upgrade", desc: "Upgrade a card permanently", action: "upgrade" }
+    ];
+    opts.forEach((opt) => {
+      const btn = document.createElement("button");
+      btn.className = "rest-option-btn";
+      btn.innerHTML = `<div class="rest-option-icon">${opt.icon}</div><div class="rest-option-name">${opt.name}</div><div class="rest-option-desc">${opt.desc}</div>`;
+      btn.addEventListener("click", () => {
+        if (opt.action === "heal") {
+          currentRun = applyRestHeal(currentRun);
+          saveRun(currentRun);
+          render();
+        } else {
+          currentRun = { ...currentRun, rest: { ...currentRun.rest, upgradePicking: true } };
+          renderRest();
+        }
+      });
+      restPanel.appendChild(btn);
+    });
+  }
+
   // ─── Main Render ──────────────────────────────────────────────────
   function render() {
     if (!currentRun) return;
-    const { state, combat, pendingRewards, event } = currentRun;
+    const { state, combat, pendingRewards, event, shop, rest } = currentRun;
 
     // End state
     if (state === "won" || state === "defeat") {
@@ -1821,31 +2263,46 @@
       return;
     }
 
+    // Deck choice
+    if (state === "choosing_deck") {
+      hide("screen-start","screen-map","screen-combat","screen-reward","screen-shop","screen-rest","screen-end","deck-overlay");
+      show("screen-deck-choice");
+      renderDeckChoice();
+      return;
+    }
+
+    hide("screen-start","screen-deck-choice");
+
     // Decide which screen to show
     const inCombat  = combat && combat.state === "active";
     const inReward  = !!(pendingRewards || event);
-    hide("screen-start");
+    const inShop    = !!shop;
+    const inRest    = !!rest;
 
     if (inCombat) {
-      hide("screen-map", "screen-reward");
+      hide("screen-map","screen-reward","screen-shop","screen-rest");
       show("screen-combat");
       renderCombat();
     } else if (inReward) {
-      hide("screen-map", "screen-combat");
+      hide("screen-map","screen-combat","screen-shop","screen-rest");
       show("screen-reward");
       renderReward();
-      prevPlayerHp = null;
-      prevEnemyHp  = null;
-      const dbg = $("debug-skip-combat");
-      if (dbg) dbg.style.display = "none";
+      prevPlayerHp = null; prevEnemyHp = null;
+      const dbg = $("debug-skip-combat"); if (dbg) dbg.style.display = "none";
+    } else if (inShop) {
+      hide("screen-map","screen-combat","screen-reward","screen-rest");
+      show("screen-shop");
+      renderShop();
+    } else if (inRest) {
+      hide("screen-map","screen-combat","screen-reward","screen-shop");
+      show("screen-rest");
+      renderRest();
     } else {
-      hide("screen-combat", "screen-reward");
+      hide("screen-combat","screen-reward","screen-shop","screen-rest");
       show("screen-map");
       renderMap();
-      prevPlayerHp = null;
-      prevEnemyHp  = null;
-      const dbg = $("debug-skip-combat");
-      if (dbg) dbg.style.display = "none";
+      prevPlayerHp = null; prevEnemyHp = null;
+      const dbg = $("debug-skip-combat"); if (dbg) dbg.style.display = "none";
     }
   }
 
@@ -1862,15 +2319,26 @@
       `Gold: ${currentRun.player.gold}`
     ].join("<br />");
     show("screen-end");
-    hide("screen-map","screen-combat","screen-reward");
+    hide("screen-map","screen-combat","screen-reward","screen-shop","screen-rest","screen-deck-choice");
   }
 
   // ─── Event Wiring ─────────────────────────────────────────────────
   $("start-new-run-btn").addEventListener("click", () => {
-    currentRun = startNewRun();
+    currentRun = startNewRun(); // state = "choosing_deck"
     saveRun(currentRun);
     hide("screen-start","screen-end");
     render();
+  });
+
+  $("shop-leave-btn") && $("shop-leave-btn").addEventListener("click", () => {
+    currentRun = finishNode(currentRun);
+    saveRun(currentRun);
+    render();
+  });
+
+  $("upgrade-cancel-btn") && $("upgrade-cancel-btn").addEventListener("click", () => {
+    currentRun = { ...currentRun, rest: { ...currentRun.rest, upgradePicking: false } };
+    renderRest();
   });
 
   $("start-load-run-btn").addEventListener("click", () => {
@@ -1955,5 +2423,5 @@
   }
 
   show("screen-start");
-  hide("screen-map","screen-combat","screen-reward","screen-end","deck-overlay");
+  hide("screen-map","screen-combat","screen-reward","screen-end","screen-deck-choice","screen-shop","screen-rest","deck-overlay");
 })();

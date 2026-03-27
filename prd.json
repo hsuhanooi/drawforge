@@ -581,3 +581,77 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
   ],
   "passes": false
 }
+
+
+{
+  "category": "plan",
+  "description": "Next big version update: unified v2 client/server architecture for play.html",
+  "goal": "Make browser/play.html the canonical playable UI while keeping src/ as the only game source of truth. Eliminate split-brain logic by moving content, generation, and combat transitions behind shared server-backed actions.",
+  "why_now": [
+    "play.js currently duplicates cards, relics, rewards, events, map generation, and combat logic",
+    "the project now has canonical card/relic registries, so the next version should derive from those instead of re-encoding data in the browser",
+    "future content expansion (47 designed cards / 39 designed relics and beyond) will stay unstable unless play.html becomes a thin client"
+  ],
+  "scope": {
+    "must_have": [
+      "Shared catalog endpoints power play.html card/relic rendering",
+      "Reward generation moved out of play.js and into shared src/server flows",
+      "Event payload generation moved out of play.js and into shared src/server flows",
+      "Combat progression in play.html uses shared/server actions for play-card and end-turn",
+      "Map/run setup in play.html uses shared run actions instead of local generators",
+      "Single shared card renderer/formatter path used across combat, rewards, events, shop, and deck views"
+    ],
+    "nice_to_have": [
+      "Save-file migration so old localStorage runs upgrade safely to new payload shapes",
+      "Telemetry/debug panel showing which actions are server-backed vs local UI-only",
+      "Automated DOM smoke tests for play.html covering run start, combat, rewards, events, and shop"
+    ],
+    "non_goals": [
+      "Implement all 47 designed cards in one shot",
+      "Implement all 39 designed relics in one shot",
+      "Full backend persistence or multiplayer"
+    ]
+  },
+  "workstreams": [
+    {
+      "name": "Catalog parity",
+      "outcomes": [
+        "cards.json exposes all currently implemented playable cards plus registry metadata",
+        "relics.json exposes the canonical implemented relic set plus registry metadata",
+        "play.js no longer contains local CARD_LIBRARY or RELICS blobs"
+      ]
+    },
+    {
+      "name": "Generation parity",
+      "outcomes": [
+        "reward card choices come from shared reward source",
+        "elite and boss relic choices come from shared reward/relic source",
+        "event payloads and shop offers come from shared server-backed generation"
+      ]
+    },
+    {
+      "name": "Combat parity",
+      "outcomes": [
+        "play.html uses shared/server combat actions",
+        "no duplicate combat state machine remains in play.js",
+        "shared exhaust/relic triggers execute from one place only"
+      ]
+    },
+    {
+      "name": "UI consistency",
+      "outcomes": [
+        "one card renderer for all card surfaces",
+        "one relic renderer for all relic surfaces",
+        "descriptions pull from shared payloads/effectText fallback instead of per-screen formatting drift"
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "play.html can complete a full run loop without depending on browser-local game truth for cards, relics, rewards, events, or combat",
+    "browser/play.js contains no local CARD_LIBRARY, RELICS, reward generator, event template set, or combat state machine",
+    "tests assert canonical counts for cards and relics from registries",
+    "tests assert play.html uses shared/server-backed endpoints for run start, node entry, rewards, events, and combat actions",
+    "new content can be added by updating shared registries/source modules without parallel browser-only edits"
+  ],
+  "passes": false
+}

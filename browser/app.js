@@ -16,14 +16,20 @@
       // Ignore meta fetch errors; the app can still run.
     }
   }
-  const DEFAULT_PLAYER_HEALTH = 80;
-  const DEFAULT_PLAYER_GOLD = 99;
-  const DEFAULT_PLAYER_ENERGY = 3;
-  const DEFAULT_STARTER_DECK = [
-    "strike", "strike", "strike", "strike", "strike",
-    "defend", "defend", "defend", "defend", "defend"
-  ];
+  async function fetchJson(url, options = {}) {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `Request failed for ${url}`);
+    }
+    return payload;
+  }
 
+  const DEFAULT_PLAYER_ENERGY = 3;
   const CARD_LIBRARY = {
     strike: { id: "strike", name: "Strike", cost: 1, type: "attack", rarity: "common", damage: 6 },
     defend: { id: "defend", name: "Defend", cost: 1, type: "skill", rarity: "common", block: 5 },
@@ -73,18 +79,6 @@
     { id: "time_locked_seal", name: "Time-Locked Seal", description: "The first card you play each turn that costs 1 or less costs 0", rarity: "rare" },
     { id: "phoenix_ash", name: "Phoenix Ash", description: "Once per run, if you would die, survive at 1 HP instead", rarity: "rare" }
   ];
-
-  async function fetchEventState(node) {
-    const response = await fetch(`/event.json?nodeId=${encodeURIComponent(node.id)}&row=${node.row}&col=${node.col}`, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`Unable to load event for ${node.id}`);
-    }
-    const event = await response.json();
-    return {
-      ...event,
-      options: event.options.map((option) => hydrateEventOption(option))
-    };
-  }
 
   function createEventLabel(option) {
     if (option.effect === "heal") return `Recover ${option.amount} health`;
@@ -149,29 +143,6 @@
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
-  }
-
-  function buildRowTypeSelections(rows, columns) {
-    const selections = new Map();
-    for (let row = 0; row < rows; row += 1) {
-      if (row === rows - 1 || row === rows - 2) {
-        continue;
-      }
-      const cols = Array.from({ length: columns }, (_, index) => index);
-      const events = row > 0 ? new Set(pickUniqueItems(cols, 1)) : new Set();
-      const nonEventCols = cols.filter((col) => !events.has(col));
-      const elites = row > 0 && row % 2 === 0 && row < rows - 2 ? new Set(pickUniqueItems(nonEventCols, 1)) : new Set();
-      selections.set(row, { events, elites });
-    }
-    return selections;
-  }
-
-  function getNodeType(row, col, rows, rowTypeSelections = {}) {
-    if (row === rows - 1) return "boss";
-    if (row === rows - 2) return "elite";
-    if (rowTypeSelections.events && rowTypeSelections.events.has(col)) return "event";
-    if (rowTypeSelections.elites && rowTypeSelections.elites.has(col)) return "elite";
-    return "combat";
   }
 
   function createEnemyForNode(node) {
@@ -248,38 +219,8 @@
     return intents[turnNumber % intents.length];
   }
 
-  function generateMap({ rows = 5, columns = 3 } = {}) {
-    const rowTypeSelections = buildRowTypeSelections(rows, columns);
-    const nodes = [];
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < columns; col += 1) {
-        nodes.push({ id: `r${row}c${col}`, row, col, type: getNodeType(row, col, rows, rowTypeSelections.get(row) || {}), next: [] });
-      }
-    }
-    const byId = new Map(nodes.map((node) => [node.id, node]));
-    for (let row = 0; row < rows - 1; row += 1) {
-      for (let col = 0; col < columns; col += 1) {
-        const nextCols = [col];
-        if (col > 0) nextCols.push(col - 1);
-        if (col < columns - 1) nextCols.push(col + 1);
-        byId.get(`r${row}c${col}`).next = nextCols.map((nextCol) => `r${row + 1}c${nextCol}`);
-      }
-    }
-    return { rows, columns, nodes, currentNodeId: null };
-  }
-
-  function startNewRun() {
-    const [bonusCard] = createRewardCardOptions(1);
-    return {
-      state: "in_progress",
-      player: { health: DEFAULT_PLAYER_HEALTH, gold: DEFAULT_PLAYER_GOLD, deck: [...DEFAULT_STARTER_DECK, bonusCard.id] },
-      relics: [],
-      phoenix_used: false,
-      combat: null,
-      pendingRewards: null,
-      event: null,
-      map: generateMap()
-    };
+  async function startNewRun() {
+    return fetchJson("/run/new.json");
   }
 
   function validateRun(run) {
@@ -386,24 +327,25 @@
   }
 
   async function enterNode(run, nodeId) {
-    const node = run.map.nodes.find((candidate) => candidate.id === nodeId);
-    if (!node) throw new Error("Node not found");
-    if (run.map.currentNodeId === null && node.row !== 0) throw new Error("Invalid starting node");
-    if (run.map.currentNodeId !== null) {
-      const currentNode = run.map.nodes.find((candidate) => candidate.id === run.map.currentNodeId);
-      if (!currentNode || !currentNode.next.includes(nodeId)) throw new Error("Invalid move");
+    const result = await fetchJson("/run/enter-node.json", {
+      method: "POST",
+      body: JSON.stringify({ run, nodeId })
+    });
+    const nextRun = result.run;
+
+    if (["combat", "elite", "boss"].includes(result.node.type)) {
+      nextRun.combat = startCombat(nextRun, result.node);
+      nextRun.event = null;
+      return nextRun;
     }
 
-    const nextRun = { ...run, map: { ...run.map, currentNodeId: nodeId }, pendingRewards: null, event: null };
-    if (["combat", "elite", "boss"].includes(node.type)) {
-      nextRun.combat = startCombat(run, node);
-      return nextRun;
+    if (nextRun.event) {
+      nextRun.event = {
+        ...nextRun.event,
+        options: nextRun.event.options.map((option) => hydrateEventOption(option))
+      };
     }
-    if (node.type === "event") {
-      nextRun.combat = null;
-      nextRun.event = await fetchEventState(node);
-      return nextRun;
-    }
+
     return nextRun;
   }
 
@@ -754,7 +696,7 @@
     rewardsSection: document.querySelector("section.rewards")
   };
 
-  let currentRun = startNewRun();
+  let currentRun = null;
   let removalModeOpen = false;
 
   function setStatus(message, isError = false) {
@@ -1040,11 +982,15 @@
     elements.rawState.textContent = JSON.stringify(currentRun, null, 2);
   }
 
-  document.getElementById("new-run-button").addEventListener("click", () => {
-    currentRun = startNewRun();
-    removalModeOpen = false;
-    render();
-    setStatus("Started a fresh run with varied map content.");
+  document.getElementById("new-run-button").addEventListener("click", async () => {
+    try {
+      currentRun = await startNewRun();
+      removalModeOpen = false;
+      render();
+      setStatus("Started a fresh run with varied map content.");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
   });
 
   document.getElementById("save-run-button").addEventListener("click", () => {
@@ -1091,6 +1037,16 @@
         : resolvedIntentLabel);
   });
 
+  async function initializeApp() {
+    try {
+      currentRun = await startNewRun();
+      render();
+      setStatus("Started a fresh run with varied map content.");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  }
+
   loadBundleMeta();
-  render();
+  initializeApp();
 })();

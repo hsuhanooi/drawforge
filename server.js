@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { createEventForNode } = require("./src/events");
+const { createBrowserRun, enterBrowserNode } = require("./src/browserRunActions");
 
 const port = process.env.PORT || 3000;
 const browserDir = path.join(__dirname, "browser");
@@ -45,7 +46,22 @@ const sendJson = (res, status, payload, cacheControl = "no-store") => {
   res.end(JSON.stringify(payload, null, 2));
 };
 
-const server = http.createServer((req, res) => {
+const readJsonBody = (req) => new Promise((resolve, reject) => {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+  req.on("end", () => {
+    try {
+      resolve(body ? JSON.parse(body) : {});
+    } catch (error) {
+      reject(error);
+    }
+  });
+  req.on("error", reject);
+});
+
+const server = http.createServer(async (req, res) => {
   const meta = getBundleMeta();
   const requestUrl = new URL(req.url, `http://localhost:${port}`);
 
@@ -65,6 +81,22 @@ const server = http.createServer((req, res) => {
     }
 
     sendJson(res, 200, createEventForNode({ id: nodeId, row, col }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/new.json") {
+    sendJson(res, 200, createBrowserRun());
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/enter-node.json" && req.method === "POST") {
+    try {
+      const { run, nodeId } = await readJsonBody(req);
+      const result = enterBrowserNode(run, nodeId);
+      sendJson(res, 200, result);
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to enter node" });
+    }
     return;
   }
 

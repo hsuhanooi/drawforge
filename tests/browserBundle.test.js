@@ -27,8 +27,9 @@ describe("browser bundle regression coverage", () => {
     expect(appJs).toContain("loadBundleMeta();");
   });
 
-  it("fetches event content from the server instead of keeping a browser-only event template block", () => {
-    expect(appJs).toContain('fetch(`/event.json?nodeId=${encodeURIComponent(node.id)}&row=${node.row}&col=${node.col}`');
+  it("uses server-backed endpoints for run init and node entry instead of browser-owned event templates", () => {
+    expect(appJs).toContain('fetchJson("/run/new.json")');
+    expect(appJs).toContain('fetchJson("/run/enter-node.json"');
     expect(appJs).toContain("hydrateEventOption(option)");
     expect(appJs).not.toContain("const EVENT_TEMPLATES = [");
   });
@@ -37,7 +38,7 @@ describe("browser bundle regression coverage", () => {
     expect(appJs).toContain("function afterCardSelection(run)");
     expect(appJs).toContain("pendingRewards.removeCard");
 
-    const claimBlock = extractBlock(appJs, "function claimCardReward(run, card)", "function claimRelicReward");
+    const claimBlock = extractBlock(appJs, "function claimCardReward(run, card)", "function claimRelicFromChoices");
     const skipBlock = extractBlock(appJs, "function skipRewards(run)", "function claimEventOption");
     expect(claimBlock).toContain("afterCardSelection");
     expect(skipBlock).toContain("afterCardSelection");

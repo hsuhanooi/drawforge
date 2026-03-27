@@ -62,24 +62,6 @@
     spite_shield: { id: "spite_shield", name: "Spite Shield", cost: 1, type: "skill", rarity: "uncommon", block: 6, hex: 1 }
   };
 
-  const RELICS = [
-    { id: "iron_core", name: "Iron Core", description: "+5 max health and heal 5 immediately", rarity: "common" },
-    { id: "feather_charm", name: "Feather Charm", description: "+15 gold immediately", rarity: "common" },
-    { id: "ember_ring", name: "Ember Ring", description: "Start each combat with +1 energy", rarity: "common" },
-    { id: "bone_token", name: "Bone Token", description: "Heal 3 after each combat victory", rarity: "common" },
-    { id: "rusted_buckler", name: "Rusted Buckler", description: "Start each combat with 4 Block", rarity: "common" },
-    { id: "quickened_loop", name: "Quickened Loop", description: "Draw 1 additional card on the first turn of each combat", rarity: "common" },
-    { id: "worn_grimoire", name: "Worn Grimoire", description: "The first time you apply Hex each combat, apply +1 additional Hex", rarity: "uncommon" },
-    { id: "coal_pendant", name: "Coal Pendant", description: "The first card you Exhaust each combat draws 1 card", rarity: "uncommon" },
-    { id: "hex_nail", name: "Hex Nail", description: "Attack cards deal +2 damage to Hexed enemies", rarity: "uncommon" },
-    { id: "cinder_box", name: "Cinder Box", description: "Whenever you Exhaust a card, gain 2 Block", rarity: "uncommon" },
-    { id: "volt_shard", name: "Volt Shard", description: "When you become Charged, gain 1 Block and draw 1", rarity: "uncommon" },
-    { id: "merchant_ledger", name: "Merchant's Ledger", description: "Card rewards after combat offer 1 extra choice", rarity: "uncommon" },
-    { id: "sigil_engine", name: "Sigil Engine", description: "When an enemy first reaches 3+ Hex in a combat, deal 8 damage to it", rarity: "rare" },
-    { id: "time_locked_seal", name: "Time-Locked Seal", description: "The first card you play each turn that costs 1 or less costs 0", rarity: "rare" },
-    { id: "phoenix_ash", name: "Phoenix Ash", description: "Once per run, if you would die, survive at 1 HP instead", rarity: "rare" }
-  ];
-
   function createEventLabel(option) {
     if (option.effect === "heal") return `Recover ${option.amount} health`;
     if (option.effect === "gold") return `Take ${option.amount} gold`;
@@ -112,28 +94,6 @@
       throw new Error(`Unknown card id: ${cardId}`);
     }
     return { ...card };
-  }
-
-  function pickUniqueItems(items, count) {
-    const pool = [...items];
-    const chosen = [];
-    while (pool.length > 0 && chosen.length < count) {
-      const index = Math.floor(Math.random() * pool.length);
-      chosen.push(pool.splice(index, 1)[0]);
-    }
-    return chosen;
-  }
-
-  function createRewardCardOptions(count = 3) {
-    const ids = [
-      "bash", "barrier", "quick_strike", "focus", "volley",
-      "surge", "hex", "punish", "burnout", "crackdown", "momentum", "wither",
-      "siphon_ward", "detonate_sigil", "lingering_curse",
-      "mark_of_ruin", "hexblade", "reapers_clause", "fire_sale", "cremate",
-      "grave_fuel", "brand_the_soul", "harvester", "charge_up", "arc_lash",
-      "blood_pact", "spite_shield"
-    ];
-    return pickUniqueItems(ids, count).map((cardId) => createCardFromId(cardId));
   }
 
   function shuffleCards(cards) {
@@ -300,32 +260,6 @@
     }, drawCount);
   }
 
-  function createVictoryRewards(nodeType, nodeId = "r0c0", run = null) {
-    const merchantBonus = run && hasRelic(run, "merchant_ledger") ? 1 : 0;
-    const cardCount = 3 + merchantBonus;
-
-    if (nodeType === "elite") {
-      const relicPool = RELICS.filter((r) => r.rarity === "common" || r.rarity === "uncommon");
-      return {
-        cards: createRewardCardOptions(cardCount),
-        gold: 25,
-        relic: null,
-        relics: pickUniqueItems(relicPool, 3),
-        removeCard: true
-      };
-    }
-
-    const bossRelicPool = RELICS.filter((r) => r.rarity === "uncommon" || r.rarity === "rare");
-    const relicIndex = nodeId.length % bossRelicPool.length;
-    return {
-      cards: createRewardCardOptions(cardCount),
-      gold: nodeType === "boss" ? 50 : 12,
-      relic: nodeType === "boss" ? bossRelicPool[relicIndex] : null,
-      relics: [],
-      removeCard: false
-    };
-  }
-
   async function enterNode(run, nodeId) {
     const result = await fetchJson("/run/enter-node.json", {
       method: "POST",
@@ -347,17 +281,6 @@
     }
 
     return nextRun;
-  }
-
-  function applyVictory(run, combat) {
-    const rewards = createVictoryRewards(combat.nodeType, run.map.currentNodeId || "r0c0", run);
-    const boneTokenHeal = hasRelic(run, "bone_token") ? 3 : 0;
-    return {
-      ...run,
-      player: { ...run.player, health: combat.player.health + boneTokenHeal, gold: run.player.gold + rewards.gold },
-      combat,
-      pendingRewards: rewards
-    };
   }
 
   function playCardAtIndex(combat, handIndex, run = null) {
@@ -554,14 +477,6 @@
     return next;
   }
 
-  function applyRelic(run, relic) {
-    const nextRun = { ...run, relics: [...(run.relics || []), relic], player: { ...run.player } };
-    if (relic.id === "iron_core") nextRun.player.health += 5;
-    if (relic.id === "feather_charm") nextRun.player.gold += 15;
-    // All other relics have no immediate acquisition effect; they trigger during combat or post-combat
-    return nextRun;
-  }
-
   function describeCard(card) {
     const parts = [];
     if (card.rarity) parts.push(`[${card.rarity}]`);
@@ -586,79 +501,59 @@
     return parts.join(" • ");
   }
 
-  function finishNode(run) {
-    const currentNode = run.map.nodes.find((n) => n.id === run.map.currentNodeId);
-    const isBossNode = currentNode && currentNode.type === "boss";
-    return {
-      ...run,
-      combat: null,
-      pendingRewards: null,
-      event: null,
-      state: isBossNode ? "won" : "in_progress"
-    };
-  }
-
-  function afterCardSelection(run) {
-    if (run.pendingRewards && run.pendingRewards.removeCard) {
-      return { ...run, pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true } };
-    }
-    return finishNode(run);
-  }
-
-  function claimCardReward(run, card) {
-    return afterCardSelection({
-      ...run,
-      player: { ...run.player, deck: [...run.player.deck, card.id] }
+  async function applyVictory(run, combat) {
+    return fetchJson("/run/apply-victory.json", {
+      method: "POST",
+      body: JSON.stringify({ run, combat })
     });
   }
 
-  function claimRelicFromChoices(run, relic) {
-    // Elite flow: pick one of 3 relics, then move to card selection phase
-    const updated = applyRelic(run, relic);
-    return { ...updated, pendingRewards: { ...updated.pendingRewards, relics: [] } };
+  async function claimCardReward(run, card) {
+    return fetchJson("/run/claim-card.json", {
+      method: "POST",
+      body: JSON.stringify({ run, cardId: card.id })
+    });
   }
 
-  function claimRelicReward(run, relic) {
-    return afterCardSelection(applyRelic(run, relic));
+  async function claimRelicFromChoices(run, relic) {
+    return fetchJson("/run/claim-choice-relic.json", {
+      method: "POST",
+      body: JSON.stringify({ run, relicId: relic.id })
+    });
   }
 
-  function skipRewards(run) {
-    return afterCardSelection(run);
+  async function claimRelicReward(run, relic) {
+    return fetchJson("/run/claim-relic.json", {
+      method: "POST",
+      body: JSON.stringify({ run, relicId: relic.id })
+    });
   }
 
-  function claimEventOption(run, option) {
-    let nextRun = { ...run, event: null };
-    if (option.effect === "heal") {
-      nextRun = { ...nextRun, player: { ...nextRun.player, health: nextRun.player.health + (option.amount || 10) } };
-    }
-    if (option.effect === "relic") {
-      nextRun = applyRelic(nextRun, option.relic);
-    }
-    if (option.effect === "gold") {
-      nextRun = { ...nextRun, player: { ...nextRun.player, gold: nextRun.player.gold + option.amount } };
-    }
-    if (option.effect === "reward_cards") {
-      nextRun = { ...nextRun, pendingRewards: { cards: option.cards, gold: 0, relic: null, removeCard: false } };
-    }
-    if (option.effect === "add_card") {
-      nextRun = { ...nextRun, player: { ...nextRun.player, deck: [...nextRun.player.deck, option.card.id] } };
-    }
-    if (option.effect === "remove") {
-      nextRun = { ...nextRun, pendingRewards: { cards: [], gold: 0, relic: null, removeCard: true } };
-    }
-    return nextRun;
+  async function skipRewards(run) {
+    return fetchJson("/run/skip-rewards.json", {
+      method: "POST",
+      body: JSON.stringify({ run })
+    });
   }
 
-  function removeCardFromDeck(run, cardId) {
-    const index = run.player.deck.indexOf(cardId);
-    if (index === -1) return run;
+  async function claimEventOption(run, option) {
+    return fetchJson("/run/claim-event-option.json", {
+      method: "POST",
+      body: JSON.stringify({ run, optionId: option.id })
+    });
+  }
 
-    return finishNode({
-      ...run,
-      player: {
-        ...run.player,
-        deck: [...run.player.deck.slice(0, index), ...run.player.deck.slice(index + 1)]
-      }
+  async function removeCardFromDeck(run, cardId) {
+    return fetchJson("/run/remove-card.json", {
+      method: "POST",
+      body: JSON.stringify({ run, cardId })
+    });
+  }
+
+  async function finishNode(run) {
+    return fetchJson("/run/finish-node.json", {
+      method: "POST",
+      body: JSON.stringify({ run })
     });
   }
 
@@ -768,11 +663,11 @@
       button.className = "node-button";
       button.innerHTML = `${card.name}<br />${describeCard(card)}`;
       button.disabled = combat.turn !== "player" || combat.state !== "active";
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         try {
           const updatedCombat = playCardAtIndex(currentRun.combat, index, currentRun);
           currentRun = updatedCombat.state === "victory"
-            ? applyVictory(currentRun, updatedCombat)
+            ? await applyVictory(currentRun, updatedCombat)
             : { ...currentRun, combat: updatedCombat, player: { ...currentRun.player, health: updatedCombat.player.health } };
           render();
           setStatus(updatedCombat.state === "victory"

@@ -14,13 +14,17 @@ const extractBlock = (source, startMarker, endMarker) => {
 
 describe("browser bundle regression coverage", () => {
   it("defines every browser reward card id inside the browser card library", () => {
-    const cardLibraryBlock = extractBlock(appJs, "const CARD_LIBRARY = {", "\n  };\n\n  const RELICS");
-    const rewardIdsBlock = extractBlock(appJs, "const ids = [", "];\n    return pickUniqueItems");
-
+    const cardLibraryBlock = extractBlock(appJs, "const CARD_LIBRARY = {", "\n  };\n\n  function createEventLabel");
     const libraryIds = [...cardLibraryBlock.matchAll(/\n\s+([a-z_]+):\s+\{/g)].map((match) => match[1]);
-    const rewardIds = [...rewardIdsBlock.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
 
-    expect(libraryIds).toEqual(expect.arrayContaining(rewardIds));
+    const expectedRewardIds = [
+      "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown",
+      "momentum", "wither", "siphon_ward", "detonate_sigil", "lingering_curse", "mark_of_ruin", "hexblade",
+      "reapers_clause", "fire_sale", "cremate", "grave_fuel", "brand_the_soul", "harvester", "charge_up",
+      "arc_lash", "blood_pact", "spite_shield"
+    ];
+
+    expect(libraryIds).toEqual(expect.arrayContaining(expectedRewardIds));
   });
 
   it("loads bundle metadata on startup so the checksum build tag is rendered", () => {
@@ -34,22 +38,19 @@ describe("browser bundle regression coverage", () => {
     expect(appJs).not.toContain("const EVENT_TEMPLATES = [");
   });
 
-  it("elite victory transitions through a two-phase reward flow before finishing the node", () => {
-    expect(appJs).toContain("function afterCardSelection(run)");
-    expect(appJs).toContain("pendingRewards.removeCard");
-
-    const claimBlock = extractBlock(appJs, "function claimCardReward(run, card)", "function claimRelicFromChoices");
-    const skipBlock = extractBlock(appJs, "function skipRewards(run)", "function claimEventOption");
-    expect(claimBlock).toContain("afterCardSelection");
-    expect(skipBlock).toContain("afterCardSelection");
-    expect(claimBlock).not.toContain("finishNode");
-    expect(skipBlock).not.toContain("finishNode");
+  it("uses server-backed endpoints for reward and event resolution", () => {
+    expect(appJs).toContain('fetchJson("/run/apply-victory.json"');
+    expect(appJs).toContain('fetchJson("/run/claim-card.json"');
+    expect(appJs).toContain('fetchJson("/run/claim-choice-relic.json"');
+    expect(appJs).toContain('fetchJson("/run/claim-relic.json"');
+    expect(appJs).toContain('fetchJson("/run/skip-rewards.json"');
+    expect(appJs).toContain('fetchJson("/run/claim-event-option.json"');
+    expect(appJs).toContain('fetchJson("/run/remove-card.json"');
+    expect(appJs).toContain('fetchJson("/run/finish-node.json"');
   });
 
-  it("finishNode detects boss victory by node type, not by hardcoded node id", () => {
-    const finishNodeBlock = extractBlock(appJs, "function finishNode(run)", "function afterCardSelection");
-    expect(finishNodeBlock).toContain("currentNode.type");
-    expect(finishNodeBlock).not.toContain("c1");
+  it("does not keep a browser-owned relic catalog anymore", () => {
+    expect(appJs).not.toContain("const RELICS = [");
   });
 
   it("renderRewards does not return early when removeCard is true", () => {
@@ -58,13 +59,13 @@ describe("browser bundle regression coverage", () => {
   });
 
   it("relic description is shown in every interactive relic surface", () => {
-    const eventRenderBlock = extractBlock(appJs, "currentRun.event.options.forEach", "elements.rewardActions.appendChild(button);\n      });\n      return;");
+    const eventRenderBlock = extractBlock(appJs, "currentRun.event.options.forEach", "if (!currentRun.pendingRewards)");
     expect(eventRenderBlock).toContain("option.relic.description");
 
     const rewardsBlock = extractBlock(appJs, "function renderRewards()", "function renderRemoval");
     expect(rewardsBlock).toContain("relic.description");
 
-    const renderRunBlock = extractBlock(appJs, "(currentRun.relics || []).forEach((relic) => {", "renderMap();");
+    const renderRunBlock = extractBlock(appJs, "(currentRun.relics || []).forEach((relic) => {", "const hasCombat =");
     expect(renderRunBlock).toContain("relic.description");
   });
 
@@ -75,20 +76,9 @@ describe("browser bundle regression coverage", () => {
     const rewardsBlock = extractBlock(appJs, "function renderRewards()", "function renderRemoval");
     expect(rewardsBlock).toContain("describeCard(card)");
 
-    const eventRenderBlock = extractBlock(appJs, "currentRun.event.options.forEach", "elements.rewardActions.appendChild(button);\n      });\n      return;");
+    const eventRenderBlock = extractBlock(appJs, "currentRun.event.options.forEach", "if (!currentRun.pendingRewards)");
     expect(eventRenderBlock).toContain("describeCard(option.card)");
     expect(eventRenderBlock).toContain("describeCard(card)");
-  });
-
-  it("all 15 relic IDs are present in the RELICS array", () => {
-    const relicIds = [
-      "iron_core", "feather_charm", "ember_ring", "bone_token", "rusted_buckler",
-      "quickened_loop", "worn_grimoire", "coal_pendant", "hex_nail", "cinder_box",
-      "volt_shard", "merchant_ledger", "sigil_engine", "time_locked_seal", "phoenix_ash"
-    ];
-    for (const id of relicIds) {
-      expect(appJs).toContain(`"${id}"`);
-    }
   });
 
   it("passive relic effects are wired into playCardAtIndex", () => {
@@ -103,19 +93,13 @@ describe("browser bundle regression coverage", () => {
   });
 
   it("phoenix_ash survival check is in resolveEndTurn", () => {
-    const endTurnBlock = extractBlock(appJs, "function resolveEndTurn(combat, run)", "function applyRelic");
+    const endTurnBlock = extractBlock(appJs, "function resolveEndTurn(combat, run)", "function describeCard(card)");
     expect(endTurnBlock).toContain("phoenix_ash");
     expect(endTurnBlock).toContain("phoenix_used");
   });
 
-  it("bone_token heal is applied in applyVictory", () => {
-    const victoryBlock = extractBlock(appJs, "function applyVictory(run, combat)", "function playCardAtIndex");
-    expect(victoryBlock).toContain("bone_token");
-    expect(victoryBlock).toContain("boneTokenHeal");
-  });
-
   it("rusted_buckler and quickened_loop are wired into startCombat", () => {
-    const startCombatBlock = extractBlock(appJs, "function startCombat(run, node)", "function createVictoryRewards");
+    const startCombatBlock = extractBlock(appJs, "function startCombat(run, node)", "async function enterNode(run, nodeId)");
     expect(startCombatBlock).toContain("rusted_buckler");
     expect(startCombatBlock).toContain("quickened_loop");
   });

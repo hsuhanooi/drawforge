@@ -4,6 +4,16 @@ const path = require("path");
 const crypto = require("crypto");
 const { createEventForNode } = require("./src/events");
 const { createBrowserRun, enterBrowserNode } = require("./src/browserRunActions");
+const {
+  applyVictoryToRun,
+  claimCardReward,
+  claimRelicFromChoices,
+  claimRelicReward,
+  skipRewards,
+  claimEventOption,
+  removeCardFromDeck,
+  finishNode
+} = require("./src/browserPostNodeActions");
 
 const port = process.env.PORT || 3000;
 const browserDir = path.join(__dirname, "browser");
@@ -96,6 +106,86 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, result);
     } catch (error) {
       sendJson(res, 400, { error: error.message || "Unable to enter node" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/apply-victory.json" && req.method === "POST") {
+    try {
+      const { run, combat } = await readJsonBody(req);
+      sendJson(res, 200, applyVictoryToRun(run, combat));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to apply victory" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/claim-card.json" && req.method === "POST") {
+    try {
+      const { run, cardId } = await readJsonBody(req);
+      sendJson(res, 200, claimCardReward(run, cardId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to claim card reward" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/claim-choice-relic.json" && req.method === "POST") {
+    try {
+      const { run, relicId } = await readJsonBody(req);
+      sendJson(res, 200, claimRelicFromChoices(run, relicId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to claim relic choice" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/claim-relic.json" && req.method === "POST") {
+    try {
+      const { run, relicId } = await readJsonBody(req);
+      sendJson(res, 200, claimRelicReward(run, relicId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to claim relic reward" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/skip-rewards.json" && req.method === "POST") {
+    try {
+      const { run } = await readJsonBody(req);
+      sendJson(res, 200, skipRewards(run));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to skip rewards" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/claim-event-option.json" && req.method === "POST") {
+    try {
+      const { run, optionId } = await readJsonBody(req);
+      sendJson(res, 200, claimEventOption(run, optionId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to resolve event option" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/remove-card.json" && req.method === "POST") {
+    try {
+      const { run, cardId } = await readJsonBody(req);
+      sendJson(res, 200, removeCardFromDeck(run, cardId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to remove card" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/finish-node.json" && req.method === "POST") {
+    try {
+      const { run } = await readJsonBody(req);
+      sendJson(res, 200, finishNode(run));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to finish node" });
     }
     return;
   }

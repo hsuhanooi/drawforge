@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { createEventForNode } = require("./src/events");
+const { createCardCatalog } = require("./src/cardCatalog");
 const { createBrowserRun, enterBrowserNode } = require("./src/browserRunActions");
 const {
   applyVictoryToRun,
@@ -96,6 +97,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     sendJson(res, 200, createEventForNode({ id: nodeId, row, col }));
+    return;
+  }
+
+  if (requestUrl.pathname === "/cards.json") {
+    sendJson(res, 200, createCardCatalog());
     return;
   }
 

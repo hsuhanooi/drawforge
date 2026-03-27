@@ -13,18 +13,9 @@ const extractBlock = (source, startMarker, endMarker) => {
 };
 
 describe("browser bundle regression coverage", () => {
-  it("defines every browser reward card id inside the browser card library", () => {
-    const cardLibraryBlock = extractBlock(appJs, "const CARD_LIBRARY = {", "\n  };\n\n  function createEventLabel");
-    const libraryIds = [...cardLibraryBlock.matchAll(/\n\s+([a-z_]+):\s+\{/g)].map((match) => match[1]);
-
-    const expectedRewardIds = [
-      "bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown",
-      "momentum", "wither", "siphon_ward", "detonate_sigil", "lingering_curse", "mark_of_ruin", "hexblade",
-      "reapers_clause", "fire_sale", "cremate", "grave_fuel", "brand_the_soul", "harvester", "charge_up",
-      "arc_lash", "blood_pact", "spite_shield"
-    ];
-
-    expect(libraryIds).toEqual(expect.arrayContaining(expectedRewardIds));
+  it("loads card metadata from the server instead of keeping a browser-owned card library", () => {
+    expect(appJs).toContain('fetchJson("/cards.json")');
+    expect(appJs).not.toContain("const CARD_LIBRARY = {");
   });
 
   it("loads bundle metadata on startup so the checksum build tag is rendered", () => {

@@ -1,31 +1,7 @@
 const { DEFAULT_STARTER_DECK } = require("./constants");
-const {
-  bashCardDefinition,
-  barrierCardDefinition,
-  quickStrikeCardDefinition,
-  focusCardDefinition,
-  volleyCardDefinition,
-  markOfRuinCardDefinition,
-  hexbladeCardDefinition,
-  fireSaleCardDefinition,
-  cremateCardDefinition,
-  chargeUpCardDefinition,
-  arcLashCardDefinition
-} = require("./cards");
+const { REWARD_POOL } = require("./cards");
 
-const BONUS_STARTER_POOL = [
-  bashCardDefinition,
-  barrierCardDefinition,
-  quickStrikeCardDefinition,
-  focusCardDefinition,
-  volleyCardDefinition,
-  markOfRuinCardDefinition,
-  hexbladeCardDefinition,
-  fireSaleCardDefinition,
-  cremateCardDefinition,
-  chargeUpCardDefinition,
-  arcLashCardDefinition
-];
+const BONUS_STARTER_POOL = REWARD_POOL;
 
 const createStarterDeck = (rng = Math.random) => {
   const index = Math.floor(rng() * BONUS_STARTER_POOL.length);

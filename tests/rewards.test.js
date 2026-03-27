@@ -26,11 +26,18 @@ describe("combat rewards", () => {
     expect(options[0]).toHaveProperty("id");
   });
 
-  it("can generate expanded reward cards from the larger pool", () => {
-    const options = createRewardOptions(17, {}, createSequenceRng(0.0, 0.01, 0.02, 0.03, 0.04, 0.05));
+  it("can generate reward cards only from the current reward pool", () => {
+    const { REWARD_POOL } = require("../src/cards");
+    const poolIds = REWARD_POOL.map((f) => f().id);
+    const options = createRewardOptions(poolIds.length, {}, createSequenceRng(...poolIds.map((_, i) => i / poolIds.length)));
     const ids = options.map((card) => card.id);
 
-    expect(ids).toEqual(expect.arrayContaining(["bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex", "punish", "burnout", "crackdown", "momentum", "wither", "siphon_ward", "detonate_sigil", "lingering_curse"]));
+    // All returned cards must come from the reward pool
+    ids.forEach((id) => expect(poolIds).toContain(id));
+    // Old cards must not appear
+    ["bash", "barrier", "quick_strike", "focus", "volley", "surge", "hex"].forEach((id) => {
+      expect(ids).not.toContain(id);
+    });
   });
 
   it("adds the selected reward card to the deck", () => {

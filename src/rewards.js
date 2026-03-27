@@ -4,68 +4,9 @@
 /** @typedef {import("./domain").CardFactory} CardFactory */
 /** @typedef {import("./domain").RelicReward} RelicReward */
 
-const {
-  bashCardDefinition,
-  barrierCardDefinition,
-  quickStrikeCardDefinition,
-  focusCardDefinition,
-  volleyCardDefinition,
-  surgeCardDefinition,
-  hexCardDefinition,
-  punishCardDefinition,
-  burnoutCardDefinition,
-  crackdownCardDefinition,
-  momentumCardDefinition,
-  witherCardDefinition,
-  siphonWardCardDefinition,
-  detonateSigilCardDefinition,
-  lingeringCurseCardDefinition,
-  markOfRuinCardDefinition,
-  hexbladeCardDefinition,
-  reaperSClauseCardDefinition,
-  fireSaleCardDefinition,
-  cremateCardDefinition,
-  graveFuelCardDefinition,
-  brandTheSoulCardDefinition,
-  harvesterCardDefinition,
-  chargeUpCardDefinition,
-  arcLashCardDefinition,
-  bloodPactCardDefinition,
-  spiteShieldCardDefinition
-} = require("./cards");
+const { REWARD_POOL: rewardPool } = require("./cards");
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward } = require("./relics");
-
-/** @type {CardFactory[]} */
-const rewardPool = [
-  bashCardDefinition,
-  barrierCardDefinition,
-  quickStrikeCardDefinition,
-  focusCardDefinition,
-  volleyCardDefinition,
-  surgeCardDefinition,
-  hexCardDefinition,
-  punishCardDefinition,
-  burnoutCardDefinition,
-  crackdownCardDefinition,
-  momentumCardDefinition,
-  witherCardDefinition,
-  siphonWardCardDefinition,
-  detonateSigilCardDefinition,
-  lingeringCurseCardDefinition,
-  markOfRuinCardDefinition,
-  hexbladeCardDefinition,
-  reaperSClauseCardDefinition,
-  fireSaleCardDefinition,
-  cremateCardDefinition,
-  graveFuelCardDefinition,
-  brandTheSoulCardDefinition,
-  harvesterCardDefinition,
-  chargeUpCardDefinition,
-  arcLashCardDefinition,
-  bloodPactCardDefinition,
-  spiteShieldCardDefinition
-];
 
 /** @type {Record<string, number>} */
 const RARITY_WEIGHTS = {

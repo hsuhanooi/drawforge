@@ -10,13 +10,13 @@ const {
 describe("browser combat helpers", () => {
   it("creates card instances from card ids", () => {
     const strike = createCardFromId("strike");
-    const detonateSigil = createCardFromId("detonate_sigil");
-    const cards = instantiateCards(["strike", "lingering_curse"]);
+    const markOfRuin = createCardFromId("mark_of_ruin");
+    const cards = instantiateCards(["strike", "hexblade"]);
 
     expect(strike.id).toBe("strike");
-    expect(detonateSigil.id).toBe("detonate_sigil");
+    expect(markOfRuin.id).toBe("mark_of_ruin");
     expect(cards).toHaveLength(2);
-    expect(cards[1].id).toBe("lingering_curse");
+    expect(cards[1].id).toBe("hexblade");
   });
 
   it("starts combat with a drawn opening hand and energy", () => {

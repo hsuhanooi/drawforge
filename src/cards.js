@@ -580,6 +580,22 @@ const spiteShieldCardDefinition = () =>
     })
   });
 
+/** Canonical reward card pool — the only cards that can appear as rewards. */
+const REWARD_POOL = [
+  markOfRuinCardDefinition,
+  hexbladeCardDefinition,
+  reaperSClauseCardDefinition,
+  fireSaleCardDefinition,
+  cremateCardDefinition,
+  graveFuelCardDefinition,
+  brandTheSoulCardDefinition,
+  harvesterCardDefinition,
+  chargeUpCardDefinition,
+  arcLashCardDefinition,
+  bloodPactCardDefinition,
+  spiteShieldCardDefinition
+];
+
 module.exports = {
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
@@ -636,5 +652,6 @@ module.exports = {
   chargeUpCardDefinition,
   arcLashCardDefinition,
   bloodPactCardDefinition,
-  spiteShieldCardDefinition
+  spiteShieldCardDefinition,
+  REWARD_POOL
 };

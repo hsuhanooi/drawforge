@@ -486,3 +486,98 @@ Avoid coupling UI code to core combat logic
 Start with one player class and a very small card pool
 Start with one basic enemy behavior before adding enemy variety
 Do not add polish before the full playable loop works
+
+---
+
+### Milestone 6: Visual Game UI
+
+A separate, visually engaging game page (browser/play.html) built on top of the same game logic. The existing debug UI (browser/index.html) remains unchanged.
+
+{
+  "category": "visual",
+  "description": "Visual card components with rarity border, cost gem, type stripe, and art placeholder",
+  "steps": [
+    "Create card component CSS: fixed size, rarity border color (common=gray, uncommon=blue, rare=purple)",
+    "Add cost gem (top-left circle with energy number)",
+    "Add type stripe (red=Attack, green=Skill)",
+    "Add art area placeholder colored by type",
+    "Add playable/unplayable/selected states",
+    "Verify cards render correctly in hand and reward screen"
+  ],
+  "passes": false
+}
+
+{
+  "category": "visual",
+  "description": "Combat arena with player panel, enemy panel, and hand row",
+  "steps": [
+    "Layout: player panel left, enemy panel right, hand row fixed at bottom",
+    "Player panel: HP bar (fill% of maxHp), block badge, energy pips, status effect badges",
+    "Enemy panel: HP bar, block badge, hex count, intent box with icon",
+    "Hand row: cards fanned horizontally, lift on hover, click to play",
+    "End Turn button bottom-right, pile counters bottom-left",
+    "Verify combat plays end-to-end in the visual UI"
+  ],
+  "passes": false
+}
+
+{
+  "category": "visual",
+  "description": "Visual map with node icons, SVG path lines, and node state styling",
+  "steps": [
+    "Render nodes with icons by type (⚔️ combat, ⭐ elite, 👑 boss, ❓ event)",
+    "Draw SVG path lines connecting parent nodes to children",
+    "Style available nodes bright/clickable, visited dim, current pulsing, locked very dim",
+    "Verify player can navigate the full map to the boss"
+  ],
+  "passes": false
+}
+
+{
+  "category": "visual",
+  "description": "Animations: card play fly-out, floating damage numbers, HP bar transitions",
+  "steps": [
+    "Card play: played card translates upward and fades out",
+    "Damage numbers: float-up div positioned near target with CSS keyframe",
+    "HP bar: CSS transition on width change for smooth animation",
+    "Verify animations don't block game state updates"
+  ],
+  "passes": false
+}
+
+{
+  "category": "visual",
+  "description": "Reward screen with large visual card selection and fade-in",
+  "steps": [
+    "Reward cards appear in a row using large card component size",
+    "Relic reward displayed as distinct item card",
+    "Event choices shown as option cards with flavor text",
+    "Cards fade in on render",
+    "Verify selecting a card adds it to deck and advances the run"
+  ],
+  "passes": false
+}
+
+{
+  "category": "visual",
+  "description": "Deck inspector overlay and relic badge strip",
+  "steps": [
+    "Relic strip at top of screen showing owned relics as icon badges",
+    "Hover tooltip on each relic showing name and description",
+    "Collapsible deck overlay showing all cards as mini card components",
+    "Verify deck contents update after rewards are claimed"
+  ],
+  "passes": false
+}
+
+{
+  "category": "visual",
+  "description": "End-state full-screen overlay with run stats",
+  "steps": [
+    "Win overlay: green background, victory message, run stats (nodes visited, relics collected)",
+    "Loss overlay: red background, defeat message",
+    "New Run button to restart",
+    "Verify overlay appears on boss win and player death"
+  ],
+  "passes": false
+}

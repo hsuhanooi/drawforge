@@ -16,55 +16,26 @@ const finishNode = (run) => {
   };
 };
 
-const advanceEliteRewardFlow = (run) => {
-  const rewards = run.pendingRewards;
-  if (!rewards) {
-    return finishNode(run);
-  }
-
-  if (rewards.relics && rewards.relics.length > 0) {
-    return {
-      ...run,
-      pendingRewards: {
-        ...rewards,
-        relics: [],
-        removeCard: true
-      }
-    };
-  }
-
-  if (rewards.removeCard) {
-    return {
-      ...run,
-      pendingRewards: {
-        ...rewards,
-        cards: [],
-        relic: null,
-        relics: [],
-        removeCard: true
-      }
-    };
-  }
-
-  return finishNode(run);
-};
-
 const afterCardSelection = (run) => {
-  if (run.pendingRewards && run.pendingRewards.relics && run.pendingRewards.relics.length > 0) {
+  if (run.pendingRewards?.relics?.length) {
+    return {
+      ...run,
+      pendingRewards: {
+        ...run.pendingRewards,
+        cards: []
+      }
+    };
+  }
+
+  if (run.pendingRewards?.removeCard) {
     return {
       ...run,
       pendingRewards: {
         ...run.pendingRewards,
         cards: [],
-        removeCard: false
+        relic: null,
+        relics: []
       }
-    };
-  }
-
-  if (run.pendingRewards && run.pendingRewards.removeCard) {
-    return {
-      ...run,
-      pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true }
     };
   }
 
@@ -126,14 +97,16 @@ const claimRelicReward = (run, relicId) => {
 
 const skipRewards = (run) => {
   if (run.pendingRewards?.relics?.length) {
-    return advanceEliteRewardFlow({
+    return {
       ...run,
       pendingRewards: {
         ...run.pendingRewards,
+        cards: [],
         relics: [],
+        relic: null,
         removeCard: true
       }
-    });
+    };
   }
   return afterCardSelection(run);
 };

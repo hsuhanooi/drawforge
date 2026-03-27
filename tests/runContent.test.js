@@ -29,15 +29,18 @@ describe("expanded run content", () => {
     const eliteRewards = createVictoryRewards("elite");
     const bossRewards = createVictoryRewards("boss");
 
-    expect(eliteRewards.relic).not.toBeNull();
+    expect(eliteRewards.relics).toHaveLength(3);
     expect(bossRewards.relic).not.toBeNull();
     expect(bossRewards.gold).toBeGreaterThan(eliteRewards.gold);
   });
 
-  it("elite rewards include a relic with rarity common or uncommon", () => {
+  it("elite rewards include 3 relic choices with common or uncommon rarity", () => {
     for (let i = 0; i < 20; i += 1) {
       const eliteRewards = createVictoryRewards("elite");
-      expect(["common", "uncommon"]).toContain(eliteRewards.relic.rarity);
+      expect(eliteRewards.relics).toHaveLength(3);
+      eliteRewards.relics.forEach((relic) => {
+        expect(["common", "uncommon"]).toContain(relic.rarity);
+      });
     }
   });
 });

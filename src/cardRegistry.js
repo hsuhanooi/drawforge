@@ -1,0 +1,67 @@
+const CARD_REGISTRY = [
+  { id: "strike", name: "Strike", cost: 1, type: "attack", effectText: "Dmg 6.", rarity: "common", archetype: "Starter", status: "implemented", starter: true },
+  { id: "defend", name: "Defend", cost: 1, type: "skill", effectText: "Block 5.", rarity: "common", archetype: "Starter", status: "implemented", starter: true },
+  { id: "mark_of_ruin", name: "Mark of Ruin", cost: 1, type: "skill", effectText: "Apply Hex 1. Draw 1.", rarity: "common", archetype: "Hex", status: "implemented" },
+  { id: "deep_hex", name: "Deep Hex", cost: 2, type: "skill", effectText: "Apply Hex 3.", rarity: "uncommon", archetype: "Hex", status: "missing" },
+  { id: "hexblade", name: "Hexblade", cost: 1, type: "attack", effectText: "Dmg 7. Apply Hex 1.", rarity: "common", archetype: "Hex", status: "implemented" },
+  { id: "reapers_clause", name: "Reaper's Clause", cost: 2, type: "attack", effectText: "Dmg 10. Costs 1 less if target is Hexed.", rarity: "uncommon", archetype: "Hex", status: "implemented" },
+  { id: "malediction", name: "Malediction", cost: 1, type: "skill", effectText: "Enemy loses 2 Strength this turn. Apply Hex 1.", rarity: "uncommon", archetype: "Hex", status: "missing" },
+  { id: "feast_on_weakness", name: "Feast on Weakness", cost: 1, type: "attack", effectText: "Dmg 5. Gain 5 Block if target is Hexed.", rarity: "common", archetype: "Hex", status: "missing" },
+  { id: "curse_spiral", name: "Curse Spiral", cost: 2, type: "skill", effectText: "Apply Hex 1 to all enemies. Draw 1.", rarity: "uncommon", archetype: "Hex", status: "missing" },
+  { id: "black_seal", name: "Black Seal", cost: 0, type: "skill", effectText: "Apply Hex 1. Exhaust.", rarity: "common", archetype: "Hex", status: "missing" },
+  { id: "overclock", name: "Overclock", cost: 1, type: "skill", effectText: "Gain 2 Energy. Discard 1 card. Exhaust.", rarity: "uncommon", archetype: "Exhaust", status: "missing" },
+  { id: "ashen_blow", name: "Ashen Blow", cost: 1, type: "attack", effectText: "Dmg 7. If this card is Exhausted, gain 1 Energy.", rarity: "uncommon", archetype: "Exhaust", status: "missing" },
+  { id: "fire_sale", name: "Fire Sale", cost: 0, type: "skill", effectText: "Exhaust a card in your hand. Draw 2.", rarity: "common", archetype: "Exhaust", status: "implemented" },
+  { id: "cremate", name: "Cremate", cost: 1, type: "skill", effectText: "Exhaust a card in your hand. Gain 6 Block.", rarity: "common", archetype: "Exhaust", status: "implemented" },
+  { id: "final_draft", name: "Final Draft", cost: 1, type: "skill", effectText: "Draw 2. Exhaust 1 random card from your hand.", rarity: "uncommon", archetype: "Exhaust", status: "missing" },
+  { id: "scorch_nerves", name: "Scorch Nerves", cost: 2, type: "attack", effectText: "Dmg 12. Exhaust.", rarity: "common", archetype: "Exhaust", status: "missing" },
+  { id: "grave_fuel", name: "Grave Fuel", cost: 1, type: "skill", effectText: "Gain 1 Energy for each card exhausted this turn.", rarity: "rare", archetype: "Exhaust", status: "implemented" },
+  { id: "cinder_rush", name: "Cinder Rush", cost: 1, type: "attack", effectText: "Dmg 6. +3 damage for each card exhausted this turn.", rarity: "uncommon", archetype: "Exhaust", status: "missing" },
+  { id: "brand_the_soul", name: "Brand the Soul", cost: 1, type: "skill", effectText: "Apply Hex 1. Exhaust a card in your hand.", rarity: "uncommon", archetype: "Hex / Exhaust", status: "implemented" },
+  { id: "soul_rend", name: "Soul Rend", cost: 2, type: "attack", effectText: "Dmg 9. If target is Hexed, Exhaust a card in your hand and gain 1 Energy.", rarity: "rare", archetype: "Hex / Exhaust", status: "missing" },
+  { id: "doom_engine", name: "Doom Engine", cost: 1, type: "skill", effectText: "Whenever you Exhaust a card this turn, apply Hex 1 to a random enemy.", rarity: "rare", archetype: "Hex / Exhaust", status: "missing" },
+  { id: "unseal", name: "Unseal", cost: 1, type: "attack", effectText: "Dmg 5. If target is Hexed, deal 5 more. Exhaust.", rarity: "uncommon", archetype: "Hex / Exhaust", status: "missing" },
+  { id: "ritual_collapse", name: "Ritual Collapse", cost: 2, type: "skill", effectText: "Exhaust up to 2 cards in your hand. Apply Hex 1 for each.", rarity: "rare", archetype: "Hex / Exhaust", status: "missing" },
+  { id: "harvester", name: "Harvester", cost: 1, type: "attack", effectText: "Dmg 4. Repeat once if target is Hexed. Repeat once if a card was Exhausted this turn.", rarity: "rare", archetype: "Hex / Exhaust", status: "implemented" },
+  { id: "charge_up", name: "Charge Up", cost: 1, type: "skill", effectText: "Become Charged. Draw 1.", rarity: "common", archetype: "Charged", status: "implemented" },
+  { id: "static_guard", name: "Static Guard", cost: 1, type: "skill", effectText: "Block 6. If Charged, gain 1 Energy.", rarity: "common", archetype: "Charged", status: "missing" },
+  { id: "arc_lash", name: "Arc Lash", cost: 1, type: "attack", effectText: "Dmg 7. If Charged, draw 1.", rarity: "common", archetype: "Charged", status: "implemented" },
+  { id: "capacitor", name: "Capacitor", cost: 0, type: "skill", effectText: "Become Charged. Exhaust.", rarity: "common", archetype: "Charged", status: "missing" },
+  { id: "release", name: "Release", cost: 2, type: "attack", effectText: "Dmg 14. If Charged, costs 1 less and lose Charged.", rarity: "uncommon", archetype: "Charged", status: "missing" },
+  { id: "guarded_pulse", name: "Guarded Pulse", cost: 1, type: "skill", effectText: "Block 5. If Charged, Block 10 instead.", rarity: "common", archetype: "Charged", status: "missing" },
+  { id: "flashstep", name: "Flashstep", cost: 0, type: "skill", effectText: "If Charged, draw 2. Otherwise become Charged.", rarity: "uncommon", archetype: "Charged", status: "missing" },
+  { id: "pommel", name: "Pommel", cost: 1, type: "attack", effectText: "Dmg 7.", rarity: "common", archetype: "Neutral", status: "missing" },
+  { id: "brace", name: "Brace", cost: 1, type: "skill", effectText: "Block 7.", rarity: "common", archetype: "Neutral", status: "missing" },
+  { id: "insight", name: "Insight", cost: 1, type: "skill", effectText: "Draw 2.", rarity: "common", archetype: "Neutral", status: "missing" },
+  { id: "parry", name: "Parry", cost: 0, type: "skill", effectText: "Block 3.", rarity: "common", archetype: "Neutral", status: "missing" },
+  { id: "heavy_swing", name: "Heavy Swing", cost: 2, type: "attack", effectText: "Dmg 12.", rarity: "common", archetype: "Neutral", status: "missing" },
+  { id: "recover", name: "Recover", cost: 1, type: "skill", effectText: "Gain 6 Block. Draw 1 next turn.", rarity: "uncommon", archetype: "Neutral", status: "missing" },
+  { id: "plan_ahead", name: "Plan Ahead", cost: 0, type: "skill", effectText: "Draw 1. Discard 1.", rarity: "common", archetype: "Neutral", status: "missing" },
+  { id: "blood_pact", name: "Blood Pact", cost: 0, type: "skill", effectText: "Lose 3 HP. Gain 2 Energy. Draw 1.", rarity: "rare", archetype: "Risk / Energy", status: "implemented" },
+  { id: "doom_bell", name: "Doom Bell", cost: 2, type: "skill", effectText: "Apply Hex 2 to all enemies. Exhaust all Skills in your hand.", rarity: "rare", archetype: "Hex / Exhaust", status: "missing" },
+  { id: "cataclysm_sigil", name: "Cataclysm Sigil", cost: 3, type: "attack", effectText: "Dmg 18. +4 damage for each Hex on target.", rarity: "rare", archetype: "Hex", status: "missing" },
+  { id: "empty_the_chamber", name: "Empty the Chamber", cost: 1, type: "skill", effectText: "Exhaust your hand. Gain 1 Energy for each card Exhausted.", rarity: "rare", archetype: "Exhaust", status: "missing" },
+  { id: "last_word", name: "Last Word", cost: 1, type: "attack", effectText: "Dmg 8. If this is the last card in your hand, deal 12 more.", rarity: "rare", archetype: "Risk", status: "missing" },
+  { id: "no_mercy", name: "No Mercy", cost: 2, type: "attack", effectText: "Dmg 10. Repeat against Hexed enemies.", rarity: "rare", archetype: "Hex", status: "missing" },
+  { id: "spite_shield", name: "Spite Shield", cost: 1, type: "skill", effectText: "Block 6. If attacked this turn, apply Hex 1 to the attacker.", rarity: "uncommon", archetype: "Defense / Hex", status: "implemented" },
+  { id: "hollow_ward", name: "Hollow Ward", cost: 1, type: "skill", effectText: "Block 8. Exhaust.", rarity: "common", archetype: "Defense / Exhaust", status: "missing" },
+  { id: "refrain", name: "Refrain", cost: 1, type: "skill", effectText: "Block 4. Return this card to your hand next turn.", rarity: "uncommon", archetype: "Defense", status: "missing" },
+  { id: "warding_circle", name: "Warding Circle", cost: 2, type: "skill", effectText: "Block 12. Costs 1 less if target enemy is Hexed.", rarity: "uncommon", archetype: "Defense / Hex", status: "missing" },
+  { id: "hexburst", name: "Hexburst", cost: 2, type: "attack", effectText: "Dmg 6. Consume all Hex on target. Deal 4 more for each Hex consumed.", rarity: "rare", archetype: "Hex Finisher", status: "missing" }
+];
+
+
+const DESIGNED_CARD_SET = CARD_REGISTRY.filter((card) => !card.starter);
+const STARTER_CARD_IDS = CARD_REGISTRY.filter((card) => card.starter).map((card) => card.id);
+const DESIGNED_CARD_IDS = DESIGNED_CARD_SET.map((card) => card.id);
+const IMPLEMENTED_CARD_IDS = CARD_REGISTRY.filter((card) => card.status === "implemented").map((card) => card.id);
+const MISSING_CARD_IDS = CARD_REGISTRY.filter((card) => card.status === "missing").map((card) => card.id);
+
+module.exports = {
+  CARD_REGISTRY,
+  DESIGNED_CARD_SET,
+  STARTER_CARD_IDS,
+  DESIGNED_CARD_IDS,
+  IMPLEMENTED_CARD_IDS,
+  MISSING_CARD_IDS
+};

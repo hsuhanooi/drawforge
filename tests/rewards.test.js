@@ -61,16 +61,19 @@ describe("combat rewards", () => {
     const eliteRewards = createVictoryRewards("elite");
     const bossRewards = createVictoryRewards("boss");
 
-    expect(eliteRewards.relic).not.toBeNull();
+    expect(eliteRewards.relics).toHaveLength(3);
+    expect(bossRewards.relic).not.toBeNull();
     expect(bossRewards.gold).toBeGreaterThan(eliteRewards.gold);
   });
 
-  it("elite rewards include card options alongside the removeCard flag", () => {
+  it("elite rewards start with card options, then 3 relic choices, then removal later", () => {
     const eliteRewards = createVictoryRewards("elite");
 
     expect(Array.isArray(eliteRewards.cards)).toBe(true);
     expect(eliteRewards.cards.length).toBeGreaterThan(0);
-    expect(eliteRewards.removeCard).toBe(true);
+    expect(eliteRewards.relics).toHaveLength(3);
+    expect(eliteRewards.removeCard).toBe(false);
+    expect(eliteRewards.relic).toBeNull();
   });
 
   it("normal combat rewards do not set removeCard", () => {

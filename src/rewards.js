@@ -56,7 +56,6 @@ const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) =>
     if (!selectedIds.has(card.id)) {
       selectedIds.add(card.id);
       options.push(card);
-      // Remove all remaining instances of this factory from the weighted pool
       for (let i = weightedPool.length - 1; i >= 0; i -= 1) {
         if (weightedPool[i] === factory) {
           weightedPool.splice(i, 1);
@@ -69,6 +68,27 @@ const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) =>
 };
 
 /**
+ * @param {number} count
+ * @returns {RelicReward[]}
+ */
+const createRelicChoices = (count = 3) => {
+  /** @type {RelicReward[]} */
+  const choices = [];
+  const seen = new Set();
+
+  while (choices.length < count) {
+    const relic = createRelicReward(1);
+    if (seen.has(relic.id)) {
+      continue;
+    }
+    seen.add(relic.id);
+    choices.push(relic);
+  }
+
+  return choices;
+};
+
+/**
  * @param {string[]} deck
  * @param {Card} card
  * @returns {string[]}
@@ -78,20 +98,24 @@ const addRewardCardToDeck = (deck, card) => [...deck, card.id];
 /**
  * @param {"combat" | "elite" | "boss"} [nodeType]
  * @param {object} [balanceOverrides]
- * @returns {{ cards: Card[], gold: number, relic: RelicReward | null }}
+ * @returns {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean }}
  */
 const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
   const cards = createRewardOptions(undefined, balanceOverrides);
-  /** @type {{ cards: Card[], gold: number, relic: RelicReward | null, removeCard: boolean }} */
+  /** @type {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean }} */
   const rewards = {
     cards,
     gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
     relic: null,
-    removeCard: nodeType === "elite"
+    relics: [],
+    removeCard: false
   };
 
-  if (nodeType === "elite" || nodeType === "boss") {
-    rewards.relic = createRelicReward(nodeType === "boss" ? 2 : 1);
+  if (nodeType === "elite") {
+    rewards.relics = createRelicChoices(3);
+  }
+  else if (nodeType === "boss") {
+    rewards.relic = createRelicReward(2);
   }
 
   return rewards;
@@ -99,6 +123,7 @@ const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
 
 module.exports = {
   createRewardOptions,
+  createRelicChoices,
   addRewardCardToDeck,
   createVictoryRewards
 };

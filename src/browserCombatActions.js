@@ -1,7 +1,8 @@
-const { createCardFromId } = require("./browserCombat");
 const { createEnemyForNode, resolveEnemyIntent } = require("./enemies");
+const { createCardCatalog } = require("./cardCatalog");
 
 const DEFAULT_PLAYER_ENERGY = 3;
+const CARD_CATALOG = createCardCatalog();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -31,6 +32,13 @@ const drawCards = (combat, count) => {
 
 const hasRelic = (run, id) => (run.relics || []).some((r) => r.id === id);
 const getEnergyBonus = (run) => (hasRelic(run, "ember_ring") ? 1 : 0);
+const createRenderableCardFromId = (cardId) => {
+  const card = CARD_CATALOG[cardId];
+  if (!card) {
+    throw new Error(`Unknown card id: ${cardId}`);
+  }
+  return clone(card);
+};
 
 const startCombatForNode = (run, node) => {
   const enemy = createEnemyForNode(node);
@@ -49,7 +57,7 @@ const startCombatForNode = (run, node) => {
     seal_used_this_turn: false,
     player: { health: run.player.health, block: startingBlock, energy: DEFAULT_PLAYER_ENERGY + getEnergyBonus(run), charged: false },
     hand: [],
-    drawPile: shuffleCards(run.player.deck.map(createCardFromId)),
+    drawPile: shuffleCards(run.player.deck.map(createRenderableCardFromId)),
     discardPile: [],
     exhaustPile: [],
     exhaustedThisTurn: 0,

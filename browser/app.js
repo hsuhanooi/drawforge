@@ -144,6 +144,20 @@
     return parts.join(" • ");
   }
 
+  function renderCardMarkup(card, actionText = "") {
+    const description = describeCard(card);
+    return [card.name, description, actionText].filter(Boolean).join("<br />");
+  }
+
+  function createCardActionButton(card, actionText, onClick) {
+    const button = document.createElement("button");
+    button.className = "node-button";
+    button.innerHTML = renderCardMarkup(card, actionText);
+    button.addEventListener("click", onClick);
+    return button;
+  }
+
+
   async function playCardAction(run, handIndex) {
     return fetchJson("/run/play-card.json", {
       method: "POST",
@@ -316,11 +330,7 @@
     elements.combatTurn.textContent = combat.turn || combat.state;
 
     combat.hand.forEach((card, index) => {
-      const button = document.createElement("button");
-      button.className = "node-button";
-      button.innerHTML = `${card.name}<br />${describeCard(card)}`;
-      button.disabled = combat.turn !== "player" || combat.state !== "active";
-      button.addEventListener("click", async () => {
+      const button = createCardActionButton(card, "", async () => {
         try {
           currentRun = await playCardAction(currentRun, index);
           const updatedCombat = currentRun.combat;
@@ -335,6 +345,7 @@
           setStatus(error.message, true);
         }
       });
+      button.disabled = combat.turn !== "player" || combat.state !== "active";
       elements.handActions.appendChild(button);
     });
 
@@ -342,9 +353,9 @@
       const debugButton = document.createElement("button");
       debugButton.className = "node-button";
       debugButton.textContent = "[debug] Skip combat";
-      debugButton.addEventListener("click", () => {
+      debugButton.addEventListener("click", async () => {
         const wonCombat = { ...currentRun.combat, state: "victory", enemy: { ...currentRun.combat.enemy, health: 0 } };
-        currentRun = applyVictory(currentRun, wonCombat);
+        currentRun = await applyVictory(currentRun, wonCombat);
         render();
         setStatus(`[debug] Skipped combat against ${wonCombat.enemy.name}.`);
       });
@@ -362,7 +373,7 @@
         button.className = "node-button";
 
         if (option.card) {
-          button.innerHTML = `${option.label}<br />${describeCard(option.card)}`;
+          button.innerHTML = renderCardMarkup(option.card, option.label);
         }
         else if (option.cards) {
           button.innerHTML = `${option.label}<br />${option.cards
@@ -376,8 +387,8 @@
           button.textContent = option.label;
         }
 
-        button.addEventListener("click", () => {
-          currentRun = claimEventOption(currentRun, option);
+        button.addEventListener("click", async () => {
+          currentRun = await claimEventOption(currentRun, option);
           render();
           setStatus(`Resolved event: ${option.label}.`);
         });
@@ -399,15 +410,15 @@
       return;
     }
 
-    // Elite phase 1: pick one of 3 relics
+    // Elite phase 2: pick one of 3 relics after the card reward
     if (relics.length > 0) {
-      elements.rewardSummary.textContent = `Elite rewards: +${gold} gold. Choose a relic, then pick a card reward.`;
+      elements.rewardSummary.textContent = `Elite rewards: +${gold} gold. Choose a relic, then remove a card below.`;
       relics.forEach((r) => {
         const button = document.createElement("button");
         button.className = "node-button";
         button.innerHTML = `${r.name}<br />${r.description}<br />Claim relic`;
-        button.addEventListener("click", () => {
-          currentRun = claimRelicFromChoices(currentRun, r);
+        button.addEventListener("click", async () => {
+          currentRun = await claimRelicFromChoices(currentRun, r);
           render();
           setStatus(`Claimed relic ${r.name}.`);
         });
@@ -417,15 +428,12 @@
     }
 
     elements.rewardSummary.textContent = removeCard
-      ? `Elite rewards: pick a card reward or skip, then remove a card below.`
-      : `Victory rewards: +${gold} gold${relic ? ` and optional relic ${relic.name}` : ""}. Pick exactly one reward or skip.`;
+      ? `Elite rewards: remove a card from your deck below, or skip removal.`
+      : `Victory rewards: +${gold} gold${relic ? ` and optional relic ${relic.name}` : ""}. Pick exactly one card reward or skip.`;
 
     cards.forEach((card) => {
-      const button = document.createElement("button");
-      button.className = "node-button";
-      button.innerHTML = `${card.name}<br />${describeCard(card)}<br />Add to deck`;
-      button.addEventListener("click", () => {
-        currentRun = claimCardReward(currentRun, card);
+      const button = createCardActionButton(card, "Add to deck", async () => {
+        currentRun = await claimCardReward(currentRun, card);
         render();
         setStatus(`Added ${card.name} to deck.`);
       });
@@ -436,8 +444,8 @@
       const relicButton = document.createElement("button");
       relicButton.className = "node-button";
       relicButton.innerHTML = `${relic.name}<br />${relic.description}<br />Claim relic`;
-      relicButton.addEventListener("click", () => {
-        currentRun = claimRelicReward(currentRun, relic);
+      relicButton.addEventListener("click", async () => {
+        currentRun = await claimRelicReward(currentRun, relic);
         render();
         setStatus(`Claimed relic ${relic.name}.`);
       });
@@ -447,8 +455,8 @@
     const skipButton = document.createElement("button");
     skipButton.className = "node-button";
     skipButton.textContent = "Skip rewards";
-    skipButton.addEventListener("click", () => {
-      currentRun = skipRewards(currentRun);
+    skipButton.addEventListener("click", async () => {
+      currentRun = await skipRewards(currentRun);
       render();
       setStatus("Skipped reward selection.");
     });
@@ -463,8 +471,8 @@
       const button = document.createElement("button");
       button.className = "node-button";
       button.textContent = `Remove ${cardId}`;
-      button.addEventListener("click", () => {
-        currentRun = removeCardFromDeck(currentRun, cardId);
+      button.addEventListener("click", async () => {
+        currentRun = await removeCardFromDeck(currentRun, cardId);
         removalModeOpen = false;
         render();
         setStatus(`Removed ${cardId} from the deck.`);
@@ -475,8 +483,8 @@
     const skipRemovalButton = document.createElement("button");
     skipRemovalButton.className = "node-button";
     skipRemovalButton.textContent = "Skip removal";
-    skipRemovalButton.addEventListener("click", () => {
-      currentRun = finishNode(currentRun);
+    skipRemovalButton.addEventListener("click", async () => {
+      currentRun = await finishNode(currentRun);
       removalModeOpen = false;
       render();
       setStatus("Skipped card removal.");

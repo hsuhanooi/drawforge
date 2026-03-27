@@ -68,15 +68,15 @@ describe("browser bundle regression coverage", () => {
     expect(renderRunBlock).toContain("relic.description");
   });
 
-  it("describeCard is used at every site where a card can be chosen", () => {
+  it("all card-choice surfaces use the shared card renderer", () => {
+    expect(appJs).toContain("function renderCardMarkup(card, actionText = \"\")");
+    expect(appJs).toContain("function createCardActionButton(card, actionText, onClick)");
+
     const renderCombatBlock = extractBlock(appJs, "function renderCombat()", "function renderRewards()");
-    expect(renderCombatBlock).toContain("describeCard(card)");
+    expect(renderCombatBlock).toContain("createCardActionButton(card");
 
     const rewardsBlock = extractBlock(appJs, "function renderRewards()", "function renderRemoval");
-    expect(rewardsBlock).toContain("describeCard(card)");
-
-    const eventRenderBlock = extractBlock(appJs, "currentRun.event.options.forEach", "if (!currentRun.pendingRewards)");
-    expect(eventRenderBlock).toContain("describeCard(option.card)");
-    expect(eventRenderBlock).toContain("describeCard(card)");
+    expect(rewardsBlock).toContain("createCardActionButton(card");
+    expect(rewardsBlock).toContain("renderCardMarkup(option.card, option.label)");
   });
 });

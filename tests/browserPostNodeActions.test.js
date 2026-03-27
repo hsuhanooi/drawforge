@@ -65,13 +65,22 @@ describe("browser post-node actions", () => {
     expect(run.player.deck).not.toContain("strike");
   });
 
-  it("can claim relic choices and boss relic rewards", () => {
+  it("uses elite reward order card, then relic, then removal", () => {
     const relic = { id: "ember_ring", name: "Ember Ring", description: "+1 energy" };
-    const choiceRun = claimRelicFromChoices({
+    const afterCard = claimCardReward({
       ...baseRun,
-      pendingRewards: { cards: [{ id: "bash" }], gold: 25, relic: null, relics: [relic], removeCard: true }
-    }, "ember_ring");
-    expect(choiceRun.relics.map((item) => item.id)).toContain("ember_ring");
+      pendingRewards: { cards: [{ id: "bash" }], gold: 25, relic: null, relics: [relic], removeCard: false }
+    }, "bash");
+
+    expect(afterCard.player.deck).toContain("bash");
+    expect(afterCard.pendingRewards.relics.map((item) => item.id)).toContain("ember_ring");
+    expect(afterCard.pendingRewards.cards).toEqual([]);
+    expect(afterCard.pendingRewards.removeCard).toBe(false);
+
+    const afterRelic = claimRelicFromChoices(afterCard, "ember_ring");
+    expect(afterRelic.relics.map((item) => item.id)).toContain("ember_ring");
+    expect(afterRelic.pendingRewards.relics).toEqual([]);
+    expect(afterRelic.pendingRewards.removeCard).toBe(true);
 
     const relicRun = claimRelicReward({
       ...baseRun,

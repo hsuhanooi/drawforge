@@ -1,5 +1,6 @@
 const { createVictoryRewards } = require("./rewards");
 const { addRelicToRun } = require("./relics");
+const { toRenderableCards } = require("./cardCatalog");
 
 const hasRelic = (run, id) => (run.relics || []).some((relic) => relic.id === id);
 
@@ -15,19 +16,66 @@ const finishNode = (run) => {
   };
 };
 
+const advanceEliteRewardFlow = (run) => {
+  const rewards = run.pendingRewards;
+  if (!rewards) {
+    return finishNode(run);
+  }
+
+  if (rewards.relics && rewards.relics.length > 0) {
+    return {
+      ...run,
+      pendingRewards: {
+        ...rewards,
+        relics: [],
+        removeCard: true
+      }
+    };
+  }
+
+  if (rewards.removeCard) {
+    return {
+      ...run,
+      pendingRewards: {
+        ...rewards,
+        cards: [],
+        relic: null,
+        relics: [],
+        removeCard: true
+      }
+    };
+  }
+
+  return finishNode(run);
+};
+
 const afterCardSelection = (run) => {
+  if (run.pendingRewards && run.pendingRewards.relics && run.pendingRewards.relics.length > 0) {
+    return {
+      ...run,
+      pendingRewards: {
+        ...run.pendingRewards,
+        cards: [],
+        removeCard: false
+      }
+    };
+  }
+
   if (run.pendingRewards && run.pendingRewards.removeCard) {
     return {
       ...run,
       pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true }
     };
   }
+
   return finishNode(run);
 };
 
 const applyVictoryToRun = (run, combat) => {
   const rewards = createVictoryRewards(combat.nodeType);
+  rewards.cards = toRenderableCards(rewards.cards || []);
   const boneTokenHeal = hasRelic(run, "bone_token") ? 3 : 0;
+
   return {
     ...run,
     player: {
@@ -56,7 +104,13 @@ const claimRelicFromChoices = (run, relicId) => {
   const updated = addRelicToRun(run, relic);
   return {
     ...updated,
-    pendingRewards: { ...updated.pendingRewards, relics: [] }
+    pendingRewards: {
+      ...updated.pendingRewards,
+      cards: [],
+      relics: [],
+      relic: null,
+      removeCard: true
+    }
   };
 };
 
@@ -70,7 +124,19 @@ const claimRelicReward = (run, relicId) => {
   return afterCardSelection(addRelicToRun(run, relic));
 };
 
-const skipRewards = (run) => afterCardSelection(run);
+const skipRewards = (run) => {
+  if (run.pendingRewards?.relics?.length) {
+    return advanceEliteRewardFlow({
+      ...run,
+      pendingRewards: {
+        ...run.pendingRewards,
+        relics: [],
+        removeCard: true
+      }
+    });
+  }
+  return afterCardSelection(run);
+};
 
 const claimEventOption = (run, optionId) => {
   const option = run.event?.options.find((item) => item.id === optionId);
@@ -79,39 +145,41 @@ const claimEventOption = (run, optionId) => {
   }
 
   let nextRun = { ...run, event: null };
+
   if (option.effect === "heal") {
     nextRun = {
       ...nextRun,
       player: { ...nextRun.player, health: nextRun.player.health + (option.amount || 10) }
     };
   }
-  if (option.effect === "relic") {
+  else if (option.effect === "relic") {
     nextRun = addRelicToRun(nextRun, option.relic);
   }
-  if (option.effect === "gold") {
+  else if (option.effect === "gold") {
     nextRun = {
       ...nextRun,
       player: { ...nextRun.player, gold: nextRun.player.gold + option.amount }
     };
   }
-  if (option.effect === "reward_cards") {
+  else if (option.effect === "reward_cards") {
     nextRun = {
       ...nextRun,
-      pendingRewards: { cards: option.cards, gold: 0, relic: null, relics: [], removeCard: false }
+      pendingRewards: { cards: toRenderableCards(option.cards || []), gold: 0, relic: null, relics: [], removeCard: false }
     };
   }
-  if (option.effect === "add_card") {
+  else if (option.effect === "add_card") {
     nextRun = {
       ...nextRun,
       player: { ...nextRun.player, deck: [...nextRun.player.deck, option.card.id] }
     };
   }
-  if (option.effect === "remove") {
+  else if (option.effect === "remove") {
     nextRun = {
       ...nextRun,
       pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true }
     };
   }
+
   return nextRun;
 };
 

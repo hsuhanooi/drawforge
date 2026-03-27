@@ -18,8 +18,9 @@ describe("browser combat actions", () => {
     const combat = startCombatForNode(run, combatNode);
     const nextRun = playCombatCard({ ...run, combat }, 0);
 
-    expect(nextRun.combat.hand.length).toBe(combat.hand.length - 1);
+    expect(nextRun.combat.player.energy).toBeLessThan(combat.player.energy);
     expect(nextRun.player.health).toBe(nextRun.combat.player.health);
+    expect(nextRun.combat.discardPile.length + (nextRun.combat.exhaustPile || []).length).toBeGreaterThan(0);
   });
 
   it("resolves end turn through the shared action", () => {

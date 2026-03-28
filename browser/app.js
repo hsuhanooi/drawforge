@@ -141,6 +141,7 @@
     if (card.selfDamage) parts.push(`Lose ${card.selfDamage} HP`);
     if (card.exhaustFromHand) parts.push("Exhaust a random card from hand");
     if (card.exhaust) parts.push("Exhaust");
+    if (parts.length <= 2 && card.effectText) parts.push(card.effectText);
     return parts.join(" • ");
   }
 

@@ -4,6 +4,9 @@ const path = require("path");
 const crypto = require("crypto");
 const { createEventForNode } = require("./src/events");
 const { createCardCatalog, toRenderableCard, toRenderableCards } = require("./src/cardCatalog");
+const { RELICS } = require("./src/relics");
+const { createRewardOptions } = require("./src/rewards");
+const { createPlayRewardCardOptions, createPlayEventState, createPlayShopState } = require("./src/playContent");
 const { createBrowserRun, enterBrowserNode } = require("./src/browserRunActions");
 const {
   applyVictoryToRun,
@@ -77,6 +80,16 @@ const readJsonBody = (req) => new Promise((resolve, reject) => {
   req.on("error", reject);
 });
 
+const pickUniqueItems = (items, count) => {
+  const pool = [...items];
+  const chosen = [];
+  while (pool.length > 0 && chosen.length < count) {
+    const index = Math.floor(Math.random() * pool.length);
+    chosen.push(pool.splice(index, 1)[0]);
+  }
+  return chosen;
+};
+
 const server = http.createServer(async (req, res) => {
   const meta = getBundleMeta();
   const requestUrl = new URL(req.url, `http://localhost:${port}`);
@@ -113,6 +126,55 @@ const server = http.createServer(async (req, res) => {
 
   if (requestUrl.pathname === "/cards.json") {
     sendJson(res, 200, createCardCatalog());
+    return;
+  }
+
+  if (requestUrl.pathname === "/relics.json") {
+    sendJson(res, 200, RELICS);
+    return;
+  }
+
+  if (requestUrl.pathname === "/reward-options.json") {
+    const count = Number(requestUrl.searchParams.get("count") || 3);
+    sendJson(res, 200, toRenderableCards(createRewardOptions(count)));
+    return;
+  }
+
+  if (requestUrl.pathname === "/relic-choices.json") {
+    const tier = requestUrl.searchParams.get("tier") || "elite";
+    const count = Number(requestUrl.searchParams.get("count") || (tier === "boss" ? 1 : 3));
+    const exclude = new Set((requestUrl.searchParams.get("exclude") || "").split(",").filter(Boolean));
+    const pool = RELICS.filter((relic) => {
+      if (exclude.has(relic.id)) return false;
+      if (tier === "boss") return relic.rarity === "rare" || relic.rarity === "boss";
+      return relic.rarity === "common" || relic.rarity === "uncommon";
+    });
+    sendJson(res, 200, pickUniqueItems(pool, count));
+    return;
+  }
+
+  if (requestUrl.pathname === "/play/reward-options.json") {
+    const count = Number(requestUrl.searchParams.get("count") || 3);
+    sendJson(res, 200, createPlayRewardCardOptions(count));
+    return;
+  }
+
+  if (requestUrl.pathname === "/play/event.json") {
+    const nodeType = requestUrl.searchParams.get("nodeType") || "event";
+    const row = Number(requestUrl.searchParams.get("row") || 0);
+    const col = Number(requestUrl.searchParams.get("col") || 0);
+    const payload = await createPlayEventState({ id: `play-${nodeType}-${row}-${col}`, type: nodeType, row, col });
+    sendJson(res, 200, payload);
+    return;
+  }
+
+  if (requestUrl.pathname === "/play/shop.json" && req.method === "POST") {
+    try {
+      const { run } = await readJsonBody(req);
+      sendJson(res, 200, await createPlayShopState(run));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to create shop state" });
+    }
     return;
   }
 

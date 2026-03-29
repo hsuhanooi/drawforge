@@ -1,13 +1,29 @@
-const { createBrowserRun, enterBrowserNode } = require("../src/browserRunActions");
+const { createBrowserRun, chooseArchetype, enterBrowserNode } = require("../src/browserRunActions");
 
 describe("browser run actions", () => {
-  it("creates a browser run from shared run + map sources", () => {
+  it("creates a browser run with pendingDeckChoice and empty deck", () => {
     const run = createBrowserRun();
 
     expect(run.state).toBe("in_progress");
+    expect(run.pendingDeckChoice).toBe(true);
+    expect(run.player.deck.length).toBe(0);
     expect(run.map.currentNodeId).toBeNull();
     expect(Array.isArray(run.map.nodes)).toBe(true);
-    expect(run.player.deck.length).toBeGreaterThan(10);
+  });
+
+  it("chooseArchetype populates the deck and clears pendingDeckChoice", () => {
+    const run = createBrowserRun();
+    const chosen = chooseArchetype(run, "hex_witch");
+    expect(chosen.pendingDeckChoice).toBe(false);
+    expect(chosen.archetype).toBe("hex_witch");
+    expect(chosen.archetypeName).toBe("Hex Witch");
+    expect(chosen.player.deck.length).toBeGreaterThan(8);
+    expect(chosen.player.deck).toContain("mark_of_ruin");
+  });
+
+  it("chooseArchetype throws on unknown archetype", () => {
+    const run = createBrowserRun();
+    expect(() => chooseArchetype(run, "unknown")).toThrow("Unknown archetype");
   });
 
   it("resolves event nodes from shared src/events.js", () => {

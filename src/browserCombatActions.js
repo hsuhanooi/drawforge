@@ -55,6 +55,7 @@ const checkPhaseShift = (combat) => {
   next.enemy.strength = (next.enemy.strength || 0) + (next.enemy.phase2Strength || 0);
   next.enemyTurnNumber = 0;
   next.enemyIntent = resolveEnemyIntent(next.enemy, 0);
+  next.phaseTransition = true; // signals browser to show phase 2 overlay
   return next;
 };
 

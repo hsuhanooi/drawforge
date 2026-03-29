@@ -10,6 +10,51 @@
   let deckSortMode = "type"; // "type" | "cost"
   let isCardPlaying = false;
 
+  const ARCHETYPES = [
+    {
+      id: "hex_witch",
+      name: "Hex Witch",
+      icon: "🔮",
+      color: "#b06ad4",
+      description: "Curse your enemies and drain their power. Stack Hex to empower devastating finisher attacks.",
+      starterCards: ["mark_of_ruin", "hexblade", "feast_on_weakness", "deep_hex", "black_seal"]
+    },
+    {
+      id: "ashen_knight",
+      name: "Ashen Knight",
+      icon: "🔥",
+      color: "#e07830",
+      description: "Sacrifice cards for explosive bursts of power. Exhaust your hand to fuel massive attacks.",
+      starterCards: ["overclock", "fire_sale", "scorch_nerves", "cinder_rush", "hollow_ward"]
+    },
+    {
+      id: "static_duelist",
+      name: "Static Duelist",
+      icon: "⚡",
+      color: "#4f8ef7",
+      description: "Build electrical charge and release it in powerful surges. Defend until the moment is right.",
+      starterCards: ["charge_up", "arc_lash", "static_guard", "capacitor", "guarded_pulse"]
+    }
+  ];
+
+  function calcRunScore(run) {
+    const s = run.stats || {};
+    return Math.max(0,
+      (run.act || 1) * 1000 +
+      (s.enemiesKilled || 0) * 75 +
+      (s.highestSingleHit || 0) * 10 -
+      (s.damageTaken || 0) * 2
+    );
+  }
+
+  function calcRunGrade(score) {
+    if (score >= 3000) return "S";
+    if (score >= 2000) return "A";
+    if (score >= 1200) return "B";
+    if (score >= 600)  return "C";
+    return "D";
+  }
+
   // ─── Network ──────────────────────────────────────────────────────
   async function fetchJson(url, options = {}) {
     const res = await fetch(url, {
@@ -968,6 +1013,66 @@
     show("deck-overlay");
   }
 
+  // ─── Screen: Deck Choice (Archetype) ─────────────────────────────
+  function renderDeckChoice() {
+    if (lastScreen !== "deck-choice") flashTransition("flash");
+    lastScreen = "deck-choice";
+    showOnly("screen-deck-choice");
+
+    const row = $id("deck-choice-row");
+    if (!row) return;
+    clearEl(row);
+
+    ARCHETYPES.forEach((arch) => {
+      const panel = document.createElement("div");
+      panel.className = "archetype-panel";
+      panel.style.setProperty("--arch-color", arch.color);
+
+      const header = document.createElement("div");
+      header.className = "archetype-header";
+      const iconEl = document.createElement("span");
+      iconEl.className = "archetype-icon";
+      iconEl.textContent = arch.icon;
+      const nameEl = document.createElement("span");
+      nameEl.className = "archetype-name";
+      nameEl.textContent = arch.name;
+      header.appendChild(iconEl);
+      header.appendChild(nameEl);
+
+      const desc = document.createElement("div");
+      desc.className = "archetype-desc";
+      desc.textContent = arch.description;
+
+      const cardsLabel = document.createElement("div");
+      cardsLabel.className = "archetype-cards-label";
+      cardsLabel.textContent = "Signature Cards";
+
+      const cardsRow = document.createElement("div");
+      cardsRow.className = "archetype-cards-row";
+      arch.starterCards.forEach((cardId) => {
+        const card = cardCatalog?.[cardId];
+        if (card) cardsRow.appendChild(makeCard(card, { dealDelay: -1 }));
+      });
+
+      const selectBtn = document.createElement("button");
+      selectBtn.className = "btn archetype-select-btn";
+      selectBtn.textContent = `Play as ${arch.name}`;
+      selectBtn.addEventListener("click", async () => {
+        selectBtn.disabled = true;
+        currentRun = await api("/run/choose-archetype.json", { run: currentRun, archetypeId: arch.id });
+        saveRun(currentRun);
+        render();
+      });
+
+      panel.appendChild(header);
+      panel.appendChild(desc);
+      panel.appendChild(cardsLabel);
+      panel.appendChild(cardsRow);
+      panel.appendChild(selectBtn);
+      row.appendChild(panel);
+    });
+  }
+
   // ─── Screen: Start ────────────────────────────────────────────────
   function renderStart() {
     showOnly("screen-start");
@@ -975,6 +1080,33 @@
       hide("start-load-run-btn");
     } else {
       show("start-load-run-btn");
+    }
+
+    // Last run summary panel
+    const startScreen = $id("screen-start");
+    let summaryEl = $id("last-run-summary");
+    const rawLastRun = localStorage.getItem("drawforge.lastRun");
+    if (rawLastRun && startScreen) {
+      const lr = JSON.parse(rawLastRun);
+      if (!summaryEl) {
+        summaryEl = document.createElement("div");
+        summaryEl.id = "last-run-summary";
+        startScreen.appendChild(summaryEl);
+      }
+      const arch = ARCHETYPES.find((a) => a.id === lr.archetype);
+      const grade = calcRunGrade(lr.score || 0);
+      const outcome = lr.state === "won" ? "🏆 Victory" : "💀 Defeat";
+      summaryEl.innerHTML = `
+        <div class="last-run-label">Last Run</div>
+        <div class="last-run-outcome ${lr.state === "won" ? "win" : "loss"}">${outcome}</div>
+        <div class="last-run-stats">
+          ${arch ? `<span>${arch.icon} ${arch.name}</span>` : ""}
+          <span>Act ${lr.act || 1} · Floor ${lr.floorReached || "?"}</span>
+          <span>Score: <strong>${lr.score || 0}</strong> <span class="run-grade grade-${grade}">${grade}</span></span>
+        </div>`;
+      summaryEl.style.display = "";
+    } else if (summaryEl) {
+      summaryEl.style.display = "none";
     }
   }
 
@@ -1003,6 +1135,7 @@
     if (lastScreen !== "map") flashTransition("flash");
     lastScreen = "map";
     showOnly("screen-map");
+    $id("screen-map")?.classList.toggle("act-2", (currentRun.act || 1) >= 2);
 
     const maxHp  = currentRun.player.maxHealth || 80;
     const newHp   = currentRun.player.health;
@@ -1224,6 +1357,7 @@
     if (enteringCombat) flashTransition("flash-slow");
     lastScreen = "combat";
     showOnly("screen-combat");
+    $id("screen-combat")?.classList.toggle("act-2", (currentRun.act || 1) >= 2);
 
     const { combat } = currentRun;
     const maxHp = currentRun.player.maxHealth || 80;
@@ -1363,6 +1497,14 @@
           enemyCanvas.classList.add("shake");
           enemyCanvas.addEventListener("animationend", () => enemyCanvas.classList.remove("shake"), { once: true });
         }
+      }
+      // Phase 2 transition visual
+      if (updated.combat.phaseTransition) {
+        showKillTextOverlay("⚡ PHASE 2", "#cc44cc");
+        screenShake();
+        await new Promise((r) => setTimeout(r, 700));
+        // Clear the flag so it doesn't re-trigger on next render
+        currentRun = { ...currentRun, combat: { ...currentRun.combat, phaseTransition: false } };
       }
     }
 
@@ -1800,10 +1942,34 @@
     $id("end-icon").textContent = win ? "🏆" : "💀";
     $id("end-title").textContent = win ? "VICTORY" : "DEFEAT";
 
+    const currentNode = currentRun.map?.nodes?.find((n) => n.id === currentRun.map.currentNodeId);
+    const floorReached = currentNode ? currentNode.row + 1 : "?";
+    const score = calcRunScore(currentRun);
+    const grade = calcRunGrade(score);
+
+    // Score display (inject before end-stats if not present)
+    let scoreEl = $id("end-score");
+    let flavorEl = $id("end-run-flavor");
+    if (!scoreEl && screen) {
+      scoreEl = document.createElement("div");
+      scoreEl.id = "end-score";
+      flavorEl = document.createElement("div");
+      flavorEl.id = "end-run-flavor";
+      const statsEl = $id("end-stats");
+      if (statsEl) { screen.insertBefore(flavorEl, statsEl); screen.insertBefore(scoreEl, flavorEl); }
+    }
+    if (scoreEl) scoreEl.innerHTML = `${score.toLocaleString()} <span class="run-grade grade-${grade}">${grade}</span>`;
+
+    const arch = ARCHETYPES.find((a) => a.id === currentRun.archetype);
+    if (flavorEl) {
+      const flavors = win
+        ? [`${arch?.icon || ""} ${arch?.name || "Unknown"} run complete`, "The spire falls silent", "Power unleashed"]
+        : [`${arch?.icon || ""} ${arch?.name || "Unknown"} run ended`, "The dungeon claims another", "Try a different approach"];
+      flavorEl.textContent = flavors[Math.floor(Math.random() * flavors.length)];
+    }
+
     const stats = $id("end-stats");
     if (stats) {
-      const currentNode = currentRun.map?.nodes?.find((n) => n.id === currentRun.map.currentNodeId);
-      const floorReached = currentNode ? currentNode.row + 1 : "?";
       const relicCount = (currentRun.relics || []).length;
       const deckSize = (currentRun.player?.deck || []).length;
       const s = currentRun.stats || {};
@@ -1828,6 +1994,16 @@
       ].join("<br />");
     }
 
+    // Save last run summary for start screen
+    localStorage.setItem("drawforge.lastRun", JSON.stringify({
+      state: currentRun.state,
+      act: currentRun.act || 1,
+      archetype: currentRun.archetype,
+      archetypeName: currentRun.archetypeName,
+      floorReached,
+      score
+    }));
+
     if (win) {
       setTimeout(spawnConfetti, 200);
     } else {
@@ -1841,6 +2017,7 @@
   function render() {
     if (!currentRun) return renderStart();
     if (currentRun.state === "won" || currentRun.state === "lost") return renderEndState();
+    if (currentRun.pendingDeckChoice) return renderDeckChoice();
 
     // Act transition banner
     const curAct = currentRun.act || 1;

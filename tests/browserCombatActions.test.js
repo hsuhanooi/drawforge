@@ -1,11 +1,12 @@
-const { createBrowserRun } = require("../src/browserRunActions");
+const { createBrowserRun, chooseArchetype } = require("../src/browserRunActions");
 const { startCombatForNode, playCombatCard, endCombatTurn } = require("../src/browserCombatActions");
 
 describe("browser combat actions", () => {
   const combatNode = { id: "r0c0", row: 0, col: 0, type: "combat", next: [] };
+  const makeRun = () => chooseArchetype(createBrowserRun(), "hex_witch");
 
   it("starts combat from shared actions", () => {
-    const run = createBrowserRun();
+    const run = makeRun();
     const combat = startCombatForNode(run, combatNode);
 
     expect(combat.turn).toBe("player");
@@ -14,7 +15,7 @@ describe("browser combat actions", () => {
   });
 
   it("plays a combat card through the shared action", () => {
-    const run = createBrowserRun();
+    const run = makeRun();
     const combat = startCombatForNode(run, combatNode);
     const nextRun = playCombatCard({ ...run, combat }, 0);
 
@@ -24,7 +25,7 @@ describe("browser combat actions", () => {
   });
 
   it("resolves end turn through the shared action", () => {
-    const run = createBrowserRun();
+    const run = makeRun();
     const combat = startCombatForNode(run, combatNode);
     const nextRun = endCombatTurn({ ...run, combat });
 

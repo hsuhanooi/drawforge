@@ -7,7 +7,7 @@ const { createCardCatalog, toRenderableCard, toRenderableCards } = require("./sr
 const { RELICS } = require("./src/relics");
 const { createRewardOptions } = require("./src/rewards");
 const { createPlayRewardCardOptions, createPlayEventState, createPlayShopState } = require("./src/playContent");
-const { createBrowserRun, enterBrowserNode } = require("./src/browserRunActions");
+const { createBrowserRun, chooseArchetype, enterBrowserNode } = require("./src/browserRunActions");
 const {
   applyVictoryToRun,
   claimCardReward,
@@ -184,6 +184,16 @@ const server = http.createServer(async (req, res) => {
 
   if (requestUrl.pathname === "/run/new.json") {
     sendJson(res, 200, createBrowserRun());
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/choose-archetype.json" && req.method === "POST") {
+    try {
+      const { run, archetypeId } = await readJsonBody(req);
+      sendJson(res, 200, chooseArchetype(run, archetypeId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to choose archetype" });
+    }
     return;
   }
 

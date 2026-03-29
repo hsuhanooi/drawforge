@@ -135,6 +135,7 @@ const playCombatCard = (run, handIndex) => {
   if (combat.player.energy < effectiveCost) throw new Error("Not enough energy");
 
   let next = clone(combat);
+  next.triggeredRelics = [];
   if (hasRelic(run, "time_locked_seal") && !next.seal_used_this_turn && card.cost <= 1) {
     next.seal_used_this_turn = true;
   }
@@ -143,6 +144,7 @@ const playCombatCard = (run, handIndex) => {
   }
   if (hasRelic(run, "grave_wick") && !next.grave_wick_used && card.exhaust) {
     next.grave_wick_used = true;
+    next.triggeredRelics.push("grave_wick");
   }
 
   next.player.energy -= effectiveCost;
@@ -158,16 +160,20 @@ const playCombatCard = (run, handIndex) => {
     if (hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
       next = drawCards(next, 1);
       next.coal_pendant_used = true;
+      next.triggeredRelics.push("coal_pendant");
     }
     if (hasRelic(run, "cinder_box")) {
       next.player.block += 2;
+      next.triggeredRelics.push("cinder_box");
     }
     if (hasRelic(run, "crematorium_bell") && next.exhaustTotal <= 2) {
       next.player.energy += 1;
+      next.triggeredRelics.push("crematorium_bell");
     }
     if (hasRelic(run, "black_prism") && !next.black_prism_fired && next.exhaustTotal >= 3) {
       next.player.energy += 1;
       next.black_prism_fired = true;
+      next.triggeredRelics.push("black_prism");
     }
   } else if (card.returnToHand) {
     next.returnPile = [...(next.returnPile || []), card];
@@ -207,11 +213,12 @@ const playCombatCard = (run, handIndex) => {
     const remainingDamage = totalDamage - blocked;
     next.enemy.block = (next.enemy.block || 0) - blocked;
     next.enemy.health -= remainingDamage;
-    if (flickerBonus > 0) next.flicker_used = true;
-    if (duelistBonus > 0) next.duelist_used_this_turn = true;
+    if (flickerBonus > 0) { next.flicker_used = true; next.triggeredRelics.push("flicker_charm"); }
+    if (duelistBonus > 0) { next.duelist_used_this_turn = true; next.triggeredRelics.push("duelists_thread"); }
     if (hasRelic(run, "hex_lantern") && !next.hex_lantern_used && remainingDamage > 0) {
       next.enemy.hex = (next.enemy.hex || 0) + 1;
       next.hex_lantern_used = true;
+      next.triggeredRelics.push("hex_lantern");
     }
     // repeatIfHexed: deal damage a second time if enemy had hex (no_mercy)
     if (card.repeatIfHexed && hexStacks > 0) {
@@ -467,10 +474,12 @@ const endCombatTurn = (run) => {
   if (combat.state !== "active") return run;
   const healthBeforeIntent = combat.player.health;
   let next = applyEnemyIntent(combat, combat.enemyIntent);
+  next.triggeredRelics = [];
   if (hasRelic(run, "thorn_crest") && next.player.health < healthBeforeIntent) {
     const thornBlocked = Math.min(next.enemy.block || 0, 3);
     next.enemy.block = (next.enemy.block || 0) - thornBlocked;
     next.enemy.health = Math.max(0, next.enemy.health - (3 - thornBlocked));
+    next.triggeredRelics.push("thorn_crest");
   }
   next.player.block = 0;
   next.player.energy = DEFAULT_PLAYER_ENERGY + getCombatEnergyBonus(run, combat.nodeType);

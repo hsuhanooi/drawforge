@@ -2,6 +2,13 @@ const { startNewRun } = require("./run");
 const { generateMap } = require("./map");
 const { createEventForNode } = require("./events");
 const { selectStartingNode, moveToNode } = require("./traversal");
+const { RELICS } = require("./relics");
+
+const ARCHETYPE_RELICS = {
+  hex_witch: "hex_crown",
+  ashen_knight: "ashen_idol",
+  static_duelist: "storm_diadem"
+};
 
 const ARCHETYPES = {
   hex_witch: {
@@ -44,12 +51,15 @@ const createBrowserRun = (balanceOverrides = {}) => {
 const chooseArchetype = (run, archetypeId) => {
   const arch = ARCHETYPES[archetypeId];
   if (!arch) throw new Error(`Unknown archetype: ${archetypeId}`);
+  const relicId = ARCHETYPE_RELICS[archetypeId];
+  const starterRelic = relicId ? RELICS.find((r) => r.id === relicId) : null;
   return {
     ...run,
     archetype: archetypeId,
     archetypeName: arch.name,
     pendingDeckChoice: false,
-    player: { ...run.player, deck: [...arch.deck] }
+    player: { ...run.player, deck: [...arch.deck] },
+    relics: starterRelic ? [starterRelic] : (run.relics || [])
   };
 };
 

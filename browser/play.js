@@ -423,6 +423,23 @@
     (relics || []).forEach((r) => strip.appendChild(makeRelicBadge(r)));
   }
 
+  function flashTriggeredRelics(triggeredRelics) {
+    if (!triggeredRelics?.length) return;
+    const relics = currentRun?.relics || [];
+    ["combat-relic-strip", "map-relic-strip"].forEach((stripId) => {
+      const strip = $id(stripId);
+      if (!strip) return;
+      const badges = Array.from(strip.querySelectorAll(".relic-badge"));
+      triggeredRelics.forEach((relicId) => {
+        const idx = relics.findIndex((r) => r.id === relicId);
+        if (idx >= 0 && badges[idx]) {
+          badges[idx].classList.add("relic-triggered");
+          badges[idx].addEventListener("animationend", () => badges[idx].classList.remove("relic-triggered"), { once: true });
+        }
+      });
+    });
+  }
+
   const POTION_ICONS = { healing_potion: "🧪", strength_potion: "💪", hex_vial: "☠️" };
 
   function renderPotionStrip(potions) {
@@ -938,6 +955,16 @@
   }
 
   // ─── Status Badges ────────────────────────────────────────────────
+  const STATUS_TIPS = {
+    block:      "Block: absorbs damage before HP; resets each turn",
+    charged:    "Charged: unlocks charge-scaling card bonuses",
+    strength:   "Strength: +1 damage on every attack",
+    dexterity:  "Dexterity: +1 block from every block-granting card",
+    weak:       "Weak: deal 25% less damage on attacks",
+    hex:        "Hex: empowers hex-scaling cards; some cards consume it for bonus damage",
+    vulnerable: "Vulnerable: take 50% more damage from all attacks"
+  };
+
   // ─── Deck helpers ─────────────────────────────────────────────────
   function getDeckCards() {
     const deck = currentRun?.player?.deck || [];
@@ -1082,28 +1109,37 @@
       show("start-load-run-btn");
     }
 
-    // Last run summary panel
+    // Run history panel
     const startScreen = $id("screen-start");
     let summaryEl = $id("last-run-summary");
-    const rawLastRun = localStorage.getItem("drawforge.lastRun");
-    if (rawLastRun && startScreen) {
-      const lr = JSON.parse(rawLastRun);
+    const rawHistory = localStorage.getItem("drawforge.runHistory");
+    const rawLast = localStorage.getItem("drawforge.lastRun");
+    let runs = [];
+    if (rawHistory) {
+      runs = JSON.parse(rawHistory).filter(Boolean);
+    } else if (rawLast) {
+      runs = [JSON.parse(rawLast)].filter(Boolean);
+    }
+    if (runs.length > 0 && startScreen) {
       if (!summaryEl) {
         summaryEl = document.createElement("div");
         summaryEl.id = "last-run-summary";
         startScreen.appendChild(summaryEl);
       }
-      const arch = ARCHETYPES.find((a) => a.id === lr.archetype);
-      const grade = calcRunGrade(lr.score || 0);
-      const outcome = lr.state === "won" ? "🏆 Victory" : "💀 Defeat";
-      summaryEl.innerHTML = `
-        <div class="last-run-label">Last Run</div>
-        <div class="last-run-outcome ${lr.state === "won" ? "win" : "loss"}">${outcome}</div>
-        <div class="last-run-stats">
-          ${arch ? `<span>${arch.icon} ${arch.name}</span>` : ""}
-          <span>Act ${lr.act || 1} · Floor ${lr.floorReached || "?"}</span>
-          <span>Score: <strong>${lr.score || 0}</strong> <span class="run-grade grade-${grade}">${grade}</span></span>
-        </div>`;
+      summaryEl.innerHTML = `<div class="last-run-label">Run History</div>`;
+      runs.forEach((lr) => {
+        const arch = ARCHETYPES.find((a) => a.id === lr.archetype);
+        const grade = calcRunGrade(lr.score || 0);
+        const outcome = lr.state === "won" ? "🏆" : "💀";
+        const row = document.createElement("div");
+        row.className = "run-history-row";
+        row.innerHTML = `
+          <span class="run-history-outcome ${lr.state === "won" ? "win" : "loss"}">${outcome}</span>
+          <span class="run-history-arch">${arch ? arch.icon : "?"}</span>
+          <span class="run-history-info">Act ${lr.act || 1} · F${lr.floorReached || "?"}</span>
+          <span class="run-history-score">${(lr.score || 0).toLocaleString()} <span class="run-grade grade-${grade}">${grade}</span></span>`;
+        summaryEl.appendChild(row);
+      });
       summaryEl.style.display = "";
     } else if (summaryEl) {
       summaryEl.style.display = "none";
@@ -1346,8 +1382,58 @@
         }, 10);
       }
       prevBadgeValues[trackKey] = value;
+      const tipText = STATUS_TIPS[key || cls];
+      if (tipText) {
+        const tipEl = document.createElement("div");
+        tipEl.className = "status-tooltip";
+        tipEl.textContent = tipText;
+        badge.appendChild(tipEl);
+      }
       el.appendChild(badge);
     });
+  }
+
+  // ─── Pile Modal ───────────────────────────────────────────────────
+  function showPileModal(title, cards) {
+    let modal = $id("pile-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "pile-modal";
+      modal.className = "pile-modal";
+      document.body.appendChild(modal);
+      modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); });
+    }
+    modal.classList.remove("hidden");
+    clearEl(modal);
+
+    const box = document.createElement("div");
+    box.className = "pile-modal-box";
+
+    const hdr = document.createElement("div");
+    hdr.className = "pile-modal-header";
+    const titleEl = document.createElement("span");
+    titleEl.textContent = `${title} (${cards.length})`;
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "pile-modal-close";
+    closeBtn.textContent = "✕";
+    closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
+    hdr.appendChild(titleEl);
+    hdr.appendChild(closeBtn);
+
+    const grid = document.createElement("div");
+    grid.className = "pile-modal-grid";
+    if (cards.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "pile-modal-empty";
+      empty.textContent = "Empty";
+      grid.appendChild(empty);
+    } else {
+      cards.forEach((card) => grid.appendChild(makeCard(card, { dealDelay: -1 })));
+    }
+
+    box.appendChild(hdr);
+    box.appendChild(grid);
+    modal.appendChild(box);
   }
 
   // ─── Screen: Combat ───────────────────────────────────────────────
@@ -1407,10 +1493,18 @@
     // Intent with icon system
     renderIntent(combat.enemyIntent);
 
-    // Pile counters
-    $id("draw-count").textContent = (combat.drawPile || []).length;
-    $id("discard-count").textContent = (combat.discardPile || []).length;
-    $id("exhaust-count").textContent = (combat.exhaustPile || []).length;
+    // Pile counters (clickable to view contents)
+    const pileSetup = (elId, pile, label) => {
+      const el = $id(elId);
+      if (!el) return;
+      el.textContent = pile.length;
+      el.style.cursor = "pointer";
+      el.title = `View ${label}`;
+      el.onclick = () => showPileModal(label, pile);
+    };
+    pileSetup("draw-count",    combat.drawPile    || [], "Draw Pile");
+    pileSetup("discard-count", combat.discardPile || [], "Discard Pile");
+    pileSetup("exhaust-count", combat.exhaustPile || [], "Exhaust Pile");
 
     // Potion slots
     renderPotionStrip(currentRun.potions || []);
@@ -1486,6 +1580,7 @@
     const prevEnemyHp = currentRun.combat?.enemy?.health || 0;
     const updated = await api("/run/play-card.json", { run: currentRun, handIndex });
     currentRun = updated;
+    flashTriggeredRelics(updated.combat?.triggeredRelics);
 
     if (updated.combat) {
       const dmg = prevEnemyHp - (updated.combat.enemy?.health ?? prevEnemyHp);
@@ -1570,7 +1665,21 @@
     if (rewards.cards?.length) {
       // Card reward phase
       show("reward-content");
-      if (enteringReward) setTimeout(() => spawnConfetti(), 150);
+      if (enteringReward) {
+        setTimeout(() => spawnConfetti(), 150);
+        // Float gold earned
+        if ((rewards.gold || 0) > 0) {
+          const anchor = $id("reward-header") || document.body;
+          const div = document.createElement("div");
+          div.className = "float-dmg gold-gain";
+          div.textContent = `+${rewards.gold}g`;
+          const rect = anchor.getBoundingClientRect();
+          div.style.left = `${rect.left + rect.width / 2 - 20}px`;
+          div.style.top = `${rect.top + 10}px`;
+          document.body.appendChild(div);
+          div.addEventListener("animationend", () => div.remove());
+        }
+      }
       const isElite = rewards.relics?.length > 0;
       const isBoss = !!rewards.relic;
       $id("reward-header").textContent = isBoss ? "BOSS VICTORY" : isElite ? "ELITE VICTORY" : "COMBAT VICTORY";
@@ -1783,9 +1892,27 @@
     deck.forEach((cardId, deckIndex) => {
       const card = (cardCatalog || {})[cardId] || { id: cardId, name: cardId, cost: 0, type: "skill", rarity: "common" };
       const upgradeable = !cardId.endsWith("_plus");
+      const upgradedCard = upgradeable ? (cardCatalog || {})[cardId + "_plus"] : null;
+
       const wrap = document.createElement("div");
-      wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;";
-      const cardEl = makeCard(card, { unplayable: !upgradeable, dealDelay: -1 });
+      wrap.className = "smith-card-wrap";
+
+      if (upgradeable && upgradedCard) {
+        const previewRow = document.createElement("div");
+        previewRow.className = "smith-preview-row";
+        previewRow.appendChild(makeCard(card, { dealDelay: -1 }));
+        const arrow = document.createElement("div");
+        arrow.className = "smith-arrow";
+        arrow.textContent = "→";
+        previewRow.appendChild(arrow);
+        const upgradeEl = makeCard(upgradedCard, { dealDelay: -1 });
+        upgradeEl.classList.add("smith-upgraded");
+        previewRow.appendChild(upgradeEl);
+        wrap.appendChild(previewRow);
+      } else {
+        wrap.appendChild(makeCard(card, { unplayable: !upgradeable, dealDelay: -1 }));
+      }
+
       const upgradeBtn = document.createElement("button");
       upgradeBtn.className = "btn";
       upgradeBtn.textContent = upgradeable ? "Upgrade" : "Max";
@@ -1798,7 +1925,6 @@
           render();
         });
       }
-      wrap.appendChild(cardEl);
       wrap.appendChild(upgradeBtn);
       cardsEl.appendChild(wrap);
     });
@@ -1994,15 +2120,20 @@
       ].join("<br />");
     }
 
-    // Save last run summary for start screen
-    localStorage.setItem("drawforge.lastRun", JSON.stringify({
+    // Save run to history (last 5)
+    const runEntry = {
       state: currentRun.state,
       act: currentRun.act || 1,
       archetype: currentRun.archetype,
       archetypeName: currentRun.archetypeName,
       floorReached,
       score
-    }));
+    };
+    const history = JSON.parse(localStorage.getItem("drawforge.runHistory") || "[]");
+    history.unshift(runEntry);
+    history.splice(5);
+    localStorage.setItem("drawforge.runHistory", JSON.stringify(history));
+    localStorage.setItem("drawforge.lastRun", JSON.stringify(runEntry));
 
     if (win) {
       setTimeout(spawnConfetti, 200);
@@ -2060,6 +2191,7 @@
       const prevPlayerHp = currentRun.combat.player.health;
       const prevPlayerBlock = currentRun.combat.player.block || 0;
       currentRun = await api("/run/end-turn.json", { run: currentRun });
+      flashTriggeredRelics(currentRun.combat?.triggeredRelics);
 
       // Animate enemy lunge + player recoil if enemy attacked
       const newPlayerHp = currentRun.combat?.player?.health ?? currentRun.player?.health ?? prevPlayerHp;

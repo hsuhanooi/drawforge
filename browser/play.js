@@ -8,6 +8,7 @@
   let prevMapGold = -1;
   let prevShopGold = -1;
   let deckSortMode = "type"; // "type" | "cost"
+  let isCardPlaying = false;
 
   // ─── Network ──────────────────────────────────────────────────────
   async function fetchJson(url, options = {}) {
@@ -1231,6 +1232,8 @@
     // Topbar
     const nodeType = combat.nodeType || "combat";
     $id("combat-floor-label").textContent = nodeType.toUpperCase();
+    const turnEl = $id("combat-turn-label");
+    if (turnEl) turnEl.textContent = combat.turn ?? 1;
     renderRelicStrip("combat-relic-strip", currentRun.relics || []);
     // Only re-render background when entering combat (not every card play)
     if (enteringCombat) renderCombatBg(nodeType);
@@ -1315,6 +1318,9 @@
   }
 
   async function playCard(handIndex, cardEl) {
+    if (isCardPlaying) return;
+    isCardPlaying = true;
+    try {
     const card = currentRun.combat?.hand?.[handIndex];
     const isAttack = card?.type === "attack";
 
@@ -1380,6 +1386,9 @@
 
     saveRun(currentRun);
     render();
+    } finally {
+      isCardPlaying = false;
+    }
   }
 
   // ─── Screen: Reward ───────────────────────────────────────────────
@@ -1593,7 +1602,8 @@
 
       const nameEl = document.createElement("div");
       nameEl.className = "rest-option-name";
-      nameEl.textContent = option.label;
+      const EFFECT_LABELS = { heal: "Rest & Heal", smith: "Upgrade a Card", remove: "Remove a Card" };
+      nameEl.textContent = option.label || EFFECT_LABELS[option.effect] || option.effect || option.id || "Option";
 
       btn.appendChild(iconEl);
       btn.appendChild(nameEl);

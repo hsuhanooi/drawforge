@@ -891,10 +891,16 @@ canvas.card-art-canvas {
   text-transform: uppercase;
   text-shadow: 0 0 20px rgba(240,192,64,0.4);
 }
+/* Bug fix: ensure reward cards show their deal animation regardless of rarity */
+#reward-cards-row .card-component,
+#reward-cards-row-relics .card-component {
+  animation: reward-rise 0.4s ease both;
+}
+
 #reward-subtitle {
   font-size: 13px;
   color: var(--text-dim);
-  margin-top: -16px;
+  margin-top: 0;
   letter-spacing: 0.5px;
 }
 #reward-cards-row {

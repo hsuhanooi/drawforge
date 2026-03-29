@@ -16,7 +16,9 @@ const {
   skipRewards,
   claimEventOption,
   removeCardFromDeck,
-  finishNode
+  finishNode,
+  buyShopItem,
+  upgradeCard
 } = require("./src/browserPostNodeActions");
 const {
   startCombatForNode,
@@ -283,6 +285,26 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, removeCardFromDeck(run, cardId));
     } catch (error) {
       sendJson(res, 400, { error: error.message || "Unable to remove card" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/buy-shop-item.json" && req.method === "POST") {
+    try {
+      const { run, type, itemId, price } = await readJsonBody(req);
+      sendJson(res, 200, buyShopItem(run, type, itemId, price));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to buy shop item" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/upgrade-card.json" && req.method === "POST") {
+    try {
+      const { run, deckIndex } = await readJsonBody(req);
+      sendJson(res, 200, upgradeCard(run, deckIndex));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to upgrade card" });
     }
     return;
   }

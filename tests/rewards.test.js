@@ -83,14 +83,26 @@ describe("combat rewards", () => {
     expect(combatRewards.cards.length).toBeGreaterThan(0);
   });
 
-  it("reward pool includes new cards from the expanded set", () => {
-    const options = createRewardOptions(29);
-    const ids = options.map((card) => card.id);
-    expect(ids).toEqual(expect.arrayContaining([
-      "mark_of_ruin", "hexblade", "reapers_clause", "fire_sale", "cremate",
-      "grave_fuel", "brand_the_soul", "harvester", "charge_up", "arc_lash",
-      "blood_pact", "spite_shield"
-    ]));
+  it("reward pool includes cards from all archetypes (charged, exhaust, hex, defense)", () => {
+    // Draw enough cards to cover the whole pool; deduplicate across many draws
+    const { REWARD_POOL } = require("../src/cards");
+    const poolSize = REWARD_POOL.length;
+    const options = createRewardOptions(poolSize * 3);
+    const ids = new Set(options.map((card) => card.id));
+    // Spot-check one card from each major archetype group
+    const archetypeReps = [
+      "mark_of_ruin",    // Hex
+      "charge_up",       // Charged
+      "fire_sale",       // Exhaust
+      "war_cry",         // Strength/debuff
+      "static_guard",    // Charged (new M10)
+      "hollow_ward",     // Defense (new M10)
+      "doom_engine",     // Hex/Exhaust hybrid (new M10)
+      "hexburst"         // Hex finisher (new M10)
+    ];
+    for (const id of archetypeReps) {
+      expect(ids).toContain(id);
+    }
   });
 
   it("weighted rarity pool produces more commons than rares over many samples", () => {

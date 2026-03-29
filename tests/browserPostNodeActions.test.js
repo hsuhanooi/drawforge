@@ -97,4 +97,27 @@ describe("browser post-node actions", () => {
 
     expect(run.pendingRewards).toBeNull();
   });
+
+  it("boss: claimRelicReward clears relic and ends reward state", () => {
+    const relic = { id: "ember_ring", name: "Ember Ring", description: "+1 energy" };
+    const bossRun = {
+      ...baseRun,
+      map: { currentNodeId: "r4c1", nodes: [{ id: "r4c1", row: 4, col: 1, type: "combat", next: [] }] },
+      pendingRewards: { cards: [], gold: 50, relic, relics: [], removeCard: false }
+    };
+    const result = claimRelicReward(bossRun, "ember_ring");
+    expect(result.relics.map((r) => r.id)).toContain("ember_ring");
+    expect(result.pendingRewards).toBeNull();
+  });
+
+  it("boss: claimRelicReward can only be used once (relic is cleared)", () => {
+    const relic = { id: "ember_ring", name: "Ember Ring", description: "+1 energy" };
+    const bossRun = {
+      ...baseRun,
+      map: { currentNodeId: "r4c1", nodes: [{ id: "r4c1", row: 4, col: 1, type: "combat", next: [] }] },
+      pendingRewards: { cards: [], gold: 50, relic, relics: [], removeCard: false }
+    };
+    const result = claimRelicReward(bossRun, "ember_ring");
+    expect(() => claimRelicReward(result, "ember_ring")).toThrow();
+  });
 });

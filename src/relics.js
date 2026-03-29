@@ -244,6 +244,37 @@ const RELICS = [
     name: "Vault Key",
     description: "Boss fights offer 2 relic choices instead of 1",
     rarity: "boss"
+  },
+  // ── Status Effect Relics ──────────────────────────────────────────────────
+  {
+    id: "iron_boots",
+    name: "Iron Boots",
+    description: "Start each combat with 1 Strength",
+    rarity: "common"
+  },
+  {
+    id: "nimble_cloak",
+    name: "Nimble Cloak",
+    description: "Start each combat with 1 Dexterity",
+    rarity: "common"
+  },
+  {
+    id: "cracked_lens",
+    name: "Cracked Lens",
+    description: "Enemies start each combat with 1 Vulnerable",
+    rarity: "uncommon"
+  },
+  {
+    id: "silencing_stone",
+    name: "Silencing Stone",
+    description: "While the enemy is Weak, your first card each turn costs 0",
+    rarity: "uncommon"
+  },
+  {
+    id: "warlords_brand",
+    name: "Warlord's Brand",
+    description: "Whenever you gain Strength, gain 1 more",
+    rarity: "rare"
   }
 ];
 

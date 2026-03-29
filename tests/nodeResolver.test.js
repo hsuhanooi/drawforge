@@ -22,4 +22,28 @@ describe("node resolution", () => {
     expect(result.event).toHaveProperty("kind");
     expect(Array.isArray(result.event.options)).toBe(true);
   });
+
+  it("returns a campfire event for rest nodes", () => {
+    const node = { id: "r2c1", type: "rest", row: 2, col: 1 };
+    const player = { health: 80 };
+
+    const result = resolveNode({ node, player });
+
+    expect(result.state).toBe("rest");
+    expect(result.combat).toBeNull();
+    expect(result.event.kind).toBe("campfire");
+    expect(result.event.options.some((o) => o.effect === "heal")).toBe(true);
+    expect(result.event.options.some((o) => o.effect === "smith")).toBe(true);
+    expect(result.event.options.some((o) => o.effect === "remove")).toBe(true);
+  });
+
+  it("returns a shop state for shop nodes", () => {
+    const node = { id: "r3c0", type: "shop", row: 3, col: 0 };
+    const player = { health: 80 };
+
+    const result = resolveNode({ node, player });
+
+    expect(result.state).toBe("shop");
+    expect(result.combat).toBeNull();
+  });
 });

@@ -1,4 +1,5 @@
 const { CARD_REGISTRY } = require("./cardRegistry");
+const { UPGRADED_CARD_ENTRIES } = require("./cardUpgrade");
 
 const implementedOverrides = {
   strike: { damage: 6 },
@@ -29,7 +30,61 @@ const implementedOverrides = {
   charge_up: { setCharged: true, draw: 1 },
   arc_lash: { damage: 7, drawIfCharged: 1 },
   blood_pact: { selfDamage: 3, energyGain: 2, draw: 1 },
-  spite_shield: { block: 6, hex: 1 }
+  spite_shield: { block: 6, hex: 1 },
+  war_cry: { applyStrength: 2 },
+  fortify: { applyDexterity: 2 },
+  expose: { applyVulnerable: 2 },
+  cripple: { applyWeak: 2 },
+  titan_strike: { damage: 8, bonusPerStrength: 2 },
+  exploit: { damage: 6, bonusVsVulnerable: 6 },
+  enfeeble: { applyWeak: 3, applyVulnerable: 1 },
+  echo_strike: { damage: 5, bonusVsVulnerable: 5 },
+  // Neutral utility
+  pommel: { damage: 7, draw: 1 },
+  brace: { block: 7 },
+  insight: { draw: 2 },
+  parry: { block: 3 },
+  heavy_swing: { damage: 12 },
+  recover: { block: 6, draw: 1 },
+  plan_ahead: { draw: 2, exhaust: true },
+  // Hex archetype
+  deep_hex: { hex: 3 },
+  black_seal: { hex: 1, exhaust: true },
+  feast_on_weakness: { damage: 5, bonusBlockIfHexed: 5 },
+  malediction: { applyWeak: 2, hex: 1 },
+  // Powers
+  iron_will: {},
+  burning_aura: {},
+  hex_resonance: {},
+  // Charged archetype
+  static_guard: { block: 6, energyIfCharged: 1 },
+  capacitor: { setCharged: true, exhaust: true },
+  release: { damage: 14, costReduceIfCharged: 1, loseCharged: true },
+  guarded_pulse: { block: 5, bonusBlockIfCharged: 5 },
+  flashstep: { drawIfCharged: 2, setChargedIfNotCharged: true },
+  // Exhaust archetype
+  overclock: { energyGain: 2, discardFromHand: 1, exhaust: true },
+  ashen_blow: { damage: 7, energyIfExhaustedThisTurn: 1 },
+  final_draft: { draw: 2, exhaustFromHand: true },
+  scorch_nerves: { damage: 12, exhaust: true },
+  cinder_rush: { damage: 6, bonusDmgPerExhausted: 3 },
+  empty_the_chamber: { exhaustHand: true },
+  // Hex archetype
+  curse_spiral: { hex: 1, draw: 1 },
+  cataclysm_sigil: { damage: 18, bonusDmgPerHex: 4 },
+  no_mercy: { damage: 10, repeatIfHexed: true },
+  hexburst: { damage: 6, consumeHexBonus: 4 },
+  // Hex / Exhaust hybrids
+  soul_rend: { damage: 9, ifHexedExhaustFromHand: true, ifHexedEnergyGain: 1 },
+  doom_engine: { activateDoomEngine: true },
+  unseal: { damage: 5, bonusVsHex: 5, exhaust: true },
+  ritual_collapse: { exhaustFromHandCount: 2, hexPerExhausted: true },
+  doom_bell: { hex: 2, exhaustSkillsFromHand: true },
+  // Defense / utility
+  hollow_ward: { block: 8, exhaust: true },
+  refrain: { block: 4, returnToHand: true },
+  warding_circle: { block: 12, costReduceIfHexed: 1 },
+  last_word: { damage: 8, bonusIfLastCard: 12 }
 };
 
 const legacyLiveCards = [
@@ -75,6 +130,9 @@ const buildCatalog = () => {
         ...(implementedOverrides[card.id] || {})
       };
     }
+  }
+  for (const card of UPGRADED_CARD_ENTRIES) {
+    catalog[card.id] = { ...card };
   }
   return catalog;
 };

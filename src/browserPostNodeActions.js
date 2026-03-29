@@ -1,12 +1,19 @@
 const { createVictoryRewards } = require("./rewards");
 const { addRelicToRun } = require("./relics");
 const { toRenderableCards } = require("./cardCatalog");
+const { upgradeCardInDeck } = require("./cardUpgrade");
+const { startAct2 } = require("./actTransition");
 
 const hasRelic = (run, id) => (run.relics || []).some((relic) => relic.id === id);
 
 const finishNode = (run) => {
   const currentNode = run.map.nodes.find((node) => node.id === run.map.currentNodeId);
   const isBossNode = currentNode && currentNode.type === "boss";
+
+  if (isBossNode && (run.act || 1) === 1) {
+    return startAct2(run);
+  }
+
   return {
     ...run,
     combat: null,
@@ -18,6 +25,16 @@ const finishNode = (run) => {
 
 const afterCardSelection = (run) => {
   if (run.pendingRewards?.relics?.length) {
+    return {
+      ...run,
+      pendingRewards: {
+        ...run.pendingRewards,
+        cards: []
+      }
+    };
+  }
+
+  if (run.pendingRewards?.relic) {
     return {
       ...run,
       pendingRewards: {
@@ -43,16 +60,37 @@ const afterCardSelection = (run) => {
 };
 
 const applyVictoryToRun = (run, combat) => {
-  const rewards = createVictoryRewards(combat.nodeType);
+  const rewards = createVictoryRewards(combat.nodeType, run);
   rewards.cards = toRenderableCards(rewards.cards || []);
-  const boneTokenHeal = hasRelic(run, "bone_token") ? 3 : 0;
+
+  const maxHealth = run.player.maxHealth || run.player.health;
+  let newHealth = combat.player.health;
+
+  if (hasRelic(run, "bone_token")) {
+    newHealth = Math.min(newHealth + 3, maxHealth);
+  }
+  if (hasRelic(run, "soot_vessel") && combat.player.health <= Math.floor(maxHealth / 2)) {
+    newHealth = Math.min(newHealth + 6, maxHealth);
+  }
+
+  let goldBonus = 0;
+  if (hasRelic(run, "lucky_coin")) goldBonus += 5;
+  if (hasRelic(run, "pilgrims_map") && combat.nodeType !== "boss") goldBonus += 3;
+
+  const newCombatsWon = (run.combatsWon || 0) + 1;
+  let newMaxHealth = maxHealth;
+  if (hasRelic(run, "leather_thread") && newCombatsWon % 3 === 0) {
+    newMaxHealth += 1;
+  }
 
   return {
     ...run,
+    combatsWon: newCombatsWon,
     player: {
       ...run.player,
-      health: combat.player.health + boneTokenHeal,
-      gold: run.player.gold + rewards.gold
+      health: newHealth,
+      maxHealth: newMaxHealth,
+      gold: run.player.gold + rewards.gold + goldBonus
     },
     combat,
     pendingRewards: rewards
@@ -92,7 +130,15 @@ const claimRelicReward = (run, relicId) => {
   if (!relic) {
     throw new Error("Relic reward not found");
   }
-  return afterCardSelection(addRelicToRun(run, relic));
+  const runWithRelic = addRelicToRun(run, relic);
+  return afterCardSelection({
+    ...runWithRelic,
+    pendingRewards: {
+      ...runWithRelic.pendingRewards,
+      relic: null,
+      cards: []
+    }
+  });
 };
 
 const skipRewards = (run) => {
@@ -156,6 +202,41 @@ const claimEventOption = (run, optionId) => {
   return nextRun;
 };
 
+const buyShopItem = (run, type, itemId, price) => {
+  if ((run.player.gold || 0) < price) {
+    throw new Error("Not enough gold");
+  }
+  const nextPlayer = { ...run.player, gold: run.player.gold - price };
+
+  if (type === "card") {
+    return { ...run, player: { ...nextPlayer, deck: [...nextPlayer.deck, itemId] } };
+  }
+
+  if (type === "relic") {
+    const relic = (run.shop?.relics || []).find((r) => r.id === itemId);
+    if (!relic) {
+      throw new Error("Relic not found in shop");
+    }
+    return addRelicToRun({ ...run, player: nextPlayer }, relic);
+  }
+
+  if (type === "service") {
+    if (itemId === "heal") {
+      const maxH = nextPlayer.maxHealth || nextPlayer.health;
+      return { ...run, player: { ...nextPlayer, health: Math.min(nextPlayer.health + 15, maxH) } };
+    }
+    if (itemId === "remove") {
+      return {
+        ...run,
+        player: nextPlayer,
+        pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true }
+      };
+    }
+  }
+
+  throw new Error("Unknown shop item type");
+};
+
 const removeCardFromDeck = (run, cardId) => {
   const index = run.player.deck.indexOf(cardId);
   if (index === -1) {
@@ -171,6 +252,11 @@ const removeCardFromDeck = (run, cardId) => {
   });
 };
 
+const upgradeCard = (run, deckIndex) => {
+  const deck = upgradeCardInDeck(run.player.deck, deckIndex);
+  return finishNode({ ...run, player: { ...run.player, deck } });
+};
+
 module.exports = {
   applyVictoryToRun,
   finishNode,
@@ -179,5 +265,7 @@ module.exports = {
   claimRelicReward,
   skipRewards,
   claimEventOption,
-  removeCardFromDeck
+  removeCardFromDeck,
+  buyShopItem,
+  upgradeCard
 };

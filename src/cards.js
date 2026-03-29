@@ -580,6 +580,293 @@ const spiteShieldCardDefinition = () =>
     })
   });
 
+/** @returns {Card} */
+const warCryCardDefinition = () =>
+  createCard({
+    id: "war_cry",
+    name: "War Cry",
+    cost: 1,
+    type: "skill",
+    rarity: "uncommon",
+    effect: (state) => ({
+      ...state,
+      player: { ...state.player, strength: (state.player.strength || 0) + 2 }
+    })
+  });
+
+/** @returns {Card} */
+const fortifyCardDefinition = () =>
+  createCard({
+    id: "fortify",
+    name: "Fortify",
+    cost: 1,
+    type: "skill",
+    rarity: "uncommon",
+    effect: (state) => ({
+      ...state,
+      player: { ...state.player, dexterity: (state.player.dexterity || 0) + 2 }
+    })
+  });
+
+/** @returns {Card} */
+const exposeCardDefinition = () =>
+  createCard({
+    id: "expose",
+    name: "Expose",
+    cost: 1,
+    type: "skill",
+    rarity: "common",
+    effect: (state) => ({
+      ...state,
+      enemy: { ...state.enemy, vulnerable: (state.enemy.vulnerable || 0) + 2 }
+    })
+  });
+
+/** @returns {Card} */
+const crippleCardDefinition = () =>
+  createCard({
+    id: "cripple",
+    name: "Cripple",
+    cost: 1,
+    type: "skill",
+    rarity: "common",
+    effect: (state) => ({
+      ...state,
+      enemy: { ...state.enemy, weak: (state.enemy.weak || 0) + 2 }
+    })
+  });
+
+/** @returns {Card} */
+const titanStrikeCardDefinition = () =>
+  createCard({
+    id: "titan_strike",
+    name: "Titan Strike",
+    cost: 2,
+    type: "attack",
+    rarity: "uncommon",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - 8 - (state.player.strength || 0) * 2
+      }
+    })
+  });
+
+/** @returns {Card} */
+const exploitCardDefinition = () =>
+  createCard({
+    id: "exploit",
+    name: "Exploit",
+    cost: 2,
+    type: "attack",
+    rarity: "uncommon",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - ((state.enemy.vulnerable || 0) > 0 ? 12 : 6)
+      }
+    })
+  });
+
+/** @returns {Card} */
+const enfeebleCardDefinition = () =>
+  createCard({
+    id: "enfeeble",
+    name: "Enfeeble",
+    cost: 2,
+    type: "skill",
+    rarity: "uncommon",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        weak: (state.enemy.weak || 0) + 3,
+        vulnerable: (state.enemy.vulnerable || 0) + 1
+      }
+    })
+  });
+
+/** @returns {Card} */
+const echoStrikeCardDefinition = () =>
+  createCard({
+    id: "echo_strike",
+    name: "Echo Strike",
+    cost: 2,
+    type: "attack",
+    rarity: "common",
+    effect: (state) => ({
+      ...state,
+      enemy: {
+        ...state.enemy,
+        health: state.enemy.health - ((state.enemy.vulnerable || 0) > 0 ? 10 : 5)
+      }
+    })
+  });
+
+/** @returns {Card} */
+const pommelCardDefinition = () => createCard({ id: "pommel", name: "Pommel", cost: 1, type: "attack", rarity: "common",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 7 } }) });
+
+/** @returns {Card} */
+const braceCardDefinition = () => createCard({ id: "brace", name: "Brace", cost: 1, type: "skill", rarity: "common",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 7 } }) });
+
+/** @returns {Card} */
+const insightCardDefinition = () => createCard({ id: "insight", name: "Insight", cost: 1, type: "skill", rarity: "common",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const parryCardDefinition = () => createCard({ id: "parry", name: "Parry", cost: 0, type: "skill", rarity: "common",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 3 } }) });
+
+/** @returns {Card} */
+const heavySwingCardDefinition = () => createCard({ id: "heavy_swing", name: "Heavy Swing", cost: 2, type: "attack", rarity: "common",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 12 } }) });
+
+/** @returns {Card} */
+const recoverCardDefinition = () => createCard({ id: "recover", name: "Recover", cost: 1, type: "skill", rarity: "uncommon",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 6 } }) });
+
+/** @returns {Card} */
+const planAheadCardDefinition = () => createCard({ id: "plan_ahead", name: "Plan Ahead", cost: 0, type: "skill", rarity: "common",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const deepHexCardDefinition = () => createCard({ id: "deep_hex", name: "Deep Hex", cost: 2, type: "skill", rarity: "uncommon",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, hex: (state.enemy.hex || 0) + 3 } }) });
+
+/** @returns {Card} */
+const blackSealCardDefinition = () => createCard({ id: "black_seal", name: "Black Seal", cost: 0, type: "skill", rarity: "common",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, hex: (state.enemy.hex || 0) + 1 } }) });
+
+/** @returns {Card} */
+const feastOnWeaknessCardDefinition = () => createCard({ id: "feast_on_weakness", name: "Feast on Weakness", cost: 1, type: "attack", rarity: "common",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 5 } }) });
+
+/** @returns {Card} */
+const maledictionCardDefinition = () => createCard({ id: "malediction", name: "Malediction", cost: 1, type: "skill", rarity: "uncommon",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, hex: (state.enemy.hex || 0) + 1 } }) });
+
+/** @returns {Card} */
+const ironWillCardDefinition = () => createCard({ id: "iron_will", name: "Iron Will", cost: 2, type: "power", rarity: "uncommon",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const burningAuraCardDefinition = () => createCard({ id: "burning_aura", name: "Burning Aura", cost: 2, type: "power", rarity: "uncommon",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const hexResonanceCardDefinition = () => createCard({ id: "hex_resonance", name: "Hex Resonance", cost: 1, type: "power", rarity: "uncommon",
+  effect: (state) => state });
+
+// ── Milestone 10: Charged archetype ───────────────────────────────────────
+
+/** @returns {Card} */
+const staticGuardCardDefinition = () => createCard({ id: "static_guard", name: "Static Guard", cost: 1, type: "skill", rarity: "common",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 6 } }) });
+
+/** @returns {Card} */
+const capacitorCardDefinition = () => createCard({ id: "capacitor", name: "Capacitor", cost: 0, type: "skill", rarity: "common", exhaust: true,
+  effect: (state) => ({ ...state, player: { ...state.player, charged: true } }) });
+
+/** @returns {Card} */
+const releaseCardDefinition = () => createCard({ id: "release", name: "Release", cost: 2, type: "attack", rarity: "uncommon",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 14 } }) });
+
+/** @returns {Card} */
+const guardedPulseCardDefinition = () => createCard({ id: "guarded_pulse", name: "Guarded Pulse", cost: 1, type: "skill", rarity: "common",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + (state.player.charged ? 10 : 5) } }) });
+
+/** @returns {Card} */
+const flashstepCardDefinition = () => createCard({ id: "flashstep", name: "Flashstep", cost: 0, type: "skill", rarity: "uncommon",
+  effect: (state) => state });
+
+// ── Milestone 10: Exhaust archetype ───────────────────────────────────────
+
+/** @returns {Card} */
+const overclockCardDefinition = () => createCard({ id: "overclock", name: "Overclock", cost: 1, type: "skill", rarity: "uncommon", exhaust: true,
+  effect: (state) => ({ ...state, player: { ...state.player, energy: (state.player.energy ?? 0) + 2 } }) });
+
+/** @returns {Card} */
+const ashenBlowCardDefinition = () => createCard({ id: "ashen_blow", name: "Ashen Blow", cost: 1, type: "attack", rarity: "uncommon",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 7 } }) });
+
+/** @returns {Card} */
+const finalDraftCardDefinition = () => createCard({ id: "final_draft", name: "Final Draft", cost: 1, type: "skill", rarity: "uncommon",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const scorchNervesCardDefinition = () => createCard({ id: "scorch_nerves", name: "Scorch Nerves", cost: 2, type: "attack", rarity: "common", exhaust: true,
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 12 } }) });
+
+/** @returns {Card} */
+const cinderRushCardDefinition = () => createCard({ id: "cinder_rush", name: "Cinder Rush", cost: 1, type: "attack", rarity: "uncommon",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 6 } }) });
+
+/** @returns {Card} */
+const emptyTheChamberCardDefinition = () => createCard({ id: "empty_the_chamber", name: "Empty the Chamber", cost: 1, type: "skill", rarity: "rare",
+  effect: (state) => state });
+
+// ── Milestone 10: Hex archetype ────────────────────────────────────────────
+
+/** @returns {Card} */
+const curseSpiralCardDefinition = () => createCard({ id: "curse_spiral", name: "Curse Spiral", cost: 2, type: "skill", rarity: "uncommon",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, hex: (state.enemy.hex || 0) + 1 } }) });
+
+/** id: "cataclysm_sigil" @returns {Card} */
+const cataclysmSigilCardDefinition = () => createCard({ id: "cataclysm_sigil", name: "Cataclysm Sigil", cost: 3, type: "attack", rarity: "rare",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 18 } }) });
+
+/** @returns {Card} */
+const noMercyCardDefinition = () => createCard({ id: "no_mercy", name: "No Mercy", cost: 2, type: "attack", rarity: "rare",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 10 } }) });
+
+/** @returns {Card} */
+const hexburstCardDefinition = () => createCard({ id: "hexburst", name: "Hexburst", cost: 2, type: "attack", rarity: "rare",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 6, hex: 0 } }) });
+
+// ── Milestone 10: Hex / Exhaust hybrids ───────────────────────────────────
+
+/** @returns {Card} */
+const soulRendCardDefinition = () => createCard({ id: "soul_rend", name: "Soul Rend", cost: 2, type: "attack", rarity: "rare",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 9 } }) });
+
+/** @returns {Card} */
+const doomEngineCardDefinition = () => createCard({ id: "doom_engine", name: "Doom Engine", cost: 1, type: "skill", rarity: "rare",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const unsealCardDefinition = () => createCard({ id: "unseal", name: "Unseal", cost: 1, type: "attack", rarity: "uncommon", exhaust: true,
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - ((state.enemy.hex || 0) > 0 ? 10 : 5) } }) });
+
+/** @returns {Card} */
+const ritualCollapseCardDefinition = () => createCard({ id: "ritual_collapse", name: "Ritual Collapse", cost: 2, type: "skill", rarity: "rare",
+  effect: (state) => state });
+
+/** @returns {Card} */
+const doomBellCardDefinition = () => createCard({ id: "doom_bell", name: "Doom Bell", cost: 2, type: "skill", rarity: "rare",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, hex: (state.enemy.hex || 0) + 2 } }) });
+
+// ── Milestone 10: Defense / utility ───────────────────────────────────────
+
+/** @returns {Card} */
+const hollowWardCardDefinition = () => createCard({ id: "hollow_ward", name: "Hollow Ward", cost: 1, type: "skill", rarity: "common", exhaust: true,
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 8 } }) });
+
+/** @returns {Card} */
+const refrainCardDefinition = () => createCard({ id: "refrain", name: "Refrain", cost: 1, type: "skill", rarity: "uncommon",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 4 } }) });
+
+/** @returns {Card} */
+const wardingCircleCardDefinition = () => createCard({ id: "warding_circle", name: "Warding Circle", cost: 2, type: "skill", rarity: "uncommon",
+  effect: (state) => ({ ...state, player: { ...state.player, block: (state.player.block || 0) + 12 } }) });
+
+/** @returns {Card} */
+const lastWordCardDefinition = () => createCard({ id: "last_word", name: "Last Word", cost: 1, type: "attack", rarity: "rare",
+  effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 8 } }) });
+
 /** Canonical reward card pool — the only cards that can appear as rewards. */
 const REWARD_POOL = [
   markOfRuinCardDefinition,
@@ -593,7 +880,58 @@ const REWARD_POOL = [
   chargeUpCardDefinition,
   arcLashCardDefinition,
   bloodPactCardDefinition,
-  spiteShieldCardDefinition
+  spiteShieldCardDefinition,
+  warCryCardDefinition,
+  fortifyCardDefinition,
+  exposeCardDefinition,
+  crippleCardDefinition,
+  titanStrikeCardDefinition,
+  exploitCardDefinition,
+  enfeebleCardDefinition,
+  echoStrikeCardDefinition,
+  pommelCardDefinition,
+  braceCardDefinition,
+  insightCardDefinition,
+  parryCardDefinition,
+  heavySwingCardDefinition,
+  recoverCardDefinition,
+  planAheadCardDefinition,
+  deepHexCardDefinition,
+  blackSealCardDefinition,
+  feastOnWeaknessCardDefinition,
+  maledictionCardDefinition,
+  ironWillCardDefinition,
+  burningAuraCardDefinition,
+  hexResonanceCardDefinition,
+  // Charged
+  staticGuardCardDefinition,
+  capacitorCardDefinition,
+  releaseCardDefinition,
+  guardedPulseCardDefinition,
+  flashstepCardDefinition,
+  // Exhaust
+  overclockCardDefinition,
+  ashenBlowCardDefinition,
+  finalDraftCardDefinition,
+  scorchNervesCardDefinition,
+  cinderRushCardDefinition,
+  emptyTheChamberCardDefinition,
+  // Hex
+  curseSpiralCardDefinition,
+  cataclysmSigilCardDefinition,
+  noMercyCardDefinition,
+  hexburstCardDefinition,
+  // Hex / Exhaust
+  soulRendCardDefinition,
+  doomEngineCardDefinition,
+  unsealCardDefinition,
+  ritualCollapseCardDefinition,
+  doomBellCardDefinition,
+  // Defense / utility
+  hollowWardCardDefinition,
+  refrainCardDefinition,
+  wardingCircleCardDefinition,
+  lastWordCardDefinition
 ];
 
 module.exports = {
@@ -653,5 +991,56 @@ module.exports = {
   arcLashCardDefinition,
   bloodPactCardDefinition,
   spiteShieldCardDefinition,
+  warCryCardDefinition,
+  fortifyCardDefinition,
+  exposeCardDefinition,
+  crippleCardDefinition,
+  titanStrikeCardDefinition,
+  exploitCardDefinition,
+  enfeebleCardDefinition,
+  echoStrikeCardDefinition,
+  pommelCardDefinition,
+  braceCardDefinition,
+  insightCardDefinition,
+  parryCardDefinition,
+  heavySwingCardDefinition,
+  recoverCardDefinition,
+  planAheadCardDefinition,
+  deepHexCardDefinition,
+  blackSealCardDefinition,
+  feastOnWeaknessCardDefinition,
+  maledictionCardDefinition,
+  ironWillCardDefinition,
+  burningAuraCardDefinition,
+  hexResonanceCardDefinition,
+  // Charged
+  staticGuardCardDefinition,
+  capacitorCardDefinition,
+  releaseCardDefinition,
+  guardedPulseCardDefinition,
+  flashstepCardDefinition,
+  // Exhaust
+  overclockCardDefinition,
+  ashenBlowCardDefinition,
+  finalDraftCardDefinition,
+  scorchNervesCardDefinition,
+  cinderRushCardDefinition,
+  emptyTheChamberCardDefinition,
+  // Hex
+  curseSpiralCardDefinition,
+  cataclysmSigilCardDefinition,
+  noMercyCardDefinition,
+  hexburstCardDefinition,
+  // Hex / Exhaust
+  soulRendCardDefinition,
+  doomEngineCardDefinition,
+  unsealCardDefinition,
+  ritualCollapseCardDefinition,
+  doomBellCardDefinition,
+  // Defense / utility
+  hollowWardCardDefinition,
+  refrainCardDefinition,
+  wardingCircleCardDefinition,
+  lastWordCardDefinition,
   REWARD_POOL
 };

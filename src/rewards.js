@@ -6,7 +6,7 @@
 
 const { REWARD_POOL: rewardPool } = require("./cards");
 const { createBalanceConfig } = require("./balance");
-const { createRelicReward } = require("./relics");
+const { createRelicReward, createRelicChoices: createTieredRelicChoices } = require("./relics");
 
 /** @type {Record<string, number>} */
 const RARITY_WEIGHTS = {
@@ -95,13 +95,17 @@ const createRelicChoices = (count = 3) => {
  */
 const addRewardCardToDeck = (deck, card) => [...deck, card.id];
 
+const hasRunRelic = (run, id) => run && (run.relics || []).some((r) => r.id === id);
+
 /**
  * @param {"combat" | "elite" | "boss"} [nodeType]
+ * @param {object} [run]
  * @param {object} [balanceOverrides]
  * @returns {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean }}
  */
-const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
-  const cards = createRewardOptions(undefined, balanceOverrides);
+const createVictoryRewards = (nodeType = "combat", run = null, balanceOverrides = {}) => {
+  const extraCards = (hasRunRelic(run, "merchant_ledger") || hasRunRelic(run, "golden_brand")) ? 1 : 0;
+  const cards = createRewardOptions((createBalanceConfig(balanceOverrides).rewards.cardOptionCount) + extraCards, balanceOverrides);
   /** @type {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean }} */
   const rewards = {
     cards,
@@ -115,7 +119,12 @@ const createVictoryRewards = (nodeType = "combat", balanceOverrides = {}) => {
     rewards.relics = createRelicChoices(3);
   }
   else if (nodeType === "boss") {
-    rewards.relic = createRelicReward(2);
+    const vaultKey = hasRunRelic(run, "vault_key");
+    if (vaultKey && run) {
+      rewards.relics = createTieredRelicChoices(run.relics || [], "boss", true);
+    } else {
+      rewards.relic = createRelicReward(2);
+    }
   }
 
   return rewards;

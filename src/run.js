@@ -7,8 +7,10 @@ const startNewRun = (balanceOverrides = {}) => {
 
   return {
     state: RUN_STATE_IN_PROGRESS,
+    act: 1,
     player: {
       health: balance.player.health,
+      maxHealth: balance.player.health,
       gold: balance.player.gold,
       deck: createStarterDeck()
     },

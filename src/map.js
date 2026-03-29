@@ -13,32 +13,21 @@ const sample = (items, count, rng = Math.random) => {
 };
 
 const getNodeType = (row, col, rows, rowTypeSelections = {}) => {
-  if (row === rows - 1) {
-    return "boss";
-  }
-
-  if (row === rows - 2) {
-    return "elite";
-  }
-
-  if (rowTypeSelections.events?.has(col)) {
-    return "event";
-  }
-
-  if (rowTypeSelections.elites?.has(col)) {
-    return "elite";
-  }
-
+  if (row === rows - 1) return "boss";
+  if (row === rows - 2) return "elite";
+  if (rowTypeSelections.rests?.has(col)) return "rest";
+  if (rowTypeSelections.shops?.has(col)) return "shop";
+  if (rowTypeSelections.events?.has(col)) return "event";
+  if (rowTypeSelections.elites?.has(col)) return "elite";
   return "combat";
 };
 
 const buildRowTypeSelections = (rows, columns, rng = Math.random) => {
   const selections = new Map();
+  const midRows = [];
 
   for (let row = 0; row < rows; row += 1) {
-    if (row === rows - 1 || row === rows - 2) {
-      continue;
-    }
+    if (row === rows - 1 || row === rows - 2) continue;
 
     const availableCols = Array.from({ length: columns }, (_, index) => index);
     const events = row > 0 ? new Set(sample(availableCols, 1, rng)) : new Set();
@@ -47,7 +36,33 @@ const buildRowTypeSelections = (rows, columns, rng = Math.random) => {
       ? new Set(sample(nonEventCols, 1, rng))
       : new Set();
 
-    selections.set(row, { events, elites });
+    selections.set(row, { events, elites, rests: new Set(), shops: new Set() });
+    if (row > 0) midRows.push(row);
+  }
+
+  // Place exactly 1 rest node and 1 shop node in the mid-map
+  let restRow = null;
+  if (midRows.length >= 1) {
+    restRow = midRows[Math.floor(rng() * midRows.length)];
+    const rowSel = selections.get(restRow);
+    const available = Array.from({ length: columns }, (_, i) => i)
+      .filter((col) => !rowSel.events.has(col) && !rowSel.elites.has(col));
+    if (available.length > 0) {
+      rowSel.rests.add(available[Math.floor(rng() * available.length)]);
+    }
+  }
+
+  if (midRows.length >= 1) {
+    // Prefer a different row from rest so they don't compete for columns
+    const otherRows = midRows.filter((r) => r !== restRow);
+    const shopCandidates = otherRows.length > 0 ? otherRows : midRows;
+    const shopRow = shopCandidates[Math.floor(rng() * shopCandidates.length)];
+    const rowSel = selections.get(shopRow);
+    const available = Array.from({ length: columns }, (_, i) => i)
+      .filter((col) => !rowSel.events.has(col) && !rowSel.elites.has(col) && !rowSel.rests.has(col));
+    if (available.length > 0) {
+      rowSel.shops.add(available[Math.floor(rng() * available.length)]);
+    }
   }
 
   return selections;

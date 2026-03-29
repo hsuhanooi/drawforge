@@ -55,6 +55,19 @@ const createEventForNode = (node) => {
   };
 };
 
+const createCampfireEvent = () => ({
+  id: "campfire",
+  kind: "campfire",
+  text: "Rest or prepare for the road ahead.",
+  options: [
+    { id: "heal", effect: "heal", amount: 20 },
+    { id: "smith", effect: "smith" },
+    { id: "remove", effect: "remove" },
+    { id: "leave", effect: "leave" }
+  ]
+});
+
 module.exports = {
-  createEventForNode
+  createEventForNode,
+  createCampfireEvent
 };

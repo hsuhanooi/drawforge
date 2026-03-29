@@ -1,6 +1,7 @@
 const { createRewardOptions } = require("./rewards");
-const { createRelicReward, RELICS } = require("./relics");
+const { RELICS } = require("./relics");
 const { toRenderableCards } = require("./cardCatalog");
+const { createCampfireEvent } = require("./events");
 
 const pickUniqueItems = (items, count) => {
   const pool = [...items];
@@ -17,16 +18,7 @@ const createPlayRewardCardOptions = (count = 3) => toRenderableCards(createRewar
 const createPlayEventState = async (node) => {
   const kind = node.type === "rest" ? "campfire" : node.type;
   if (kind === "campfire") {
-    return {
-      kind: "campfire",
-      title: "Campfire",
-      description: "Rest or prepare for the road ahead.",
-      options: [
-        { id: "heal", label: "Rest: Heal 20 HP", effect: "heal", amount: 20 },
-        { id: "remove", label: "Meditate: Remove a card", effect: "remove" },
-        { id: "leave", label: "Leave", effect: "leave" }
-      ]
-    };
+    return createCampfireEvent();
   }
   if (kind === "event") {
     return {

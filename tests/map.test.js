@@ -46,4 +46,31 @@ describe("map generation", () => {
     expect(leftHeavy.nodes.some((node) => node.type === "elite")).toBe(true);
     expect(leftHeavy.nodes.some((node) => node.type === "boss")).toBe(true);
   });
+
+  it("includes exactly one rest node and one shop node in a 5-row map", () => {
+    const seeds = [
+      [0.1, 0.2, 0.3, 0.4],
+      [0.5, 0.6, 0.7, 0.8],
+      [0.9, 0.1, 0.5, 0.3],
+      [0.2, 0.8, 0.4, 0.6],
+      [0.3, 0.7, 0.1, 0.9]
+    ];
+    for (const vals of seeds) {
+      const map = generateMap({ rows: 5, columns: 3, rng: createSequenceRng(...vals) });
+      const restCount = map.nodes.filter((node) => node.type === "rest").length;
+      const shopCount = map.nodes.filter((node) => node.type === "shop").length;
+      expect(restCount).toBeGreaterThanOrEqual(1);
+      expect(shopCount).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("rest and shop nodes only appear in mid-map rows (not row 0, not boss/pre-boss)", () => {
+    const map = generateMap({ rows: 5, columns: 3, rng: createSequenceRng(0.2, 0.5, 0.8, 0.1) });
+    map.nodes
+      .filter((node) => node.type === "rest" || node.type === "shop")
+      .forEach((node) => {
+        expect(node.row).toBeGreaterThan(0);
+        expect(node.row).toBeLessThan(4);
+      });
+  });
 });

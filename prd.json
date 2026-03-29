@@ -504,7 +504,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Add playable/unplayable/selected states",
     "Verify cards render correctly in hand and reward screen"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -518,7 +518,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "End Turn button bottom-right, pile counters bottom-left",
     "Verify combat plays end-to-end in the visual UI"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -530,7 +530,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Style available nodes bright/clickable, visited dim, current pulsing, locked very dim",
     "Verify player can navigate the full map to the boss"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -542,7 +542,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "HP bar: CSS transition on width change for smooth animation",
     "Verify animations don't block game state updates"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -555,7 +555,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Cards fade in on render",
     "Verify selecting a card adds it to deck and advances the run"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -567,7 +567,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Collapsible deck overlay showing all cards as mini card components",
     "Verify deck contents update after rewards are claimed"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -579,13 +579,14 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "New Run button to restart",
     "Verify overlay appears on boss win and player death"
   ],
-  "passes": false
+  "passes": true
 }
 
 
 {
   "category": "plan",
   "description": "Next big version update: unified v2 client/server architecture for play.html",
+  "passes": true,
   "goal": "Make browser/play.html the canonical playable UI while keeping src/ as the only game source of truth. Eliminate split-brain logic by moving content, generation, and combat transitions behind shared server-backed actions.",
   "why_now": [
     "play.js currently duplicates cards, relics, rewards, events, map generation, and combat logic",
@@ -652,6 +653,165 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "tests assert canonical counts for cards and relics from registries",
     "tests assert play.html uses shared/server-backed endpoints for run start, node entry, rewards, events, and combat actions",
     "new content can be added by updating shared registries/source modules without parallel browser-only edits"
+  ]
+}
+
+### Milestone 8: Systems Depth + Content Expansion
+
+{
+  "category": "functional",
+  "description": "Status effects system: Strength, Dexterity, Vulnerable, Weak",
+  "steps": [
+    "Add strength/dexterity/weak to player combat state; vulnerable/weak to enemy combat state",
+    "Modify damage calc: Strength adds to attack, Weak reduces outgoing 25%, Vulnerable amplifies incoming 50%, Dexterity adds to block",
+    "Add turn decay for Weak and Vulnerable",
+    "Add applyStrength/applyDexterity/applyVulnerable/applyWeak card properties",
+    "Add new status-effect cards: war_cry, fortify, expose, cripple, titan_strike, exploit, enfeeble, echo_strike",
+    "Wire Cracked Lens, Iron Boots, Nimble Cloak, Silencing Stone, Warlord's Brand relics",
+    "Add status badges to browser combat UI",
+    "Add 21 unit tests in statusEffects.test.js"
   ],
-  "passes": false
+  "passes": true
+}
+
+{
+  "category": "functional",
+  "description": "Card upgrade system at campfire (Smith option)",
+  "steps": [
+    "Create cardUpgrade.js with UPGRADE_ID_MAP and upgradeCardInDeck helper",
+    "Add UPGRADED_CARD_ENTRIES merged into cardCatalog",
+    "Add upgradeCard(run, deckIndex) action in browserPostNodeActions.js",
+    "Add /run/upgrade-card.json endpoint in server.js",
+    "Add Smith option to campfire event in playContent.js",
+    "Add upgrade selection panel in browser/play.js renderRest()",
+    "Add 15 unit tests in cardUpgrade.test.js"
+  ],
+  "passes": true
+}
+
+{
+  "category": "functional",
+  "description": "Rest and shop nodes appear in normal map traversal",
+  "steps": [
+    "Extend buildRowTypeSelections to place 1 rest node and 1 shop node per run",
+    "Rest and shop only appear in mid-map rows (not row 0, not boss/pre-boss)",
+    "Shop prefers a different row from rest to avoid column competition",
+    "Update map.test.js to assert rest/shop presence and placement constraints"
+  ],
+  "passes": true
+}
+
+{
+  "category": "content",
+  "description": "New enemies: Hexbat and Stone Sentinel",
+  "steps": [
+    "Add Hexbat (22 HP, applies Weak 1) to combat enemy pool",
+    "Add Stone Sentinel (55 HP) to elite enemy pool alongside Cultist Captain",
+    "Wire debuff_weak intent type in applyEnemyIntent",
+    "Elite enemy rotates by (row+col) % 2 to provide variety"
+  ],
+  "passes": true
+}
+
+### Milestone 9: Relic Wiring, Card Content, Powers System
+
+{
+  "category": "structural",
+  "description": "Fix nodeResolver.js to handle rest and shop node types",
+  "steps": [
+    "Extract createCampfireEvent() from playContent.js into events.js",
+    "Add rest case to resolveNode returning state: 'rest' with campfire event",
+    "Add shop case to resolveNode returning state: 'shop'",
+    "Update playContent.js to import createCampfireEvent from events.js",
+    "Add nodeResolver tests for rest and shop node resolution"
+  ],
+  "passes": true
+}
+
+{
+  "category": "gameplay",
+  "description": "Relic wiring Phase 1: combat start and energy relics",
+  "steps": [
+    "Replace getEnergyBonus with getCombatEnergyBonus from relics.js (wires brass_lantern, crown_of_cinders, infernal_battery)",
+    "Wire storm_diadem: player starts combat charged",
+    "Wire hex_crown: enemy starts combat with Hex 1",
+    "Wire ashen_idol: +1 energy on turn 1 only",
+    "Wire empty_throne: draw +2 on turn 1, draw -1 on turn 2",
+    "Wire infernal_battery: draw -1 on turn 1",
+    "Add relicWiring.test.js with combat-start relic tests"
+  ],
+  "passes": true
+}
+
+{
+  "category": "gameplay",
+  "description": "Relic wiring Phase 2: per-card and damage relics",
+  "steps": [
+    "Wire flicker_charm: first attack each combat deals +3 damage",
+    "Wire duelists_thread: first attack each turn deals +2 damage",
+    "Wire grave_wick: first exhaust card each combat costs 0",
+    "Wire thorn_crest: deal 3 back to enemy when player takes HP damage",
+    "Wire furnace_heart: attack cards that exhaust deal +4 damage",
+    "Wire storm_vessel: become charged after turn 1 gives +1 energy",
+    "Wire crematorium_bell: first 2 exhausts grant +1 energy each",
+    "Wire black_prism: after 3 total exhausts, gain 1 energy",
+    "Wire hex_lantern: first time dealing HP damage, apply Hex 1 to enemy",
+    "Fix card routing: route card to discard/exhaust before draw effects so reshuffle works"
+  ],
+  "passes": true
+}
+
+{
+  "category": "gameplay",
+  "description": "Relic wiring Phase 3: meta and reward relics",
+  "steps": [
+    "Wire soot_vessel: heal 6 after winning at <=50% HP",
+    "Fix bone_token: cap heal at maxHealth",
+    "Wire lucky_coin: +5 gold per combat victory",
+    "Wire pilgrims_map: +3 gold per non-boss combat",
+    "Wire merchant_ledger and golden_brand: +1 card reward choice",
+    "Wire vault_key: boss rewards offer 2 relic choices",
+    "Wire leather_thread: +1 maxHealth per 3 combats won"
+  ],
+  "passes": true
+}
+
+{
+  "category": "content",
+  "description": "Implement 10 new cards: neutral utility and hex archetype",
+  "steps": [
+    "Add pommel (1, attack, Dmg 7, Draw 1) to cardCatalog.js implementedOverrides",
+    "Add brace (1, skill, Block 7) to implementedOverrides",
+    "Add insight (1, skill, Draw 2) to implementedOverrides",
+    "Add parry (0, skill, Block 3) to implementedOverrides",
+    "Add heavy_swing (2, attack, Dmg 12) to implementedOverrides",
+    "Add recover (1, skill, Block 6, Draw 1) to implementedOverrides",
+    "Add plan_ahead (0, skill, Draw 2, Exhaust) to implementedOverrides",
+    "Add deep_hex (2, skill, Hex 3) to implementedOverrides",
+    "Add black_seal (0, skill, Hex 1, Exhaust) to implementedOverrides",
+    "Add feast_on_weakness (1, attack, Dmg 5, +5 Block if Hexed) to implementedOverrides",
+    "Add malediction (1, skill, Weak 2, Hex 1) to implementedOverrides",
+    "Update cardRegistry.js status to implemented for all 10 cards",
+    "Add factory functions to cards.js and REWARD_POOL",
+    "Add newCards.test.js with coverage for all 10 cards"
+  ],
+  "passes": true
+}
+
+{
+  "category": "gameplay",
+  "description": "Powers system: persistent combat buff cards",
+  "steps": [
+    "Add combat.powers[] array initialized to [] in startCombatForNode",
+    "Route power-type cards to combat.powers (not discard/exhaust) in playCombatCard",
+    "Add turn_start hook in endCombatTurn applying each power's effect",
+    "Implement iron_will power: gain 1 Dexterity each turn",
+    "Implement burning_aura power: deal 3 damage to enemy each turn",
+    "Implement hex_resonance power: apply 1 Hex to enemy each turn",
+    "Add power card check for victory (burning_aura can kill enemy at turn start)",
+    "Add 3 power cards to cardRegistry.js as new implemented entries",
+    "Add factory functions to cards.js and REWARD_POOL",
+    "Add powers.test.js with full turn-start hook coverage"
+  ],
+  "passes": true
 }

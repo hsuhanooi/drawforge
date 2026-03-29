@@ -210,6 +210,10 @@ A few conventions are already clear from the repo:
 - add tests for every meaningful feature
 - update `progress.txt` when work is completed
 
+## Browser architecture principle
+
+The browser is a **thin client**. All definitions for cards, relics, items, and renderers live in the backend server and are served to the browser — the browser should never be the source of truth for any game data or logic. This keeps the authoritative state in one place and prevents divergence between what the browser knows and what the server knows.
+
 ## Browser/UI note
 
 The PRD says the game should work in a browser for testing, and the repo now includes a **minimal browser shell** under `browser/` plus a tiny static Node server in `server.js`.

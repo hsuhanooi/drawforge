@@ -45,8 +45,8 @@ describe("relic system", () => {
     }
   });
 
-  it("has 39 relics total", () => {
-    expect(RELICS).toHaveLength(39);
+  it("has 44 relics total", () => {
+    expect(RELICS).toHaveLength(44);
   });
 
   it("tier 1 reward (elite) only returns common or uncommon relics", () => {

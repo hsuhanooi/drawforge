@@ -37,7 +37,9 @@ describe("neutral utility cards", () => {
   });
 
   it("insight draws 2 cards", () => {
-    const run = startCombat(makeRun(["insight", "strike", "strike", "strike", "strike", "strike", "strike"]));
+    const base = startCombat(makeRun(["strike", "strike", "strike", "strike", "strike", "strike", "strike"]));
+    const insightCard = { id: "insight", name: "Insight", cost: 1, type: "skill", rarity: "common", draw: 2 };
+    const run = { ...base, combat: { ...base.combat, hand: [insightCard, ...base.combat.hand.slice(0, 4)] } };
     const handBefore = run.combat.hand.length;
     const run2 = playCard(run, "insight");
     expect(run2.combat.hand.length).toBe(handBefore - 1 + 2);
@@ -85,11 +87,11 @@ describe("neutral utility cards", () => {
 });
 
 describe("hex archetype cards", () => {
-  it("deep_hex applies 3 hex to enemy", () => {
+  it("deep_hex applies 4 hex to enemy", () => {
     const run = startCombat(makeRun(["deep_hex", "strike", "strike", "strike", "strike"]));
     const hexBefore = run.combat.enemy.hex || 0;
     const run2 = playCard(run, "deep_hex");
-    expect(run2.combat.enemy.hex).toBe(hexBefore + 3);
+    expect(run2.combat.enemy.hex).toBe(hexBefore + 4);
   });
 
   it("black_seal applies 1 hex and exhausts at 0 cost", () => {

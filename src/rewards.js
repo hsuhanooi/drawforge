@@ -7,6 +7,7 @@
 const { REWARD_POOL: rewardPool } = require("./cards");
 const { createBalanceConfig } = require("./balance");
 const { createRelicReward, createRelicChoices: createTieredRelicChoices } = require("./relics");
+const { createRandomPotion, POTION_DROP_CHANCE, MAX_POTIONS } = require("./potions");
 
 /** @type {Record<string, number>} */
 const RARITY_WEIGHTS = {
@@ -101,18 +102,24 @@ const hasRunRelic = (run, id) => run && (run.relics || []).some((r) => r.id === 
  * @param {"combat" | "elite" | "boss"} [nodeType]
  * @param {object} [run]
  * @param {object} [balanceOverrides]
- * @returns {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean }}
+ * @param {() => number} [rng]
+ * @returns {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean, potion: object | null }}
  */
-const createVictoryRewards = (nodeType = "combat", run = null, balanceOverrides = {}) => {
+const createVictoryRewards = (nodeType = "combat", run = null, balanceOverrides = {}, rng = Math.random) => {
   const extraCards = (hasRunRelic(run, "merchant_ledger") || hasRunRelic(run, "golden_brand")) ? 1 : 0;
   const cards = createRewardOptions((createBalanceConfig(balanceOverrides).rewards.cardOptionCount) + extraCards, balanceOverrides);
-  /** @type {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean }} */
+  const currentPotions = run ? (run.potions || []) : [];
+  const canReceivePotion = currentPotions.length < MAX_POTIONS;
+  const potionDrops = nodeType === "elite" ? POTION_DROP_CHANCE : 0;
+  const potion = canReceivePotion && rng() < potionDrops ? createRandomPotion(rng) : null;
+  /** @type {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean, potion: object | null }} */
   const rewards = {
     cards,
     gold: nodeType === "boss" ? 50 : nodeType === "elite" ? 25 : 12,
     relic: null,
     relics: [],
-    removeCard: false
+    removeCard: false,
+    potion
   };
 
   if (nodeType === "elite") {

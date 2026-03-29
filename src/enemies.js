@@ -83,7 +83,7 @@ const createEnemyForNode = (node, act = 1) => {
         ],
         phase2Intents: [
           { type: "multi_attack", value: 8, hits: 2, label: "Chaos Rend: 2x8" },
-          { type: "debuff_hex", value: 3, label: "Void Pulse: apply Hex 3" },
+          { type: "debuff_curse", curseId: "wound", label: "Void Brand: add Wound to deck" },
           { type: "attack", value: 18, label: "Annihilate for 18" }
         ]
       });

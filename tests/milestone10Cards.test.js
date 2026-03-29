@@ -144,11 +144,11 @@ describe("Exhaust archetype", () => {
     expect(run2.combat.exhaustPile.length).toBe(1);
   });
 
-  it("scorch_nerves deals 12 damage and exhausts", () => {
+  it("scorch_nerves deals 15 damage and exhausts", () => {
     const run = withHand(startCombat(makeRun(["scorch_nerves", "strike", "strike", "strike", "strike"])), ["scorch_nerves"]);
     const hpBefore = run.combat.enemy.health;
     const run2 = playCard(run, "scorch_nerves");
-    expect(run2.combat.enemy.health).toBe(hpBefore - 12);
+    expect(run2.combat.enemy.health).toBe(hpBefore - 15);
     expect(run2.combat.exhaustPile.some((c) => c.id === "scorch_nerves")).toBe(true);
   });
 
@@ -172,9 +172,9 @@ describe("Exhaust archetype", () => {
     const energyBefore = run.combat.player.energy;
     const handSize = run.combat.hand.length; // 3 (empty_the_chamber + 2 strikes)
     const run2 = playCard(run, "empty_the_chamber");
-    // Played empty_the_chamber (cost 1), exhausted 2 remaining strikes (+2 energy)
+    // Played empty_the_chamber (cost 1), exhausted 2 remaining strikes (+2 energy), card itself also exhausts
     expect(run2.combat.hand.length).toBe(0);
-    expect(run2.combat.exhaustPile.length).toBe(2); // the 2 strikes
+    expect(run2.combat.exhaustPile.length).toBe(3); // 2 strikes + empty_the_chamber itself
     expect(run2.combat.player.energy).toBe(energyBefore - 1 + 2);
     expect(handSize).toBe(3);
   });
@@ -183,12 +183,12 @@ describe("Exhaust archetype", () => {
 // ─── Hex archetype ────────────────────────────────────────────────────────────
 
 describe("Hex archetype", () => {
-  it("curse_spiral applies hex 1 and draws 1", () => {
+  it("curse_spiral applies hex 2 and draws 1", () => {
     const run = withHand(startCombat(makeRun(["curse_spiral", "strike", "strike", "strike", "strike", "strike", "strike"])), ["curse_spiral"]);
     const hexBefore = run.combat.enemy.hex || 0;
     const handBefore = run.combat.hand.length;
     const run2 = playCard(run, "curse_spiral");
-    expect(run2.combat.enemy.hex).toBe(hexBefore + 1);
+    expect(run2.combat.enemy.hex).toBe(hexBefore + 2);
     expect(run2.combat.hand.length).toBe(handBefore - 1 + 1);
   });
 
@@ -304,11 +304,11 @@ describe("Hex / Exhaust hybrids", () => {
     expect(run2.combat.enemy.hex).toBe(hexBefore + 2); // 1 hex per exhaust
   });
 
-  it("doom_bell applies hex 2 and exhausts all skills in hand", () => {
+  it("doom_bell applies hex 3 and exhausts all skills in hand", () => {
     const run = withHand(startCombat(makeRun(["doom_bell", "brace", "insight", "strike", "strike"])), ["doom_bell", "brace", "insight", "strike"]);
     const hexBefore = run.combat.enemy.hex || 0;
     const run2 = playCard(run, "doom_bell");
-    expect(run2.combat.enemy.hex).toBe(hexBefore + 2);
+    expect(run2.combat.enemy.hex).toBe(hexBefore + 3);
     // brace and insight are skills → exhausted; strike is attack → stays in hand
     const exhaustedIds = run2.combat.exhaustPile.map((c) => c.id);
     expect(exhaustedIds).toContain("brace");
@@ -355,7 +355,7 @@ describe("Defense / utility", () => {
     expect(run4.combat.player.energy).toBe(energyBefore - 1); // cost reduced to 1
   });
 
-  it("last_word deals 8 damage normally; 20 damage when last card in hand", () => {
+  it("last_word deals 8 damage normally; 16 damage when last card in hand", () => {
     // Not last card
     const run = withHand(startCombat(makeRun(["last_word", "strike", "strike", "strike", "strike"])), ["last_word", "strike"]);
     const hpBefore = run.combat.enemy.health;
@@ -366,7 +366,7 @@ describe("Defense / utility", () => {
     const runL = withHand(startCombat(makeRun(["last_word", "strike", "strike", "strike", "strike"])), ["last_word"]);
     const hpB2 = runL.combat.enemy.health;
     const run3 = playCard(runL, "last_word");
-    expect(run3.combat.enemy.health).toBe(hpB2 - 20); // 8 + 12 bonus
+    expect(run3.combat.enemy.health).toBe(hpB2 - 16); // 8 + 8 bonus
   });
 });
 
@@ -390,7 +390,7 @@ describe("card registry completeness after Milestone 10", () => {
     }
   });
 
-  it("total implemented card count is 60 (all cards implemented)", () => {
-    expect(IMPLEMENTED_CARD_IDS.length).toBe(60);
+  it("total implemented card count is 63 (60 designed + 3 curse cards)", () => {
+    expect(IMPLEMENTED_CARD_IDS.length).toBe(63);
   });
 });

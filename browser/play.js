@@ -4,6 +4,10 @@
   const SAVE_KEY = "drawforge.v1";
   let cardCatalog = null;
   let currentRun = null;
+  let prevMapHp   = -1;
+  let prevMapGold = -1;
+  let prevShopGold = -1;
+  let deckSortMode = "type"; // "type" | "cost"
 
   // ─── Network ──────────────────────────────────────────────────────
   async function fetchJson(url, options = {}) {
@@ -54,6 +58,124 @@
   function showOnly(screenId) {
     ALL_SCREENS.forEach((s) => (s === screenId ? show(s) : hide(s)));
     hide("deck-overlay");
+  }
+
+  // ─── Screen Transitions (Task 4) ─────────────────────────────────
+  function flashTransition(type = "flash") {
+    const ov = $id("transition-overlay");
+    if (!ov) return;
+    ov.className = type;
+    ov.addEventListener("animationend", () => { ov.className = ""; }, { once: true });
+  }
+
+  function showActTransition(actNum) {
+    return new Promise((resolve) => {
+      let el = $id("act-transition-overlay");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "act-transition-overlay";
+        const t = document.createElement("div");
+        t.className = "act-text";
+        el.appendChild(t);
+        document.body.appendChild(el);
+      }
+      el.querySelector(".act-text").textContent = `ACT ${actNum}`;
+      flashTransition("flash-white");
+      el.className = "show";
+      el.addEventListener("animationend", () => { el.className = ""; resolve(); }, { once: true });
+    });
+  }
+
+  // ─── Card Hover Preview (Task 1) ─────────────────────────────────
+  let previewHideTimer = null;
+
+  function showCardPreview(card, anchorEl) {
+    clearTimeout(previewHideTimer);
+    let popup = $id("card-preview-popup");
+    if (!popup) {
+      popup = document.createElement("div");
+      popup.id = "card-preview-popup";
+      document.body.appendChild(popup);
+    }
+    clearEl(popup);
+    popup.className = `rarity-${card.rarity || "common"}`;
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "preview-art-canvas";
+    canvas.width = 420; canvas.height = 180;
+    popup.appendChild(canvas);
+    drawCardArt(canvas, card);
+
+    const stripe = document.createElement("div");
+    stripe.className = `preview-type-stripe type-${card.type || "skill"}`;
+    popup.appendChild(stripe);
+
+    const body = document.createElement("div");
+    body.className = "preview-body";
+
+    const header = document.createElement("div");
+    header.className = "preview-header";
+    const costEl = document.createElement("div");
+    const cv = card.cost !== undefined ? card.cost : 0;
+    costEl.className = `preview-cost cost-${cv}`;
+    costEl.textContent = cv;
+    const nameEl = document.createElement("div");
+    nameEl.className = "preview-name";
+    nameEl.textContent = card.name || card.id;
+    header.appendChild(costEl);
+    header.appendChild(nameEl);
+    body.appendChild(header);
+
+    const effEl = document.createElement("div");
+    effEl.className = "preview-effect";
+    effEl.textContent = card.effectText || describeCard(card);
+    body.appendChild(effEl);
+
+    if (card.archetype) {
+      const archEl = document.createElement("div");
+      archEl.className = "preview-archetype";
+      archEl.textContent = card.archetype;
+      body.appendChild(archEl);
+    }
+    popup.appendChild(body);
+
+    // Smart positioning
+    const rect = anchorEl.getBoundingClientRect();
+    const pw = 210; const ph = 240;
+    let left = rect.left + rect.width / 2 - pw / 2;
+    let top = rect.top - ph - 14;
+    if (top < 8) top = rect.bottom + 10;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    top  = Math.max(8, Math.min(top,  window.innerHeight - ph - 8));
+    popup.style.left = `${left}px`;
+    popup.style.top  = `${top}px`;
+    popup.style.display = "block";
+    // Restart animation
+    popup.style.animation = "none";
+    popup.offsetHeight;
+    popup.style.animation = "";
+  }
+
+  function hideCardPreview() {
+    previewHideTimer = setTimeout(() => {
+      const popup = $id("card-preview-popup");
+      if (popup) popup.style.display = "none";
+    }, 60);
+  }
+
+  // ─── Option icon helper ───────────────────────────────────────────
+  function getOptionIcon(option) {
+    const label  = (option.label  || "").toLowerCase();
+    const effect = (option.effect || option.id || "").toLowerCase();
+    if (effect === "heal"   || label.includes("heal") || label.includes("rest"))    return "❤️";
+    if (effect === "smith"  || label.includes("upgrade") || label.includes("forge")) return "⚒️";
+    if (effect === "remove" || label.includes("remove"))                             return "🗑️";
+    if (label.includes("gold") || label.includes("coin"))                           return "💰";
+    if (label.includes("card") || label.includes("deck"))                           return "🃏";
+    if (label.includes("relic"))                                                     return "✨";
+    if (label.includes("curse") || label.includes("lose") || label.includes("pain")) return "💀";
+    if (label.includes("skip") || label.includes("leave") || label.includes("pass")) return "➡️";
+    return "❓";
   }
 
   // ─── Card Description ─────────────────────────────────────────────
@@ -198,6 +320,10 @@
       setTimeout(() => div.classList.remove("dealing"), dealDelay + 400);
     }
 
+    // Hover preview
+    div.addEventListener("mouseenter", () => showCardPreview(card, div));
+    div.addEventListener("mouseleave", hideCardPreview);
+
     return div;
   }
 
@@ -249,6 +375,424 @@
     if (!strip) return;
     clearEl(strip);
     (relics || []).forEach((r) => strip.appendChild(makeRelicBadge(r)));
+  }
+
+  const POTION_ICONS = { healing_potion: "🧪", strength_potion: "💪", hex_vial: "☠️" };
+
+  function renderPotionStrip(potions) {
+    let strip = $id("potion-strip");
+    if (!strip) {
+      strip = document.createElement("div");
+      strip.id = "potion-strip";
+      strip.className = "potion-strip";
+      const combatTop = $id("combat-topbar") || $id("combat-relic-strip")?.parentElement;
+      if (combatTop) combatTop.appendChild(strip);
+    }
+    clearEl(strip);
+    potions.forEach((potion) => {
+      const btn = document.createElement("button");
+      btn.className = "potion-btn";
+      btn.title = `${potion.name}: ${potion.description}`;
+      const icon = document.createElement("span");
+      icon.textContent = POTION_ICONS[potion.id] || "🫧";
+      btn.appendChild(icon);
+      const label = document.createElement("span");
+      label.className = "potion-name";
+      label.textContent = potion.name;
+      btn.appendChild(label);
+      btn.addEventListener("click", async () => {
+        currentRun = await api("/run/use-potion.json", { run: currentRun, potionId: potion.id });
+        saveRun(currentRun);
+        render();
+      });
+      btn.addEventListener("contextmenu", async (e) => {
+        e.preventDefault();
+        currentRun = await api("/run/discard-potion.json", { run: currentRun, potionId: potion.id });
+        saveRun(currentRun);
+        render();
+      });
+      strip.appendChild(btn);
+    });
+  }
+
+  // ─── Enemy Avatar Art (Task 3) ────────────────────────────────────
+  let enemyIdleRaf = null;
+
+  function drawEnemyArt(canvas, enemy) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const id = (enemy.id || enemy.name || "").toLowerCase();
+    const isPhase2 = enemy.phase === 2;
+
+    if (id.includes("slime") || id.includes("ooze")) {
+      // Green blob
+      const g = ctx.createRadialGradient(w*0.5, h*0.6, 0, w*0.5, h*0.6, w*0.42);
+      g.addColorStop(0, isPhase2 ? "#80ff80" : "#44cc44");
+      g.addColorStop(0.7, isPhase2 ? "#208820" : "#156015");
+      g.addColorStop(1, "transparent");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(w*0.5, h*0.62, w*0.38, h*0.35, 0, 0, Math.PI*2);
+      ctx.fill();
+      // eyes
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.ellipse(w*0.38, h*0.5, 6, 7, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.62, h*0.5, 6, 7, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#222";
+      ctx.beginPath(); ctx.ellipse(w*0.38, h*0.51, 3, 4, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.62, h*0.51, 3, 4, 0, 0, Math.PI*2); ctx.fill();
+
+    } else if (id.includes("cultist") || id.includes("captain")) {
+      // Hooded figure
+      const bgG = ctx.createRadialGradient(w*0.5, h*0.4, 0, w*0.5, h*0.5, w*0.5);
+      bgG.addColorStop(0, isPhase2 ? "rgba(100,0,0,0.4)" : "rgba(60,0,80,0.3)");
+      bgG.addColorStop(1, "transparent");
+      ctx.fillStyle = bgG; ctx.fillRect(0, 0, w, h);
+      // robe
+      ctx.fillStyle = isPhase2 ? "#440000" : "#1a0028";
+      ctx.beginPath();
+      ctx.moveTo(w*0.22, h*0.95); ctx.lineTo(w*0.28, h*0.45);
+      ctx.lineTo(w*0.5, h*0.3); ctx.lineTo(w*0.72, h*0.45);
+      ctx.lineTo(w*0.78, h*0.95); ctx.closePath(); ctx.fill();
+      // hood
+      ctx.fillStyle = isPhase2 ? "#660000" : "#2d0040";
+      ctx.beginPath(); ctx.ellipse(w*0.5, h*0.3, w*0.18, h*0.2, 0, 0, Math.PI*2); ctx.fill();
+      // glowing eyes
+      const eyeColor = isPhase2 ? "#ff2020" : "#cc44ff";
+      ctx.fillStyle = eyeColor;
+      ctx.shadowColor = eyeColor; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.ellipse(w*0.43, h*0.28, 3, 3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.57, h*0.28, 3, 3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+    } else if (id.includes("sentinel") || id.includes("stone") || id.includes("golem")) {
+      // Rocky mass
+      ctx.fillStyle = isPhase2 ? "#888" : "#556";
+      ctx.beginPath();
+      ctx.moveTo(w*0.2, h*0.9); ctx.lineTo(w*0.15, h*0.55);
+      ctx.lineTo(w*0.25, h*0.35); ctx.lineTo(w*0.4, h*0.2);
+      ctx.lineTo(w*0.6, h*0.2); ctx.lineTo(w*0.75, h*0.35);
+      ctx.lineTo(w*0.85, h*0.55); ctx.lineTo(w*0.8, h*0.9);
+      ctx.closePath(); ctx.fill();
+      // cracks
+      ctx.strokeStyle = isPhase2 ? "#aaa" : "#334";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(w*0.45, h*0.25); ctx.lineTo(w*0.42, h*0.55); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w*0.6, h*0.3); ctx.lineTo(w*0.65, h*0.6); ctx.stroke();
+      // eyes glow
+      const stoneEye = isPhase2 ? "#88ffff" : "#ff8844";
+      ctx.fillStyle = stoneEye; ctx.shadowColor = stoneEye; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.ellipse(w*0.38, h*0.44, 5, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.62, h*0.44, 5, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+    } else if (id.includes("hex") || id.includes("fiend")) {
+      // Jagged dark figure with purple glow
+      const aura = ctx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.48);
+      aura.addColorStop(0, "rgba(120,40,180,0.35)");
+      aura.addColorStop(1, "transparent");
+      ctx.fillStyle = aura; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = isPhase2 ? "#300050" : "#1a0030";
+      // jagged body
+      ctx.beginPath();
+      ctx.moveTo(w*0.5, h*0.1);
+      ctx.lineTo(w*0.65, h*0.25); ctx.lineTo(w*0.8, h*0.2);
+      ctx.lineTo(w*0.75, h*0.4); ctx.lineTo(w*0.85, h*0.6);
+      ctx.lineTo(w*0.65, h*0.55); ctx.lineTo(w*0.6, h*0.85);
+      ctx.lineTo(w*0.5, h*0.7);  ctx.lineTo(w*0.4, h*0.85);
+      ctx.lineTo(w*0.35, h*0.55); ctx.lineTo(w*0.15, h*0.6);
+      ctx.lineTo(w*0.25, h*0.4);  ctx.lineTo(w*0.2, h*0.2);
+      ctx.lineTo(w*0.35, h*0.25); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = isPhase2 ? "#aa44ff" : "#8833dd";
+      ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = "#dd88ff"; ctx.shadowColor = "#aa44ff"; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.ellipse(w*0.4, h*0.35, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.6, h*0.35, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+    } else if (id.includes("specter") || id.includes("spirit") || id.includes("void") && !id.includes("sovereign")) {
+      // Wispy translucent form
+      for (let i = 0; i < 4; i++) {
+        const g2 = ctx.createRadialGradient(w*(0.3+i*0.12), h*(0.3+i*0.1), 0, w*(0.3+i*0.12), h*(0.3+i*0.1), 30+i*8);
+        g2.addColorStop(0, isPhase2 ? "rgba(180,60,255,0.4)" : "rgba(80,80,200,0.3)");
+        g2.addColorStop(1, "transparent");
+        ctx.fillStyle = g2; ctx.fillRect(0, 0, w, h);
+      }
+      ctx.strokeStyle = isPhase2 ? "rgba(200,100,255,0.6)" : "rgba(100,100,255,0.5)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(w*0.3, h*0.8); ctx.bezierCurveTo(w*0.2,h*0.5, w*0.4,h*0.2, w*0.5,h*0.15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w*0.7, h*0.8); ctx.bezierCurveTo(w*0.8,h*0.5, w*0.6,h*0.2, w*0.5,h*0.15); ctx.stroke();
+      ctx.fillStyle = isPhase2 ? "#ff88ff" : "#8888ff";
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.ellipse(w*0.42, h*0.3, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.58, h*0.3, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+    } else if (id.includes("colossus") || id.includes("bone")) {
+      // Stacked bone shapes
+      ctx.strokeStyle = isPhase2 ? "#eee" : "#ccc";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      // spine
+      ctx.beginPath(); ctx.moveTo(w*0.5, h*0.15); ctx.lineTo(w*0.5, h*0.85); ctx.stroke();
+      // ribs
+      for (let r = 0; r < 5; r++) {
+        const y = h*(0.28 + r*0.11);
+        ctx.beginPath(); ctx.moveTo(w*0.5, y); ctx.lineTo(w*(0.18+r*0.03), y+10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(w*0.5, y); ctx.lineTo(w*(0.82-r*0.03), y+10); ctx.stroke();
+      }
+      // skull
+      ctx.fillStyle = isPhase2 ? "#fff" : "#ddd";
+      ctx.beginPath(); ctx.ellipse(w*0.5, h*0.18, 16, 14, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#111";
+      ctx.beginPath(); ctx.ellipse(w*0.43, h*0.17, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.57, h*0.17, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      if (isPhase2) {
+        ctx.fillStyle = "#ff4444"; ctx.shadowColor = "#ff2222"; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.ellipse(w*0.43, h*0.17, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(w*0.57, h*0.17, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+    } else if (id.includes("sovereign") || id.includes("boss")) {
+      // Layered boss: large imposing form
+      const c1 = isPhase2 ? "#300030" : "#0d001a";
+      const c2 = isPhase2 ? "#800080" : "#440066";
+      const crown = isPhase2 ? "#ff44ff" : "#aa44ff";
+      const bgG2 = ctx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.6);
+      bgG2.addColorStop(0, isPhase2 ? "rgba(150,0,150,0.4)" : "rgba(80,0,120,0.3)");
+      bgG2.addColorStop(1, "transparent");
+      ctx.fillStyle = bgG2; ctx.fillRect(0, 0, w, h);
+      // core body
+      ctx.fillStyle = c1;
+      ctx.beginPath(); ctx.ellipse(w*0.5, h*0.55, w*0.3, h*0.38, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = c2;
+      ctx.beginPath(); ctx.ellipse(w*0.5, h*0.5, w*0.22, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+      // crown spikes
+      ctx.fillStyle = crown; ctx.shadowColor = crown; ctx.shadowBlur = 15;
+      for (let s = 0; s < 5; s++) {
+        const angle = (Math.PI * 1.3) + s * (Math.PI * 0.85 / 4);
+        const bx = w*0.5 + Math.cos(angle)*w*0.2;
+        const by = h*0.22 + Math.sin(angle)*h*0.18;
+        ctx.beginPath(); ctx.moveTo(bx, by);
+        ctx.lineTo(w*0.5 + Math.cos(angle)*w*0.35, h*0.22 + Math.sin(angle)*h*0.35);
+        ctx.lineWidth = 2; ctx.strokeStyle = crown; ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      // eyes
+      const eyeC = isPhase2 ? "#ff00ff" : "#cc88ff";
+      ctx.fillStyle = eyeC; ctx.shadowColor = eyeC; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.ellipse(w*0.38, h*0.42, 7, 8, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.62, h*0.42, 7, 8, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+    } else {
+      // Generic fallback enemy
+      const fg = ctx.createRadialGradient(w*0.5, h*0.45, 0, w*0.5, h*0.45, w*0.38);
+      fg.addColorStop(0, "#554466"); fg.addColorStop(1, "#221133");
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.ellipse(w*0.5, h*0.45, w*0.3, h*0.35, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#ff8844"; ctx.shadowColor = "#ff6622"; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.ellipse(w*0.4, h*0.38, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w*0.6, h*0.38, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function startEnemyIdle() {
+    if (enemyIdleRaf) cancelAnimationFrame(enemyIdleRaf);
+    const canvas = $id("enemy-canvas");
+    if (!canvas) return;
+    function tick(ts) {
+      const offset = Math.sin(ts / 900) * 3;
+      canvas.style.transform = `translateY(${offset}px)`;
+      enemyIdleRaf = requestAnimationFrame(tick);
+    }
+    enemyIdleRaf = requestAnimationFrame(tick);
+  }
+
+  function stopEnemyIdle() {
+    if (enemyIdleRaf) { cancelAnimationFrame(enemyIdleRaf); enemyIdleRaf = null; }
+    const canvas = $id("enemy-canvas");
+    if (canvas) canvas.style.transform = "";
+  }
+
+  function flashEnemyHit() {
+    const canvas = $id("enemy-canvas");
+    if (!canvas) return;
+    canvas.classList.add("hit-flash");
+    canvas.addEventListener("animationend", () => canvas.classList.remove("hit-flash"), { once: true });
+  }
+
+  // ─── Combat Atmosphere (Task 5) ───────────────────────────────────
+  function renderCombatBg(nodeType) {
+    const bg = $id("combat-bg");
+    if (!bg) return;
+    clearEl(bg);
+
+    if (nodeType === "elite") {
+      const glow = document.createElement("div");
+      glow.className = "ember-glow";
+      bg.appendChild(glow);
+      for (let i = 0; i < 5; i++) {
+        const spark = document.createElement("div");
+        spark.className = "ember-spark";
+        spark.style.left = `${15 + Math.random() * 70}%`;
+        spark.style.bottom = `${Math.random() * 20}%`;
+        const dy = -(80 + Math.random() * 120);
+        const dx = (Math.random() - 0.5) * 60;
+        spark.style.setProperty("--ember-dy", `${dy}px`);
+        spark.style.setProperty("--ember-dx", `${dx}px`);
+        spark.style.animationDuration = `${1.5 + Math.random() * 2}s`;
+        spark.style.animationDelay = `${Math.random() * 2}s`;
+        bg.appendChild(spark);
+      }
+    } else if (nodeType === "boss") {
+      const vig = document.createElement("div");
+      vig.className = "boss-vignette";
+      bg.appendChild(vig);
+      for (let i = 0; i < 3; i++) {
+        const bolt = document.createElement("div");
+        bolt.className = "boss-lightning";
+        bolt.style.left = `${20 + i * 30}%`;
+        bolt.style.height = `${40 + Math.random() * 40}%`;
+        bolt.style.animationDuration = `${3 + Math.random() * 4}s`;
+        bolt.style.animationDelay = `${Math.random() * 4}s`;
+        bg.appendChild(bolt);
+      }
+    } else {
+      // Normal: smoke orbs
+      const colors = ["#2a3060", "#1a2040", "#302040", "#202840"];
+      for (let i = 0; i < 6; i++) {
+        const orb = document.createElement("div");
+        orb.className = "smoke-orb";
+        const size = 80 + Math.random() * 120;
+        orb.style.width = orb.style.height = `${size}px`;
+        orb.style.left = `${Math.random() * 90}%`;
+        orb.style.top  = `${Math.random() * 80}%`;
+        orb.style.background = colors[Math.floor(Math.random() * colors.length)];
+        orb.style.setProperty("--smoke-dy", `${-30 - Math.random() * 50}px`);
+        orb.style.setProperty("--smoke-dx", `${(Math.random() - 0.5) * 40}px`);
+        orb.style.animationDuration = `${8 + Math.random() * 6}s`;
+        orb.style.animationDelay = `${Math.random() * 4}s`;
+        bg.appendChild(orb);
+      }
+    }
+  }
+
+  // ─── Victory Fanfare (Task 9) ─────────────────────────────────────
+  function screenShake() {
+    const sc = $id("screen-combat");
+    if (!sc) return;
+    sc.classList.add("shaking");
+    sc.addEventListener("animationend", () => sc.classList.remove("shaking"), { once: true });
+  }
+
+  function spawnKillConfetti(anchorEl, count = 22) {
+    if (!anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ["#f0c040", "#ff8c40", "#ff4444", "#cc44ff", "#44ccff"];
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement("div");
+      piece.className = "kill-confetti";
+      piece.style.left = `${cx}px`;
+      piece.style.top  = `${cy}px`;
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      const angle = Math.random() * Math.PI * 2;
+      const dist  = 40 + Math.random() * 110;
+      piece.style.setProperty("--kx", `${Math.cos(angle) * dist}px`);
+      piece.style.setProperty("--ky", `${Math.sin(angle) * dist}px`);
+      piece.style.animationDuration = `${0.45 + Math.random() * 0.5}s`;
+      document.body.appendChild(piece);
+      piece.addEventListener("animationend", () => piece.remove());
+    }
+  }
+
+  function showKillTextOverlay(text, color) {
+    const el = document.createElement("div");
+    el.className = "kill-text-overlay";
+    el.style.color = color;
+    el.textContent = text;
+    document.body.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
+
+  function showKillFlash() {
+    const el = document.createElement("div");
+    el.className = "kill-flash-overlay";
+    document.body.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
+
+  // ─── Hand Arc (Task 2) ────────────────────────────────────────────
+  function applyHandArc(handArea) {
+    const cards = Array.from(handArea.querySelectorAll(".card-component"));
+    const n = cards.length;
+    if (n === 0) return;
+    const center = (n - 1) / 2;
+    const ROT_STEP = 3.5;
+    const Y_STEP = 5;
+    cards.forEach((card, i) => {
+      const offset = i - center;
+      const rot = offset * ROT_STEP;
+      const ty  = Math.abs(offset) * Y_STEP;
+      card.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
+      card.style.setProperty("--arc-rot", `${rot}deg`);
+      card.addEventListener("mouseenter", () => {
+        card.style.transform = `translateY(-28px) scale(1.1) rotate(0deg)`;
+        card.style.zIndex = "30";
+      }, { capture: false });
+      card.addEventListener("mouseleave", () => {
+        card.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
+        card.style.zIndex = "";
+      }, { capture: false });
+    });
+  }
+
+  // ─── Intent Icon System (Task 10) ─────────────────────────────────
+  function renderIntent(intent) {
+    const box = $id("intent-box");
+    const actionEl = $id("intent-action");
+    if (!box || !actionEl) return;
+
+    const ICONS = {
+      attack:       "⚔️",
+      multi_attack: "⚔️⚔️",
+      block:        "🛡️",
+      buff:         "💪",
+      debuff_weak:  "💀",
+      debuff_hex:   "☠️",
+      debuff_curse: "👁️",
+      unknown:      "❓"
+    };
+
+    if (!intent) {
+      actionEl.innerHTML = '<span class="intent-value-lg neutral">—</span>';
+      box.classList.remove("danger");
+      return;
+    }
+
+    const icon = ICONS[intent.type] || "❓";
+    const isAttack = intent.type === "attack" || intent.type === "multi_attack";
+    const isDanger = isAttack && (intent.value || 0) >= 10;
+
+    let valueHtml;
+    if (isAttack) {
+      const hits = intent.hits ? ` ×${intent.hits}` : "";
+      valueHtml = `<span class="intent-value-lg">${intent.value || "?"}${hits}</span>`;
+    } else if (intent.value) {
+      valueHtml = `<span class="intent-value-lg neutral">${intent.label || intent.type}</span>`;
+    } else {
+      valueHtml = `<span class="intent-value-lg neutral">${intent.label || intent.type}</span>`;
+    }
+
+    actionEl.innerHTML = `<span class="intent-icon-lg">${icon}</span>${valueHtml}`;
+    box.classList.toggle("danger", isDanger);
   }
 
   // ─── Animations ───────────────────────────────────────────────────
@@ -323,31 +867,31 @@
   }
 
   // ─── Energy Pips ─────────────────────────────────────────────────
+  let prevEnergy = 0;
+
   function renderEnergyPips(current, max) {
     const pipsEl = $id("energy-pips");
     if (!pipsEl) return;
+    const isRefill = current > prevEnergy;
     clearEl(pipsEl);
     for (let i = 0; i < max; i++) {
       const pip = document.createElement("div");
-      pip.className = `energy-pip${i < current ? " filled" : ""}`;
+      if (i < current) {
+        pip.className = "energy-pip filled";
+        if (isRefill) {
+          pip.style.animationDelay = `${i * 60}ms`;
+          pip.classList.add("cascade-fill");
+          pip.addEventListener("animationend", () => pip.classList.remove("cascade-fill"), { once: true });
+        }
+      } else {
+        pip.className = "energy-pip";
+      }
       pipsEl.appendChild(pip);
     }
+    prevEnergy = current;
   }
 
   // ─── Status Badges ────────────────────────────────────────────────
-  function renderBadges(badgesId, stats) {
-    const el = $id(badgesId);
-    if (!el) return;
-    clearEl(el);
-    stats.forEach(({ label, cls, value }) => {
-      if (!value) return;
-      const badge = document.createElement("div");
-      badge.className = `badge ${cls}`;
-      badge.textContent = `${label} ${value}`;
-      el.appendChild(badge);
-    });
-  }
-
   // ─── Deck helpers ─────────────────────────────────────────────────
   function getDeckCards() {
     const deck = currentRun?.player?.deck || [];
@@ -361,11 +905,65 @@
   function openDeckOverlay() {
     const container = $id("deck-panel-cards");
     if (!container) return;
-    clearEl(container);
+
     const cards = getDeckCards();
     const countLabel = $id("deck-panel-title");
     if (countLabel) countLabel.textContent = `Your Deck (${cards.length})`;
-    cards.forEach((card) => container.appendChild(makeCard(card, { dealDelay: -1 })));
+
+    // Controls row (sort + summary) — create once, reuse
+    let controls = $id("deck-overlay-controls");
+    if (!controls) {
+      controls = document.createElement("div");
+      controls.id = "deck-overlay-controls";
+      container.parentElement?.insertBefore(controls, container);
+    }
+    clearEl(controls);
+
+    const sortBtn = document.createElement("button");
+    sortBtn.id = "deck-sort-btn";
+    sortBtn.textContent = deckSortMode === "type" ? "Sort: Type" : "Sort: Cost";
+    sortBtn.addEventListener("click", () => {
+      deckSortMode = deckSortMode === "type" ? "cost" : "type";
+      openDeckOverlay();
+    });
+
+    const typeCounts = { attack: 0, skill: 0, power: 0, curse: 0 };
+    cards.forEach((c) => { if (typeCounts[c.type] !== undefined) typeCounts[c.type]++; });
+    const parts = [
+      typeCounts.attack && `${typeCounts.attack}A`,
+      typeCounts.skill  && `${typeCounts.skill}S`,
+      typeCounts.power  && `${typeCounts.power}P`,
+      typeCounts.curse  && `${typeCounts.curse}✗`
+    ].filter(Boolean);
+    const summary = document.createElement("span");
+    summary.id = "deck-summary";
+    summary.textContent = `${cards.length} cards · ${parts.join(" ")}`;
+
+    controls.appendChild(sortBtn);
+    controls.appendChild(summary);
+
+    // Render sorted cards
+    clearEl(container);
+    const sorted = [...cards];
+    if (deckSortMode === "type") {
+      const typeOrder = { attack: 0, skill: 1, power: 2, curse: 3 };
+      sorted.sort((a, b) => (typeOrder[a.type] ?? 4) - (typeOrder[b.type] ?? 4) || a.name.localeCompare(b.name));
+      let lastType = null;
+      sorted.forEach((card) => {
+        if (card.type !== lastType) {
+          const divider = document.createElement("div");
+          divider.className = "deck-type-header";
+          divider.textContent = card.type.toUpperCase();
+          container.appendChild(divider);
+          lastType = card.type;
+        }
+        container.appendChild(makeCard(card, { dealDelay: -1 }));
+      });
+    } else {
+      sorted.sort((a, b) => (a.cost || 0) - (b.cost || 0) || a.name.localeCompare(b.name));
+      sorted.forEach((card) => container.appendChild(makeCard(card, { dealDelay: -1 })));
+    }
+
     show("deck-overlay");
   }
 
@@ -397,15 +995,39 @@
     return "locked";
   }
 
+  let lastScreen = null;
+
   function renderMap() {
     if (!currentRun?.map) return;
+    if (lastScreen !== "map") flashTransition("flash");
+    lastScreen = "map";
     showOnly("screen-map");
 
-    const maxHp = currentRun.player.maxHealth || 80;
-    $id("map-hp").textContent = `${currentRun.player.health}/${maxHp}`;
-    $id("map-gold").textContent = currentRun.player.gold;
+    const maxHp  = currentRun.player.maxHealth || 80;
+    const newHp   = currentRun.player.health;
+    const newGold = currentRun.player.gold;
+
+    const hpEl   = $id("map-hp");
+    const goldEl = $id("map-gold");
+    if (hpEl)   hpEl.textContent   = `${newHp}/${maxHp}`;
+    if (goldEl) goldEl.textContent = newGold;
     $id("map-deck-count").textContent = (currentRun.player.deck || []).length;
     renderRelicStrip("map-relic-strip", currentRun.relics || []);
+
+    // Flash stats on change
+    const flashStat = (el, prev, cur) => {
+      if (prev >= 0 && cur !== prev && el) {
+        el.classList.remove("flashing");
+        requestAnimationFrame(() => {
+          el.classList.add("flashing");
+          el.addEventListener("animationend", () => el.classList.remove("flashing"), { once: true });
+        });
+      }
+    };
+    flashStat(hpEl,   prevMapHp,   newHp);
+    flashStat(goldEl, prevMapGold, newGold);
+    prevMapHp   = newHp;
+    prevMapGold = newGold;
 
     const canvas = $id("map-canvas");
     const svg = $id("map-svg");
@@ -426,8 +1048,17 @@
       const rowNodes = nodes.filter((n) => n.row === dataRow);
       if (!rowNodes.length) continue;
 
+      const rowWrap = document.createElement("div");
+      rowWrap.className = "map-row-wrap";
+
+      const rowLabel = document.createElement("div");
+      rowLabel.className = "map-row-label";
+      rowLabel.textContent = dataRow === totalRows - 1 ? "BOSS" : `F${dataRow + 1}`;
+      rowWrap.appendChild(rowLabel);
+
       const rowEl = document.createElement("div");
       rowEl.className = "map-row";
+      rowWrap.appendChild(rowEl);
 
       const sortedNodes = rowNodes.slice().sort((a, b) => a.col - b.col);
       sortedNodes.forEach((node) => {
@@ -449,6 +1080,21 @@
         labelEl.textContent = node.type.toUpperCase();
         nodeEl.appendChild(labelEl);
 
+        // Pulse ring for current node
+        if (state === "current") {
+          const ring = document.createElement("div");
+          ring.className = "node-pulse-ring";
+          nodeEl.appendChild(ring);
+        }
+
+        // Hover tooltip
+        const tip = document.createElement("div");
+        tip.className = "node-tooltip";
+        tip.textContent = node.enemyName
+          ? `${node.type.toUpperCase()} — ${node.enemyName}`
+          : node.type.toUpperCase();
+        nodeEl.appendChild(tip);
+
         if (state === "available") {
           nodeEl.addEventListener("click", () => enterNode(node));
         }
@@ -456,7 +1102,7 @@
         rowEl.appendChild(nodeEl);
       });
 
-      canvas.insertBefore(rowEl, svg);
+      canvas.insertBefore(rowWrap, svg);
     }
 
     // Draw SVG paths after layout
@@ -481,26 +1127,53 @@
 
     svg.setAttribute("viewBox", `0 0 ${canvasRect.width} ${canvasRect.height}`);
 
+    const visitedIds = new Set(
+      (currentRun.map?.nodes || [])
+        .filter((n) => {
+          const s = getNodeState(n);
+          return s === "visited" || s === "current";
+        })
+        .map((n) => n.id)
+    );
+
     nodes.forEach((node) => {
       if (!nodeCenters[node.id]) return;
       (node.next || []).forEach((nextId) => {
         if (!nodeCenters[nextId]) return;
         const start = nodeCenters[node.id];
-        const end = nodeCenters[nextId];
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", start.x);
-        line.setAttribute("y1", start.y);
-        line.setAttribute("x2", end.x);
-        line.setAttribute("y2", end.y);
-        line.setAttribute("stroke", "#252e4a");
-        line.setAttribute("stroke-width", "2");
-        line.setAttribute("stroke-linecap", "round");
-        svg.appendChild(line);
+        const end   = nodeCenters[nextId];
+        const mx = (start.x + end.x) / 2;
+        const my = (start.y + end.y) / 2;
+        const curve = 18;
+        const cx = mx + (Math.random() > 0.5 ? curve : -curve);
+        const cy = my;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${start.x} ${start.y} Q ${cx} ${cy} ${end.x} ${end.y}`);
+        const isVisited = visitedIds.has(node.id);
+        path.setAttribute("stroke", isVisited ? "#1e2840" : "#3a4a7a");
+        path.setAttribute("stroke-width", isVisited ? "1.5" : "2");
+        path.setAttribute("stroke-dasharray", isVisited ? "6 4" : "none");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("fill", "none");
+        if (!isVisited) {
+          path.setAttribute("filter", "url(#path-glow)");
+        }
+        svg.appendChild(path);
       });
     });
+
+    // Add glow filter for available paths
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    defs.innerHTML = `
+      <filter id="path-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>`;
+    svg.insertBefore(defs, svg.firstChild);
   }
 
   async function enterNode(node) {
+    flashTransition(node.type === "boss" ? "flash-slow" : "flash");
     const result = await api("/run/enter-node.json", { run: currentRun, nodeId: node.id });
     currentRun = result.run;
 
@@ -517,9 +1190,38 @@
     render();
   }
 
+  // ─── Badge tracking for animations (Task 7) ──────────────────────
+  let prevBadgeValues = {};
+
+  function renderBadgesAnimated(badgesId, stats) {
+    const el = $id(badgesId);
+    if (!el) return;
+    clearEl(el);
+    stats.forEach(({ label, cls, value, key }) => {
+      if (!value) return;
+      const badge = document.createElement("div");
+      badge.className = `badge ${cls}`;
+      badge.textContent = `${label} ${value}`;
+      const trackKey = `${badgesId}.${key || cls}`;
+      const prev = prevBadgeValues[trackKey] || 0;
+      if (value > prev) {
+        // Pop animation on increase
+        setTimeout(() => {
+          badge.classList.add("badge-pop");
+          badge.addEventListener("animationend", () => badge.classList.remove("badge-pop"), { once: true });
+        }, 10);
+      }
+      prevBadgeValues[trackKey] = value;
+      el.appendChild(badge);
+    });
+  }
+
   // ─── Screen: Combat ───────────────────────────────────────────────
   function renderCombat() {
     if (!currentRun?.combat) return;
+    const enteringCombat = lastScreen !== "combat";
+    if (enteringCombat) flashTransition("flash-slow");
+    lastScreen = "combat";
     showOnly("screen-combat");
 
     const { combat } = currentRun;
@@ -530,18 +1232,20 @@
     const nodeType = combat.nodeType || "combat";
     $id("combat-floor-label").textContent = nodeType.toUpperCase();
     renderRelicStrip("combat-relic-strip", currentRun.relics || []);
+    // Only re-render background when entering combat (not every card play)
+    if (enteringCombat) renderCombatBg(nodeType);
 
     // Player panel
     $id("player-hp-current").textContent = combat.player.health;
     $id("player-hp-max").textContent = maxHp;
     updateHPBar("player-hp-bar", combat.player.health, maxHp);
     renderEnergyPips(combat.player.energy, 3 + ((currentRun.relics || []).some((r) => r.id === "ember_ring") ? 1 : 0));
-    renderBadges("player-badges", [
-      { label: "🛡️", cls: "block", value: combat.player.block || 0 },
-      { label: "⚡", cls: "charged", value: combat.player.charged ? 1 : 0 },
-      { label: "💪", cls: "strength", value: combat.player.strength || 0 },
-      { label: "🦶", cls: "dexterity", value: combat.player.dexterity || 0 },
-      { label: "😵", cls: "weak", value: combat.player.weak || 0 }
+    renderBadgesAnimated("player-badges", [
+      { label: "🛡️", cls: "block",     value: combat.player.block || 0,         key: "block" },
+      { label: "⚡",  cls: "charged",   value: combat.player.charged ? 1 : 0,    key: "charged" },
+      { label: "💪",  cls: "strength",  value: combat.player.strength || 0,      key: "strength" },
+      { label: "🦶",  cls: "dexterity", value: combat.player.dexterity || 0,     key: "dexterity" },
+      { label: "😵",  cls: "weak",      value: combat.player.weak || 0,          key: "weak" }
     ]);
 
     // Enemy panel
@@ -549,23 +1253,46 @@
     $id("enemy-hp-current").textContent = Math.max(0, combat.enemy.health);
     $id("enemy-hp-max").textContent = enemyMaxHp;
     updateHPBar("enemy-hp-bar", combat.enemy.health, enemyMaxHp);
-    renderBadges("enemy-badges", [
-      { label: "🛡️", cls: "block", value: combat.enemy.block || 0 },
-      { label: "☠️", cls: "hex", value: combat.enemy.hex || 0 },
-      { label: "🎯", cls: "vulnerable", value: combat.enemy.vulnerable || 0 },
-      { label: "😵", cls: "weak", value: combat.enemy.weak || 0 }
+    renderBadgesAnimated("enemy-badges", [
+      { label: "🛡️", cls: "block",      value: combat.enemy.block || 0,      key: "block" },
+      { label: "☠️",  cls: "hex",        value: combat.enemy.hex || 0,        key: "hex" },
+      { label: "🎯",  cls: "vulnerable", value: combat.enemy.vulnerable || 0, key: "vulnerable" },
+      { label: "😵",  cls: "weak",       value: combat.enemy.weak || 0,       key: "weak" }
     ]);
 
-    // Intent
-    const intent = combat.enemyIntent;
-    $id("intent-action").textContent = intent ? intent.label : "—";
+    // Enemy avatar art
+    const enemyCanvas = $id("enemy-canvas");
+    if (enemyCanvas) {
+      drawEnemyArt(enemyCanvas, combat.enemy);
+      startEnemyIdle();
+    }
+
+    // Intent with icon system
+    renderIntent(combat.enemyIntent);
 
     // Pile counters
     $id("draw-count").textContent = (combat.drawPile || []).length;
     $id("discard-count").textContent = (combat.discardPile || []).length;
     $id("exhaust-count").textContent = (combat.exhaustPile || []).length;
 
-    // Hand
+    // Potion slots
+    renderPotionStrip(currentRun.potions || []);
+
+    // Curse count on deck button
+    const curseCount = (currentRun.player.deck || []).filter((id) => ["wound", "decay", "parasite"].includes(id)).length;
+    const deckBtn = $id("combat-deck-btn");
+    if (deckBtn) {
+      const existingBadge = deckBtn.querySelector(".curse-count");
+      if (existingBadge) existingBadge.remove();
+      if (curseCount > 0) {
+        const badge = document.createElement("span");
+        badge.className = "curse-count";
+        badge.textContent = `☠ ${curseCount}`;
+        deckBtn.appendChild(badge);
+      }
+    }
+
+    // Hand with arc layout
     const handArea = $id("hand-area");
     if (handArea) {
       clearEl(handArea);
@@ -573,11 +1300,13 @@
         const canAfford = combat.player.energy >= (card.cost || 0);
         const cardEl = makeCard(card, {
           unplayable: !canAfford,
-          dealDelay: idx * 55,
+          dealDelay: -1,
           onClick: () => playCard(idx, cardEl)
         });
         handArea.appendChild(cardEl);
       });
+      // Apply arc after layout
+      requestAnimationFrame(() => applyHandArc(handArea));
     }
 
     // End turn button state
@@ -586,14 +1315,29 @@
   }
 
   async function playCard(handIndex, cardEl) {
-    // Fly animation
+    const card = currentRun.combat?.hand?.[handIndex];
+    const isAttack = card?.type === "attack";
+
+    // Directional fly animation
     if (cardEl) {
       const rect = cardEl.getBoundingClientRect();
       const fly = cardEl.cloneNode(true);
-      fly.className = "card-flying";
+      if (isAttack) {
+        fly.className = "card-flying-attack";
+        const enemyPanel = $id("enemy-panel");
+        if (enemyPanel) {
+          const er = enemyPanel.getBoundingClientRect();
+          const tx = (er.left + er.width / 2) - (rect.left + rect.width / 2);
+          const ty = (er.top + er.height / 2) - (rect.top + rect.height / 2);
+          fly.style.setProperty("--tx", `${tx}px`);
+          fly.style.setProperty("--ty", `${ty}px`);
+        }
+      } else {
+        fly.className = "card-flying-skill";
+      }
       fly.style.left = `${rect.left}px`;
-      fly.style.top = `${rect.top}px`;
-      fly.style.width = `${rect.width}px`;
+      fly.style.top  = `${rect.top}px`;
+      fly.style.width  = `${rect.width}px`;
       fly.style.height = `${rect.height}px`;
       document.body.appendChild(fly);
       fly.addEventListener("animationend", () => fly.remove());
@@ -601,23 +1345,36 @@
 
     const prevEnemyHp = currentRun.combat?.enemy?.health || 0;
     const updated = await api("/run/play-card.json", { run: currentRun, handIndex });
-
     currentRun = updated;
 
-    // Floating numbers for enemy damage
     if (updated.combat) {
-      const dmg = prevEnemyHp - updated.combat.enemy.health;
+      const dmg = prevEnemyHp - (updated.combat.enemy?.health ?? prevEnemyHp);
       if (dmg > 0) {
         floatNum($id("enemy-panel"), dmg, dmg >= 8 ? "damage big" : "damage");
-        const avatarEl = $id("enemy-avatar");
-        if (avatarEl) {
-          avatarEl.classList.add("shake");
-          avatarEl.addEventListener("animationend", () => avatarEl.classList.remove("shake"), { once: true });
+        flashEnemyHit();
+        const enemyCanvas = $id("enemy-canvas");
+        if (enemyCanvas) {
+          enemyCanvas.classList.add("shake");
+          enemyCanvas.addEventListener("animationend", () => enemyCanvas.classList.remove("shake"), { once: true });
         }
       }
     }
 
     if (updated.combat?.state === "victory") {
+      // Victory fanfare before transitioning
+      const nodeType = updated.combat.nodeType || "combat";
+      showKillFlash();
+      screenShake();
+      spawnKillConfetti($id("enemy-panel"), nodeType === "boss" ? 55 : nodeType === "elite" ? 35 : 20);
+      if (nodeType === "boss") {
+        showKillTextOverlay("BOSS DEFEATED", "#f0c040");
+        spawnConfetti();
+      } else if (nodeType === "elite") {
+        showKillTextOverlay("ELITE DEFEATED", "#e07830");
+      }
+      stopEnemyIdle();
+      // Brief pause for fanfare before reward
+      await new Promise((r) => setTimeout(r, nodeType === "boss" ? 900 : 500));
       currentRun = await api("/run/apply-victory.json", { run: currentRun, combat: updated.combat });
     }
 
@@ -628,7 +1385,9 @@
   // ─── Screen: Reward ───────────────────────────────────────────────
   function renderReward() {
     if (!currentRun?.pendingRewards) return;
+    const enteringReward = lastScreen !== "reward";
     showOnly("screen-reward");
+    lastScreen = "reward";
 
     const rewards = currentRun.pendingRewards;
 
@@ -660,10 +1419,12 @@
     if (rewards.cards?.length) {
       // Card reward phase
       show("reward-content");
+      if (enteringReward) setTimeout(() => spawnConfetti(), 150);
       const isElite = rewards.relics?.length > 0;
       const isBoss = !!rewards.relic;
       $id("reward-header").textContent = isBoss ? "BOSS VICTORY" : isElite ? "ELITE VICTORY" : "COMBAT VICTORY";
-      $id("reward-subtitle").textContent = "Choose a card to add to your deck";
+      const potionNotice = rewards.potion ? ` · ${POTION_ICONS[rewards.potion.id] || "🫧"} ${rewards.potion.name} added` : "";
+      $id("reward-subtitle").textContent = `Choose a card to add to your deck${potionNotice}`;
 
       const cardRow = $id("reward-cards-row");
       if (cardRow) {
@@ -673,6 +1434,8 @@
             large: true,
             dealDelay: i * 80,
             onClick: async () => {
+              el.classList.add("card-picked");
+              await new Promise((r) => setTimeout(r, 260));
               currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });
               saveRun(currentRun);
               render();
@@ -740,8 +1503,10 @@
     show("event-panel");
 
     const evt = currentRun.event;
-    $id("event-title").textContent = evt.title || "Event";
-    $id("event-text").textContent = evt.description || "";
+    const titleEl = $id("event-title");
+    const textEl  = $id("event-text");
+    if (titleEl) { titleEl.style.animation = "none"; titleEl.textContent = evt.title || "Event"; requestAnimationFrame(() => { titleEl.style.animation = ""; }); }
+    if (textEl)  { textEl.style.animation  = "none"; textEl.textContent  = evt.description || ""; requestAnimationFrame(() => { textEl.style.animation  = ""; }); }
 
     const choicesEl = $id("event-choices");
     if (!choicesEl) return;
@@ -768,7 +1533,13 @@
 
       const btn = document.createElement("button");
       btn.className = "event-choice-btn";
-      btn.textContent = option.label;
+
+      const iconEl = document.createElement("span");
+      iconEl.className = "event-choice-icon";
+      iconEl.textContent = getOptionIcon(option);
+      btn.appendChild(iconEl);
+      btn.appendChild(document.createTextNode(option.label));
+
       btn.addEventListener("click", async () => {
         currentRun = await api("/run/claim-event-option.json", { run: currentRun, optionId: option.id });
         saveRun(currentRun);
@@ -785,14 +1556,54 @@
     showOnly("screen-rest");
     hide("upgrade-panel");
 
+    // Campfire flame element
+    let flames = $id("campfire-flames");
+    if (!flames) {
+      flames = document.createElement("div");
+      flames.id = "campfire-flames";
+      const restTitle = $id("rest-title");
+      if (restTitle) restTitle.insertAdjacentElement("afterend", flames);
+    }
+    clearEl(flames);
+    // Spawn 5 flame tongues with varied sizes and timings
+    [
+      { w: 10, h: 28, dur: "0.9s" },
+      { w: 14, h: 40, dur: "1.1s" },
+      { w: 18, h: 50, dur: "0.8s" },
+      { w: 14, h: 38, dur: "1.2s" },
+      { w: 10, h: 26, dur: "1.0s" }
+    ].forEach(({ w, h, dur }) => {
+      const f = document.createElement("div");
+      f.className = "flame";
+      f.style.cssText = `width:${w}px;height:${h}px;--dur:${dur}`;
+      flames.appendChild(f);
+    });
+
     const optionsRow = $id("rest-options-row");
     if (!optionsRow) return;
     clearEl(optionsRow);
 
     (currentRun.event.options || []).forEach((option) => {
       const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.textContent = option.label;
+      btn.className = "rest-option-btn";
+
+      const iconEl = document.createElement("div");
+      iconEl.className = "rest-option-icon";
+      iconEl.textContent = getOptionIcon(option);
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "rest-option-name";
+      nameEl.textContent = option.label;
+
+      btn.appendChild(iconEl);
+      btn.appendChild(nameEl);
+      if (option.description) {
+        const descEl = document.createElement("div");
+        descEl.className = "rest-option-desc";
+        descEl.textContent = option.description;
+        btn.appendChild(descEl);
+      }
+
       btn.addEventListener("click", async () => {
         if (option.effect === "smith") {
           showSmithPanel();
@@ -848,7 +1659,17 @@
     showOnly("screen-shop");
 
     const shop = currentRun.shop;
-    $id("shop-gold").textContent = currentRun.player.gold;
+    const newShopGold = currentRun.player.gold;
+    $id("shop-gold").textContent = newShopGold;
+    const goldDisplay = $id("shop-gold-display");
+    if (goldDisplay && prevShopGold >= 0 && newShopGold !== prevShopGold) {
+      goldDisplay.classList.remove("gold-flash");
+      requestAnimationFrame(() => {
+        goldDisplay.classList.add("gold-flash");
+        goldDisplay.addEventListener("animationend", () => goldDisplay.classList.remove("gold-flash"), { once: true });
+      });
+    }
+    prevShopGold = newShopGold;
 
     // Cards
     const cardsRow = $id("shop-cards-row");
@@ -888,12 +1709,28 @@
       clearEl(servicesRow);
       (shop.services || []).forEach((svc) => {
         const btn = document.createElement("button");
-        btn.className = "btn";
         const canAfford = currentRun.player.gold >= svc.price;
-        if (!canAfford) btn.style.opacity = "0.45";
-        btn.innerHTML = `${svc.label} <span style="color:var(--gold)">${svc.price}g</span>`;
+        btn.className = "shop-service-btn";
+        if (!canAfford) btn.disabled = true;
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "shop-service-name";
+        nameEl.textContent = svc.label;
+        btn.appendChild(nameEl);
+
+        if (svc.description) {
+          const descEl = document.createElement("div");
+          descEl.className = "shop-service-desc";
+          descEl.textContent = svc.description;
+          btn.appendChild(descEl);
+        }
+
+        const costEl = document.createElement("div");
+        costEl.className = "shop-service-cost";
+        costEl.textContent = `${svc.price}g`;
+        btn.appendChild(costEl);
+
         btn.addEventListener("click", async () => {
-          if (!canAfford) return;
           try {
             currentRun = await api("/run/buy-shop-item.json", { run: currentRun, type: "service", itemId: svc.id, price: svc.price });
             saveRun(currentRun);
@@ -942,6 +1779,7 @@
 
   // ─── Screen: End State ────────────────────────────────────────────
   function renderEndState() {
+    lastScreen = "end";
     const win = currentRun.state === "won";
     const screen = $id("screen-end");
     showOnly("screen-end");
@@ -958,11 +1796,25 @@
       const floorReached = currentNode ? currentNode.row + 1 : "?";
       const relicCount = (currentRun.relics || []).length;
       const deckSize = (currentRun.player?.deck || []).length;
+      const s = currentRun.stats || {};
+      const mostPlayedName = s.mostPlayedCardId
+        ? (cardCatalog?.[s.mostPlayedCardId]?.name || s.mostPlayedCardId)
+        : "—";
       stats.innerHTML = [
         `Floor reached: <strong>${floorReached}</strong>`,
+        `Act: <strong>${currentRun.act || 1}</strong>`,
         `Gold: <strong>${currentRun.player?.gold || 0}</strong>`,
         `Deck size: <strong>${deckSize}</strong>`,
-        `Relics: <strong>${relicCount}</strong>`
+        `Relics: <strong>${relicCount}</strong>`,
+        `<hr style="border-color:#444;margin:6px 0">`,
+        `Enemies killed: <strong>${s.enemiesKilled || 0}</strong>`,
+        `Damage dealt: <strong>${s.damageDealt || 0}</strong>`,
+        `Highest hit: <strong>${s.highestSingleHit || 0}</strong>`,
+        `Damage taken: <strong>${s.damageTaken || 0}</strong>`,
+        `Cards played: <strong>${s.cardsPlayed || 0}</strong>`,
+        `Turns played: <strong>${s.turnsPlayed || 0}</strong>`,
+        `Gold earned: <strong>${s.goldEarned || 0}</strong>`,
+        `Most played: <strong>${mostPlayedName}</strong>`
       ].join("<br />");
     }
 
@@ -974,9 +1826,21 @@
   }
 
   // ─── Main Render Dispatch ─────────────────────────────────────────
+  let prevAct = 1;
+
   function render() {
     if (!currentRun) return renderStart();
     if (currentRun.state === "won" || currentRun.state === "lost") return renderEndState();
+
+    // Act transition banner
+    const curAct = currentRun.act || 1;
+    if (curAct > prevAct && !currentRun.combat && !currentRun.pendingRewards) {
+      prevAct = curAct;
+      showActTransition(curAct).then(() => renderMap());
+      return;
+    }
+    prevAct = curAct;
+
     if (currentRun.pendingRewards) return renderReward();
     if (currentRun.shop) return renderShop();
     if (currentRun.event) {
@@ -1007,6 +1871,7 @@
       if (btn) btn.disabled = true;
 
       const prevPlayerHp = currentRun.combat.player.health;
+      const prevPlayerBlock = currentRun.combat.player.block || 0;
       currentRun = await api("/run/end-turn.json", { run: currentRun });
 
       // Animate enemy lunge + player recoil if enemy attacked
@@ -1024,9 +1889,26 @@
           playerPanel.addEventListener("animationend", () => playerPanel.classList.remove("taking-hit"), { once: true });
         }
         floatNum($id("player-panel"), dmgTaken, dmgTaken >= 8 ? "damage big" : "damage");
+        // Block shatter notification
+        const newBlock = currentRun.combat?.player?.block ?? 0;
+        if (prevPlayerBlock > 0 && newBlock === 0) {
+          const pp = $id("player-panel");
+          if (pp) {
+            const rect = pp.getBoundingClientRect();
+            const bt = document.createElement("div");
+            bt.className = "block-broken-text";
+            bt.textContent = "BLOCK BROKEN";
+            bt.style.left = `${rect.left + rect.width / 2 - 60}px`;
+            bt.style.top  = `${rect.top + 20}px`;
+            document.body.appendChild(bt);
+            bt.addEventListener("animationend", () => bt.remove());
+          }
+        }
       }
 
       if (currentRun.state === "lost") {
+        stopEnemyIdle();
+        flashTransition("flash-red");
         saveRun(currentRun);
         render();
         return;
@@ -1073,6 +1955,50 @@
     });
   }
 
+  // ─── Keyboard Shortcuts ───────────────────────────────────────────
+  function initKeyboard() {
+    document.addEventListener("keydown", (e) => {
+      // Escape closes deck overlay
+      if (e.key === "Escape") {
+        hide("deck-overlay");
+        return;
+      }
+
+      // Reward: Enter skips
+      if (e.key === "Enter") {
+        const skipBtn = $id("reward-skip-btn");
+        if (skipBtn && !skipBtn.closest(".hidden") && skipBtn.style.display !== "none") {
+          skipBtn.click();
+          return;
+        }
+      }
+
+      // Combat-only shortcuts
+      if (!currentRun?.combat) return;
+      const deckOpen = !$id("deck-overlay")?.classList.contains("hidden");
+      if (deckOpen) return;
+
+      // E or Space = End Turn
+      if (e.key === "e" || e.key === "E" || e.key === " ") {
+        e.preventDefault();
+        const btn = $id("end-turn-btn");
+        if (btn && !btn.disabled) btn.click();
+        return;
+      }
+
+      // 1–5 = play hand card by index
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 5) {
+        const handArea = $id("hand-area");
+        if (!handArea) return;
+        const playable = Array.from(handArea.querySelectorAll(".card-component")).filter(
+          (c) => !c.classList.contains("unplayable")
+        );
+        if (playable[num - 1]) playable[num - 1].click();
+      }
+    });
+  }
+
   // ─── Boot ─────────────────────────────────────────────────────────
   async function initializeApp() {
     try {
@@ -1086,5 +2012,6 @@
   }
 
   initListeners();
+  initKeyboard();
   initializeApp();
 })();

@@ -15,13 +15,13 @@ const implementedOverrides = {
   burnout: { damage: 6, bonusVsExhaust: 6 },
   crackdown: { damage: 8, bonusVsHex: 6 },
   momentum: { block: 5, draw: 1, bonusBlockIfHighEnergy: 2 },
-  wither: { damage: 3, hex: 1 },
+  wither: { damage: 4, hex: 1 },
   siphon_ward: { block: 4, bonusBlockIfHexed: 4 },
   detonate_sigil: { damage: 7, bonusVsHex: 10 },
   lingering_curse: { hex: 2, exhaust: true },
   mark_of_ruin: { hex: 1, draw: 1 },
   hexblade: { damage: 7, hex: 1 },
-  reapers_clause: { damage: 10, costReduceIfHexed: 1 },
+  reapers_clause: { damage: 8, costReduceIfHexed: 1 },
   fire_sale: { exhaustFromHand: true, draw: 2 },
   cremate: { exhaustFromHand: true, block: 6 },
   grave_fuel: { energyPerExhausted: true },
@@ -29,16 +29,16 @@ const implementedOverrides = {
   harvester: { damage: 4, bonusVsHexedOrExhausted: 4 },
   charge_up: { setCharged: true, draw: 1 },
   arc_lash: { damage: 7, drawIfCharged: 1 },
-  blood_pact: { selfDamage: 3, energyGain: 2, draw: 1 },
+  blood_pact: { selfDamage: 5, energyGain: 2, draw: 1 },
   spite_shield: { block: 6, hex: 1 },
   war_cry: { applyStrength: 2 },
   fortify: { applyDexterity: 2 },
   expose: { applyVulnerable: 2 },
   cripple: { applyWeak: 2 },
   titan_strike: { damage: 8, bonusPerStrength: 2 },
-  exploit: { damage: 6, bonusVsVulnerable: 6 },
+  exploit: { damage: 6, bonusVsVulnerable: 9 },
   enfeeble: { applyWeak: 3, applyVulnerable: 1 },
-  echo_strike: { damage: 5, bonusVsVulnerable: 5 },
+  echo_strike: { damage: 7, bonusVsVulnerable: 7 },
   // Neutral utility
   pommel: { damage: 7, draw: 1 },
   brace: { block: 7 },
@@ -48,7 +48,7 @@ const implementedOverrides = {
   recover: { block: 6, draw: 1 },
   plan_ahead: { draw: 2, exhaust: true },
   // Hex archetype
-  deep_hex: { hex: 3 },
+  deep_hex: { hex: 4 },
   black_seal: { hex: 1, exhaust: true },
   feast_on_weakness: { damage: 5, bonusBlockIfHexed: 5 },
   malediction: { applyWeak: 2, hex: 1 },
@@ -66,11 +66,11 @@ const implementedOverrides = {
   overclock: { energyGain: 2, discardFromHand: 1, exhaust: true },
   ashen_blow: { damage: 7, energyIfExhaustedThisTurn: 1 },
   final_draft: { draw: 2, exhaustFromHand: true },
-  scorch_nerves: { damage: 12, exhaust: true },
+  scorch_nerves: { damage: 15, exhaust: true },
   cinder_rush: { damage: 6, bonusDmgPerExhausted: 3 },
-  empty_the_chamber: { exhaustHand: true },
+  empty_the_chamber: { exhaustHand: true, exhaust: true },
   // Hex archetype
-  curse_spiral: { hex: 1, draw: 1 },
+  curse_spiral: { hex: 2, draw: 1 },
   cataclysm_sigil: { damage: 18, bonusDmgPerHex: 4 },
   no_mercy: { damage: 10, repeatIfHexed: true },
   hexburst: { damage: 6, consumeHexBonus: 4 },
@@ -79,12 +79,16 @@ const implementedOverrides = {
   doom_engine: { activateDoomEngine: true },
   unseal: { damage: 5, bonusVsHex: 5, exhaust: true },
   ritual_collapse: { exhaustFromHandCount: 2, hexPerExhausted: true },
-  doom_bell: { hex: 2, exhaustSkillsFromHand: true },
+  doom_bell: { hex: 3, exhaustSkillsFromHand: true },
   // Defense / utility
   hollow_ward: { block: 8, exhaust: true },
   refrain: { block: 4, returnToHand: true },
   warding_circle: { block: 12, costReduceIfHexed: 1 },
-  last_word: { damage: 8, bonusIfLastCard: 12 }
+  last_word: { damage: 8, bonusIfLastCard: 8 },
+  // Curses
+  wound: { curseOnDraw: 1 },
+  decay: { curseDecayBlock: true },
+  parasite: { selfDamage: 3, exhaust: true }
 };
 
 const legacyLiveCards = [

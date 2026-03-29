@@ -867,6 +867,21 @@ const wardingCircleCardDefinition = () => createCard({ id: "warding_circle", nam
 const lastWordCardDefinition = () => createCard({ id: "last_word", name: "Last Word", cost: 1, type: "attack", rarity: "rare",
   effect: (state) => ({ ...state, enemy: { ...state.enemy, health: state.enemy.health - 8 } }) });
 
+// ─── Curse cards ─────────────────────────────────────────────────────────────
+// Curses are never in the reward pool — they are inflicted as penalties.
+
+/** When drawn: deal 1 damage to self */
+const woundCardDefinition = () => createCard({ id: "wound", name: "Wound", cost: 1, type: "curse", rarity: "curse",
+  effect: (state) => state });
+
+/** While in hand at turn end: lose 1 block */
+const decayCardDefinition = () => createCard({ id: "decay", name: "Decay", cost: 1, type: "curse", rarity: "curse",
+  effect: (state) => state });
+
+/** Cost 0, exhaust, lose 3 HP */
+const parasiteCardDefinition = () => createCard({ id: "parasite", name: "Parasite", cost: 0, type: "curse", rarity: "curse",
+  effect: (state) => ({ ...state, player: { ...state.player, health: Math.max(0, state.player.health - 3) } }) });
+
 /** Canonical reward card pool — the only cards that can appear as rewards. */
 const REWARD_POOL = [
   markOfRuinCardDefinition,
@@ -935,6 +950,9 @@ const REWARD_POOL = [
 ];
 
 module.exports = {
+  woundCardDefinition,
+  decayCardDefinition,
+  parasiteCardDefinition,
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
   BASH_DAMAGE,

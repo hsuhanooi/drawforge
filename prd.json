@@ -73,6 +73,22 @@ Add quality-of-life and persistence:
 - Basic animations and feedback
 - Balance tuning hooks
 
+### Milestone 12: Curses + Potions
+Add negative cards and single-use consumables:
+- Curse cards (Wound, Decay, Parasite) added to deck as run penalties
+- Curse-giving sources: enemy intents, event outcomes, boss penalties
+- Potions (3 types): usable any time during combat for immediate effects
+- Potion rewards: drop from elites, bosses, and certain events
+- Potion UI: slot in combat screen, use/discard controls
+- Curse display in deck overlay and reward screen warnings
+
+### Milestone 13: Run Stats
+Track and display per-run metrics:
+- Track enemies killed, damage dealt, damage taken, cards played, turns taken, gold earned
+- Persist stats on run state throughout the run
+- End screen shows full stats summary
+- Track highest-damage card play and most-played card
+
 ---
 
 ## PRD Tasks
@@ -814,4 +830,251 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Add powers.test.js with full turn-start hook coverage"
   ],
   "passes": true
+}
+
+{
+  "category": "content",
+  "milestone": "M12",
+  "description": "Curse cards: negative cards added to deck as run penalties",
+  "steps": [
+    "Define 3 curse cards in cards.js: wound (deal 1 damage to self when drawn), decay (lose 1 block per turn while in hand), parasite (costs 0, exhaust, lose 3 HP when played)",
+    "Add curse card factory functions and mark type: 'curse' and rarity: 'curse'",
+    "Add curse card entries to cardRegistry.js with status: 'implemented'",
+    "Add curse catalog entries to cardCatalog.js",
+    "Wire curse draw effect (wound) in drawCards: if drawn card is wound, deal 1 self-damage",
+    "Wire decay in endCombatTurn: for each decay in hand, reduce player block by 1",
+    "Wire parasite play in playCombatCard: cost 0, exhaust, lose 3 HP",
+    "Add addCurseToDeck(run, curseId) helper in browserPostNodeActions.js",
+    "Add curse cards to tests/curses.test.js covering self-damage, block decay, and play effects"
+  ],
+  "passes": false
+}
+
+{
+  "category": "content",
+  "milestone": "M12",
+  "description": "Curse sources: enemies and events that inflict curses",
+  "steps": [
+    "Add debuff_curse intent type to applyEnemyIntent in browserCombatActions.js",
+    "Add curse_inflict intent (adds wound to deck) to Hex Fiend act 2 enemy",
+    "Add a curse-giving event option to one existing event template in events.js (e.g. 'Deal with the Devil: gain 50 gold, receive Parasite')",
+    "Add boss penalty: Void Sovereign phase 2 adds Wound to deck on phase shift",
+    "Add tests covering curse-inflict intent and curse event option"
+  ],
+  "passes": false
+}
+
+{
+  "category": "gameplay",
+  "milestone": "M12",
+  "description": "Potions: single-use consumables usable during combat",
+  "steps": [
+    "Define 3 potions in src/potions.js: healing_potion (heal 10 HP), strength_potion (gain 2 Strength this combat), hex_vial (apply Hex 2 to enemy)",
+    "Add run.potions[] array (max 2 slots) to startNewRun and createBrowserRun",
+    "Add usePotion(run, potionId) action in browserCombatActions.js applying effect and removing potion from run.potions",
+    "Add discardPotion(run, potionId) action to remove without using",
+    "Wire potion drops: elites have 40% chance to drop a random potion in createVictoryRewards",
+    "Add /run/use-potion.json and /run/discard-potion.json server endpoints",
+    "Add potions.test.js covering potion effects, slot limits, drop rates"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M12",
+  "description": "Potion and curse UI in browser",
+  "steps": [
+    "Add potion slot strip to combat screen (max 2 slots, use/discard buttons per slot)",
+    "Wire potion use/discard buttons to /run/use-potion.json and /run/discard-potion.json",
+    "Add curse visual indicator in deck overlay (curses shown in red with skull icon)",
+    "Show curse count badge on deck button in combat HUD",
+    "Show 'Contains X curses' warning in reward card selection screen when deck has curses"
+  ],
+  "passes": false
+}
+
+{
+  "category": "gameplay",
+  "milestone": "M13",
+  "description": "Run stats tracking",
+  "steps": [
+    "Add run.stats object to startNewRun: { enemiesKilled, damageDealt, damageTaken, cardsPlayed, turnsPlayed, goldEarned, highestSingleHit, mostPlayedCardId, cardPlayCounts }",
+    "Increment cardsPlayed and cardPlayCounts[cardId] in playCombatCard",
+    "Track damageDealt per card play (sum of HP damage dealt to enemy)",
+    "Track highestSingleHit when damage is dealt",
+    "Increment damageTaken in endCombatTurn when player takes HP damage",
+    "Increment turnsPlayed in endCombatTurn",
+    "Increment enemiesKilled and goldEarned in applyVictoryToRun",
+    "Add stats.test.js covering all tracked fields across a simulated run"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M13",
+  "description": "Run stats end screen",
+  "steps": [
+    "Add stats panel to screen-end in play.html with slots for each stat",
+    "Populate stats panel in renderEndState() from currentRun.stats",
+    "Show: enemies killed, damage dealt, damage taken, cards played, turns played, gold earned, highest single hit, most-played card name",
+    "Style stats panel to match existing end-screen theme"
+  ],
+  "passes": false
+}
+
+### Milestone 14: Visual Immersion & Feel
+
+Transform the UI from functional to genuinely exciting. Every task targets a specific "feel" problem that separates a polished card game from a prototype.
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Card hover preview: large floating card tooltip on hover",
+  "steps": [
+    "On mouseenter of any .card-component, create a large floating preview div positioned above (or below if near top) the card",
+    "Preview shows: large art canvas (200×110), rarity border glow, full name, full effectText, cost gem, type stripe",
+    "Preview disappears on mouseleave",
+    "Preview is clamped to viewport so it never clips off screen",
+    "In hand: preview appears above the card, centered on it",
+    "In reward/shop/deck views: preview appears to the right or left with smart positioning",
+    "Animate preview in with a 80ms scale+fade (transform: scale(0.9)→1, opacity 0→1)"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Hand arc/fan layout with card lift and directional play animations",
+  "steps": [
+    "Fan cards in hand with a subtle arc: center card is flat, cards ±1 rotate ±4°, cards ±2 rotate ±8°, etc.",
+    "Each card is slightly lower the farther from center it is (translateY for arc shape)",
+    "On hover: card lifts (translateY -20px, scale 1.08, z-index raised) with 120ms ease transition",
+    "Card play animation: attack cards fly toward the enemy panel (translate toward enemy coords), skill/power cards fly upward with a blue glow, then fade",
+    "After play animation completes (250ms), trigger the server call and re-render",
+    "Cards deal in from the draw pile position (bottom-left) with staggered slide-in on each turn start"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Enemy avatar art: canvas-drawn sprites per enemy type",
+  "steps": [
+    "Add a <canvas id='enemy-canvas'> to the enemy panel (120×160px)",
+    "Implement drawEnemyArt(canvas, enemy) with distinct visuals per enemy: slime (green blob + eyes), cultist (hooded figure silhouette), stone sentinel (rocky hulk shape), hex fiend (jagged dark figure with hex glow), void specter (wispy translucent form), bone colossus (stacked bone shapes), void sovereign (layered boss with phase 2 color state)",
+    "Use canvas API: gradients, arcs, polygons, glows — no external images",
+    "Hit flash: on damage dealt to enemy, briefly overlay a red-tinted rect on the canvas (150ms fade)",
+    "Idle animation: enemy canvas bobs ±3px on a 2s sine loop using requestAnimationFrame",
+    "Phase shift: Void Sovereign art switches to darker/more intense color palette on phase 2"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Screen transitions: fade between all game screens",
+  "steps": [
+    "Add #transition-overlay: position:fixed, inset:0, z-index:999, pointer-events:none, background:#000",
+    "On every showOnly() call, flash #transition-overlay opacity 0.35 → 0 over 200ms",
+    "Major transitions (map→combat, combat→reward): slower 300ms black fade-in before showing new screen",
+    "Act 2 transition: full white flash + 'ACT 2' centered text overlay (700ms) before map renders",
+    "Defeat: red-tinted overlay (rgba(200,0,0,0.4)) fades in over 400ms before screen-end appears"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Combat atmosphere: animated background per encounter type",
+  "steps": [
+    "Add #combat-bg element inside screen-combat (position:absolute, inset:0, z-index:0, pointer-events:none, overflow:hidden)",
+    "Normal combat: 6 slow-drifting dark smoke orbs (blurred divs, CSS keyframe translateY + opacity loop, 8–14s duration each)",
+    "Elite combat: reddish ember glow from bottom (radial-gradient pseudo-element), 3 floating ember sparks",
+    "Boss combat: deep purple vignette + occasional lightning flicker (CSS animation with randomized delay on a thin vertical line element)",
+    "Backgrounds are spawned in renderCombat() by checking combat.nodeType, cleared on each render",
+    "All effects use only CSS keyframe animations on spawned divs — no canvas, no images required"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Card rarity shimmer and glow effects",
+  "steps": [
+    "Rare cards (.rarity-rare): CSS ::after overlay with a diagonal shimmer animation (moving linear-gradient highlight at 45°, repeating every 3s)",
+    "Uncommon cards (.rarity-uncommon): subtle border-glow pulse (box-shadow alternates between dim and bright blue, 2.5s loop)",
+    "Boss/orange rarity (.rarity-boss): orange flame flicker on border (keyframe alternates between two orange box-shadow values)",
+    "Curse cards (.rarity-curse): sickly green-purple pulsing glow",
+    "All effects are CSS-only (no JS), applied via rarity class selectors in play.css",
+    "Shimmer overlay has low opacity (0.18) so it does not obscure card text or art"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Status effect badge animations: apply flash, hex glow, block shatter",
+  "steps": [
+    "Add .badge-added CSS animation (scale 1→1.5→1 + brief color brighten, 220ms) triggered by adding class badge-pop to a badge",
+    "Track previous badge values in renderBadges; if value increased, add badge-pop class (auto-removes via animationend)",
+    "Hex badge always has a soft purple outer glow: box-shadow: 0 0 7px 2px rgba(155,89,182,0.55)",
+    "Vulnerable badge has orange glow when value > 0",
+    "Block shatter: when player block drops to 0 after enemy attack, spawn a brief 'BLOCK BROKEN' text float at the player panel",
+    "Weak badge dims (opacity 0.6) on the source that applied it"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Map polish: bezier paths, node tooltips, current node pulse ring",
+  "steps": [
+    "Replace SVG <line> elements with <path> using quadratic bezier curves (control point offset ±20px from midpoint) for organic-looking connections",
+    "Visited path segments: stroke opacity 0.25, dashed stroke-dasharray",
+    "Available path segments: bright accent stroke with a subtle glow (SVG filter or double-stroke technique)",
+    "Node hover tooltip: show node type label and for combat/elite/boss nodes show the enemy name",
+    "Current node: add a second concentric circle element (.node-pulse) with CSS keyframe scale 1→1.6, opacity 0.6→0 loop",
+    "Boss node: animated gold border-glow (box-shadow keyframe), larger size than normal nodes",
+    "Available nodes: CSS glow pulse to draw the player's eye"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Victory fanfare: kill flash, gold burst, enemy defeat animation",
+  "steps": [
+    "On kill shot (enemy hp drops to 0), before apply-victory API call: spawn 20 gold confetti pieces centered on the enemy panel",
+    "Screen shake on kill: add .shake-screen CSS class to #screen-combat (keyframe translateX ±4px, 3 oscillations, 180ms), auto-remove",
+    "Elite kill: larger 35-piece burst + brief 'ELITE DEFEATED' overlay text (orange, 800ms fade out, pointer-events:none)",
+    "Boss kill: full spawnConfetti() + 'BOSS DEFEATED' gold text overlay (1s) + longer screen flash before transitioning",
+    "Kill flash: white semi-transparent overlay on enemy panel (opacity 0.8 → 0, 200ms) at moment of kill",
+    "All overlays are spawned divs, non-blocking, auto-removed via animationend"
+  ],
+  "passes": false
+}
+
+{
+  "category": "ui",
+  "milestone": "M14",
+  "description": "Polish pass: card draw slide-in, energy pip cascade, intent visual system",
+  "steps": [
+    "Card draw animation: cards slide in from draw pile counter position (bottom-left corner) to their hand slot, staggered 60ms each, using CSS transform transition",
+    "Energy pip cascade: on turn start, pips light up left-to-right with 60ms delay each (add .filling class with CSS flash animation)",
+    "Energy spend: when a pip goes dark (card played), it briefly blinks before going dark",
+    "Intent icon system: map intent types to icons (⚔️ attack, 🛡️ block, 💀 debuff, 💪 buff, ❓ unknown) and show the icon large with the value below",
+    "Intent warning glow: when enemy intent is attack ≥10 damage, intent box gets a pulsing red border glow",
+    "Exhaust counter: on exhaust, counter value scales up briefly (scale 1→1.4→1) with a CSS keyframe"
+  ],
+  "passes": false
 }

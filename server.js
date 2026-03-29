@@ -23,7 +23,9 @@ const {
 const {
   startCombatForNode,
   playCombatCard,
-  endCombatTurn
+  endCombatTurn,
+  usePotionInCombat,
+  discardPotion
 } = require("./src/browserCombatActions");
 
 const port = process.env.PORT || 3000;
@@ -315,6 +317,26 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, finishNode(run));
     } catch (error) {
       sendJson(res, 400, { error: error.message || "Unable to finish node" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/use-potion.json" && req.method === "POST") {
+    try {
+      const { run, potionId } = await readJsonBody(req);
+      sendJson(res, 200, usePotionInCombat(run, potionId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to use potion" });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/run/discard-potion.json" && req.method === "POST") {
+    try {
+      const { run, potionId } = await readJsonBody(req);
+      sendJson(res, 200, discardPotion(run, potionId));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Unable to discard potion" });
     }
     return;
   }

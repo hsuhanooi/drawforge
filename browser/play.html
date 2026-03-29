@@ -41,8 +41,12 @@
   </div>
 </div>
 
+<!-- ─── Transition Overlay ────────────────────────────────────────── -->
+<div id="transition-overlay"></div>
+
 <!-- ─── Combat Screen ────────────────────────────────────────────── -->
 <div id="screen-combat" class="screen hidden">
+  <div id="combat-bg"></div>
   <div id="combat-topbar">
     <span id="combat-floor-label">COMBAT</span>
     <div class="stat" style="margin-left:16px">
@@ -81,7 +85,7 @@
         <div class="intent-label">Next Action</div>
         <div class="intent-action" id="intent-action">—</div>
       </div>
-      <div class="combatant-avatar" id="enemy-avatar">👹</div>
+      <canvas id="enemy-canvas" width="120" height="130"></canvas>
       <div class="combatant-name" id="enemy-name">Enemy</div>
       <div class="hp-bar-wrap">
         <div class="hp-bar-label">

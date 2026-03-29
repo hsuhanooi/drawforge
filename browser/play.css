@@ -1464,3 +1464,627 @@ canvas.card-art-canvas {
   border-radius: 6px;
   margin-left: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MILESTONE 14 — Visual Immersion & Feel
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Transition Overlay (Task 4) ────────────────────────────────── */
+#transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  pointer-events: none;
+  background: #000;
+  opacity: 0;
+}
+#transition-overlay.flash {
+  animation: tx-flash 220ms ease forwards;
+}
+#transition-overlay.flash-slow {
+  animation: tx-flash-slow 320ms ease forwards;
+}
+#transition-overlay.flash-red {
+  background: rgba(180,0,0,0.55);
+  animation: tx-flash-slow 420ms ease forwards;
+}
+#transition-overlay.flash-white {
+  background: #fff;
+  animation: tx-flash 160ms ease forwards;
+}
+@keyframes tx-flash      { 0%{opacity:0.38} 100%{opacity:0} }
+@keyframes tx-flash-slow { 0%{opacity:0.6}  40%{opacity:0.6} 100%{opacity:0} }
+
+/* Act 2 overlay text */
+#act-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 997;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+}
+#act-transition-overlay.show {
+  animation: act-reveal 900ms cubic-bezier(0.2,0,0.4,1) forwards;
+}
+#act-transition-overlay .act-text {
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: 12px;
+  color: var(--gold);
+  text-shadow: 0 0 40px rgba(240,192,64,0.9), 0 0 80px rgba(240,192,64,0.4);
+  text-transform: uppercase;
+}
+@keyframes act-reveal {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── Card Hover Preview (Task 1) ────────────────────────────────── */
+#card-preview-popup {
+  position: fixed;
+  z-index: 800;
+  pointer-events: none;
+  width: 210px;
+  background: var(--bg2);
+  border-radius: 13px;
+  border: 2px solid var(--rarity-common);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04);
+  overflow: hidden;
+  animation: preview-pop 90ms cubic-bezier(0.34,1.4,0.64,1) both;
+  transform-origin: bottom center;
+}
+#card-preview-popup.rarity-uncommon { border-color: var(--rarity-uncommon); box-shadow: 0 12px 48px rgba(0,0,0,0.85), 0 0 20px rgba(79,142,247,0.3); }
+#card-preview-popup.rarity-rare     { border-color: var(--rarity-rare);     box-shadow: 0 12px 48px rgba(0,0,0,0.85), 0 0 28px rgba(155,89,182,0.5); }
+#card-preview-popup.rarity-boss     { border-color: var(--rarity-boss);     box-shadow: 0 12px 48px rgba(0,0,0,0.85), 0 0 24px rgba(224,120,48,0.45); }
+#card-preview-popup.rarity-curse    { border-color: #5a2a7a; box-shadow: 0 12px 48px rgba(0,0,0,0.85), 0 0 20px rgba(90,42,122,0.5); }
+@keyframes preview-pop {
+  from { opacity: 0; transform: scale(0.88) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.preview-art-canvas { display: block; width: 100%; height: 90px; }
+.preview-type-stripe { height: 3px; }
+.type-attack .preview-type-stripe { background: linear-gradient(90deg, var(--type-attack), transparent); }
+.type-skill  .preview-type-stripe { background: linear-gradient(90deg, var(--type-skill), transparent); }
+.type-power  .preview-type-stripe { background: linear-gradient(90deg, var(--purple), transparent); }
+.type-curse  .preview-type-stripe { background: linear-gradient(90deg, #5a2a7a, transparent); }
+.preview-body { padding: 10px 12px 12px; }
+.preview-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.preview-cost {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: #12203a; border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: var(--accent);
+}
+.preview-cost.cost-0 { border-color: var(--green); color: var(--green); background: #102018; }
+.preview-cost.cost-2 { border-color: var(--orange); color: var(--orange); background: #1e1008; }
+.preview-cost.cost-3 { border-color: var(--red); color: var(--red); background: #200808; }
+.preview-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.preview-effect { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+.preview-archetype { font-size: 10px; color: var(--text-dim); opacity: 0.6; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ─── Hand Arc Layout (Task 2) ───────────────────────────────────── */
+#hand-area {
+  overflow: visible;
+  padding-bottom: 8px;
+}
+#hand-area .card-component {
+  transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.18s, z-index 0s;
+  transform-origin: bottom center;
+}
+#hand-area .card-component:hover:not(.unplayable) {
+  transform: translateY(-28px) scale(1.1) rotate(0deg) !important;
+  z-index: 30;
+}
+
+/* Card fly toward enemy (attack) */
+.card-flying-attack {
+  position: fixed;
+  pointer-events: none;
+  z-index: 500;
+  border-radius: 11px;
+  animation: card-fly-attack 280ms cubic-bezier(0.4,0,0.8,0.6) forwards;
+}
+@keyframes card-fly-attack {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.9; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(0.4) translate(var(--tx), var(--ty)); }
+}
+
+/* Card fly upward (skill/power) */
+.card-flying-skill {
+  position: fixed;
+  pointer-events: none;
+  z-index: 500;
+  border-radius: 11px;
+  animation: card-fly-skill 300ms cubic-bezier(0.4,0,0.6,1) forwards;
+  box-shadow: 0 0 30px rgba(79,142,247,0.8);
+}
+@keyframes card-fly-skill {
+  0%   { opacity: 1; transform: scale(1) translateY(0); }
+  40%  { opacity: 0.9; transform: scale(1.08) translateY(-50px); }
+  100% { opacity: 0; transform: scale(0.6) translateY(-120px) rotateX(20deg); }
+}
+
+/* Card deal from draw pile */
+@keyframes card-deal-from-pile {
+  from { opacity: 0; transform: translate(var(--deal-dx), var(--deal-dy)) scale(0.7) rotate(var(--deal-rot)); }
+  to   { opacity: 1; transform: translate(0, 0) scale(1) rotate(var(--arc-rot)); }
+}
+.card-dealing-in {
+  animation: card-deal-from-pile 0.35s cubic-bezier(0.34,1.3,0.64,1) both;
+}
+
+/* ─── Enemy Canvas Avatar (Task 3) ───────────────────────────────── */
+#enemy-canvas {
+  border-radius: 18px;
+  border: 2px solid rgba(224,80,80,0.3);
+  box-shadow: 0 0 12px rgba(224,80,80,0.12);
+  display: block;
+  cursor: default;
+}
+#enemy-canvas.hit-flash {
+  animation: enemy-hit-flash 180ms ease forwards;
+}
+@keyframes enemy-hit-flash {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(3) saturate(0.3); box-shadow: 0 0 30px rgba(255,80,80,0.9); }
+  100% { filter: brightness(1); }
+}
+
+/* ─── Combat Atmosphere Background (Task 5) ──────────────────────── */
+#combat-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+/* Normal combat: smoke orbs */
+.smoke-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: 0;
+  animation: smoke-drift linear infinite;
+}
+@keyframes smoke-drift {
+  0%   { opacity: 0; transform: translateY(0) translateX(0); }
+  15%  { opacity: 0.18; }
+  85%  { opacity: 0.12; }
+  100% { opacity: 0; transform: translateY(var(--smoke-dy)) translateX(var(--smoke-dx)); }
+}
+/* Elite: ember sparks */
+.ember-glow {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 35%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(200,60,0,0.18) 0%, transparent 70%);
+  animation: ember-breathe 2.5s ease-in-out infinite alternate;
+}
+.ember-spark {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #ff6820;
+  box-shadow: 0 0 6px #ff6820;
+  animation: ember-rise linear infinite;
+}
+@keyframes ember-breathe {
+  from { opacity: 0.6; transform: scaleY(0.9); }
+  to   { opacity: 1.0; transform: scaleY(1.1); }
+}
+@keyframes ember-rise {
+  0%   { opacity: 1; transform: translateY(0) translateX(0); }
+  100% { opacity: 0; transform: translateY(var(--ember-dy)) translateX(var(--ember-dx)); }
+}
+/* Boss: vignette + lightning */
+.boss-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(80,0,120,0.35) 100%);
+  animation: boss-vignette-pulse 3s ease-in-out infinite;
+}
+@keyframes boss-vignette-pulse {
+  0%,100% { opacity: 0.7; }
+  50%      { opacity: 1.0; }
+}
+.boss-lightning {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(180,100,255,0.85), transparent);
+  animation: lightning-flicker step-start infinite;
+  filter: blur(0.5px);
+}
+@keyframes lightning-flicker {
+  0%,88%,92%,96%,100% { opacity: 0; }
+  89%,93%,97%          { opacity: 1; }
+}
+
+/* ─── Card Rarity Shimmer / Glow (Task 6) ────────────────────────── */
+/* Rare: diagonal shimmer sweep every 3s */
+.card-component.rarity-rare::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(200,150,255,0.18) 45%,
+    rgba(255,255,255,0.22) 50%,
+    rgba(200,150,255,0.18) 55%,
+    transparent 70%
+  );
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 2;
+  animation: rare-shimmer 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes rare-shimmer {
+  0%,60%   { transform: translateX(-120%) rotate(0deg); opacity: 0; }
+  62%      { opacity: 1; }
+  78%,100% { transform: translateX(120%) rotate(0deg); opacity: 0; }
+}
+/* Uncommon: border glow pulse */
+.card-component.rarity-uncommon {
+  animation: uncommon-glow 2.6s ease-in-out infinite;
+}
+@keyframes uncommon-glow {
+  0%,100% { box-shadow: 0 0 4px rgba(79,142,247,0.25); }
+  50%     { box-shadow: 0 0 16px rgba(79,142,247,0.55), 0 0 4px rgba(79,142,247,0.3); }
+}
+/* Boss: orange flicker border */
+.card-component.rarity-boss {
+  animation: boss-flicker 1.4s ease-in-out infinite;
+}
+@keyframes boss-flicker {
+  0%,100% { box-shadow: 0 0 8px rgba(224,120,48,0.4); border-color: #e07830; }
+  50%     { box-shadow: 0 0 22px rgba(255,160,60,0.7); border-color: #ff9840; }
+}
+/* Curse: sickly pulse */
+.card-component.rarity-curse {
+  border-color: #5a2a7a;
+  animation: curse-glow 2s ease-in-out infinite;
+}
+@keyframes curse-glow {
+  0%,100% { box-shadow: 0 0 6px rgba(90,42,122,0.5); }
+  50%     { box-shadow: 0 0 18px rgba(120,60,170,0.7); }
+}
+
+/* ─── Status Badge Animations (Task 7) ───────────────────────────── */
+@keyframes badge-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.5); filter: brightness(2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.badge.badge-pop {
+  animation: badge-pop 230ms cubic-bezier(0.34,1.5,0.64,1) forwards;
+}
+/* Hex always-on glow */
+.badge.hex {
+  box-shadow: 0 0 7px 2px rgba(155,89,182,0.55);
+}
+/* Vulnerable glow */
+.badge.vulnerable {
+  border-color: #c06020;
+  color: #ff9060;
+  box-shadow: 0 0 6px rgba(192,96,32,0.5);
+}
+/* Block shatter text */
+.block-broken-text {
+  position: fixed;
+  font-size: 13px;
+  font-weight: 900;
+  color: #88bbff;
+  text-shadow: 0 0 8px rgba(136,187,255,0.8);
+  pointer-events: none;
+  z-index: 999;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: block-broken 0.7s ease forwards;
+}
+@keyframes block-broken {
+  0%   { opacity: 1; transform: scale(1.2) translateY(0); }
+  50%  { opacity: 1; transform: scale(0.9) translateY(-20px); }
+  100% { opacity: 0; transform: scale(0.7) translateY(-50px); }
+}
+
+/* ─── Map Polish (Task 8) ────────────────────────────────────────── */
+/* Current node pulse ring */
+.node-pulse-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(240,192,64,0.6);
+  animation: pulse-ring 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  70%  { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+/* Node tooltip */
+.node-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  display: none;
+}
+.map-node:hover .node-tooltip { display: block; }
+/* Boss node enhanced */
+.map-node.type-boss {
+  animation: boss-node-glow 2s ease-in-out infinite;
+  width: 76px;
+  height: 76px;
+  font-size: 26px;
+}
+@keyframes boss-node-glow {
+  0%,100% { box-shadow: 0 0 12px rgba(224,80,80,0.5); border-color: #e05050; }
+  50%     { box-shadow: 0 0 28px rgba(224,80,80,0.85), 0 0 50px rgba(224,80,80,0.25); border-color: #ff6060; }
+}
+
+/* ─── Victory Fanfare (Task 9) ───────────────────────────────────── */
+@keyframes screen-shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-5px); }
+  40%     { transform: translateX(5px); }
+  60%     { transform: translateX(-3px); }
+  80%     { transform: translateX(3px); }
+}
+#screen-combat.shaking { animation: screen-shake 190ms ease; }
+
+.kill-flash-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 600;
+  animation: kill-flash 220ms ease forwards;
+}
+@keyframes kill-flash {
+  0%   { opacity: 0.7; background: rgba(255,255,255,0.12); }
+  100% { opacity: 0; background: rgba(255,255,255,0); }
+}
+
+.kill-text-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 601;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  text-shadow: 0 0 30px currentColor;
+  animation: kill-text-fade 900ms cubic-bezier(0.2,0,0.4,1) forwards;
+}
+@keyframes kill-text-fade {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.7); }
+  20%  { opacity: 1; transform: translate(-50%,-50%) scale(1.05); }
+  70%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.1); }
+}
+
+/* Gold confetti burst (small pieces near enemy panel) */
+.kill-confetti {
+  position: fixed;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 599;
+  animation: kill-confetti-burst linear forwards;
+}
+@keyframes kill-confetti-burst {
+  0%   { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--kx),var(--ky)) scale(0.4) rotate(720deg); }
+}
+
+/* ─── Polish Pass (Task 10) ──────────────────────────────────────── */
+/* Energy pip cascade fill */
+@keyframes pip-cascade-fill {
+  0%   { background: var(--bg3); box-shadow: none; transform: scale(1); }
+  40%  { background: #fff;       box-shadow: 0 0 16px rgba(255,255,255,0.9); transform: scale(1.3); }
+  100% { background: #27ae60;    box-shadow: 0 0 8px rgba(39,174,96,0.7);  transform: scale(1); }
+}
+.energy-pip.cascade-fill {
+  animation: pip-cascade-fill 0.3s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+
+/* Intent warning glow */
+.intent-box.danger {
+  border-color: rgba(224,80,80,0.7);
+  animation: intent-warn 1s ease-in-out infinite;
+}
+@keyframes intent-warn {
+  0%,100% { box-shadow: 0 0 4px rgba(224,80,80,0.3); }
+  50%     { box-shadow: 0 0 18px rgba(224,80,80,0.8); }
+}
+/* Intent icon */
+.intent-icon-lg {
+  font-size: 28px;
+  display: block;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.intent-value-lg {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--red);
+  text-align: center;
+  line-height: 1;
+}
+.intent-value-lg.neutral { color: var(--text-dim); font-size: 14px; }
+
+/* Exhaust counter pop */
+@keyframes counter-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.6); color: var(--orange); }
+  100% { transform: scale(1); }
+}
+.pile-num.popping { animation: counter-pop 280ms cubic-bezier(0.34,1.5,0.64,1); }
+
+/* Potion strip */
+.potion-strip {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 12px;
+}
+.potion-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.potion-btn:hover { border-color: var(--green); background: #102018; transform: translateY(-2px); }
+.potion-name { font-size: 11px; color: var(--text-dim); }
+.curse-count {
+  font-size: 11px;
+  color: #cc44cc;
+  margin-left: 6px;
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Milestone 15: Out-of-Combat Polish
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Map: stat flash + floor labels ─────────────────────────────── */
+@keyframes stat-flash {
+  0%   { transform: scale(1.25); filter: brightness(2); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+.stat-value.flashing { animation: stat-flash 0.45s ease; }
+
+.map-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.map-row-label {
+  width: 30px;
+  text-align: right;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+/* ─── Deck overlay: sort controls + type headers ──────────────────── */
+#deck-overlay-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+#deck-sort-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+#deck-sort-btn:hover { border-color: var(--accent); color: var(--text); }
+#deck-summary { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+.deck-type-header {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin: 10px 0 8px;
+  width: 100%;
+}
+
+/* ─── Reward: card pick animation ────────────────────────────────── */
+@keyframes card-pick {
+  0%   { transform: scale(1)    translateY(0);    opacity: 1; }
+  50%  { transform: scale(1.1)  translateY(-14px); opacity: 1; }
+  100% { transform: scale(0.65) translateY(-40px); opacity: 0; }
+}
+.card-component.card-picked {
+  animation: card-pick 0.28s ease forwards;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ─── Shop: background warmth + gold flash ───────────────────────── */
+#screen-shop {
+  background: radial-gradient(ellipse at 50% 0%, rgba(90,55,10,0.22) 0%, transparent 65%),
+              var(--bg);
+}
+#shop-gold-display.gold-flash { animation: stat-flash 0.4s ease; }
+
+/* ─── Campfire flame ─────────────────────────────────────────────── */
+#campfire-flames {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: center;
+  height: 56px;
+  margin: -4px 0 4px;
+}
+.flame {
+  border-radius: 50% 50% 25% 25%;
+  background: linear-gradient(to top, #ff5500 0%, #ffaa00 55%, rgba(255,220,80,0.2) 100%);
+  animation: flame-flicker var(--dur, 1s) ease-in-out infinite alternate;
+  transform-origin: bottom center;
+  filter: blur(0.5px);
+}
+@keyframes flame-flicker {
+  0%   { transform: scaleX(1)    scaleY(1)    skewX(0deg);  opacity: 0.88; }
+  33%  { transform: scaleX(0.88) scaleY(1.06) skewX(-4deg); opacity: 0.75; }
+  66%  { transform: scaleX(1.1)  scaleY(0.94) skewX(3deg);  opacity: 0.92; }
+  100% { transform: scaleX(0.94) scaleY(1.1)  skewX(-2deg); opacity: 0.82; }
+}
+
+/* ─── Event screen: fade-in text ─────────────────────────────────── */
+@keyframes text-fade-up {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+#event-title { animation: text-fade-up 0.3s ease both; }
+#event-text  { animation: text-fade-up 0.45s ease 0.05s both; }
+
+/* Event choice icons */
+.event-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.event-choice-icon { font-size: 1.1em; flex-shrink: 0; }

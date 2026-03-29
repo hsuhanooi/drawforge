@@ -30,6 +30,18 @@ const createEventForNode = (node) => {
     };
   }
 
+  if (index === 2 && (node.row + node.col) % 5 === 0) {
+    return {
+      id: `event-${node.id}`,
+      kind: "devil",
+      text: "A hooded figure offers power at a price. 'Gold for suffering — a fair trade.'",
+      options: [
+        { id: "deal", effect: "gold_for_curse", amount: 50, curseId: "parasite", label: "Accept: gain 50 gold, receive Parasite" },
+        { id: "refuse", effect: "leave", label: "Refuse" }
+      ]
+    };
+  }
+
   if (index === 1) {
     return {
       id: `event-${node.id}`,

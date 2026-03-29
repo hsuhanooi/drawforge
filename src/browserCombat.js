@@ -82,7 +82,10 @@ const {
   hollowWardCardDefinition,
   refrainCardDefinition,
   wardingCircleCardDefinition,
-  lastWordCardDefinition
+  lastWordCardDefinition,
+  woundCardDefinition,
+  decayCardDefinition,
+  parasiteCardDefinition
 } = require("./cards");
 const { createDeckState, drawCards } = require("./deckZones");
 const { startPlayerTurn } = require("./energy");
@@ -166,7 +169,10 @@ const cardFactories = {
   hollow_ward: hollowWardCardDefinition,
   refrain: refrainCardDefinition,
   warding_circle: wardingCircleCardDefinition,
-  last_word: lastWordCardDefinition
+  last_word: lastWordCardDefinition,
+  wound: woundCardDefinition,
+  decay: decayCardDefinition,
+  parasite: parasiteCardDefinition
 };
 
 /**

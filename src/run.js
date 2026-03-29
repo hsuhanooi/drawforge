@@ -14,6 +14,17 @@ const startNewRun = (balanceOverrides = {}) => {
       gold: balance.player.gold,
       deck: createStarterDeck()
     },
+    potions: [],
+    stats: {
+      enemiesKilled: 0,
+      damageDealt: 0,
+      damageTaken: 0,
+      cardsPlayed: 0,
+      turnsPlayed: 0,
+      goldEarned: 0,
+      highestSingleHit: 0,
+      cardPlayCounts: {}
+    },
     combat: null,
     map: {
       currentNodeId: null

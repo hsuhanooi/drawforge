@@ -1,6 +1,7 @@
 const { createEnemyForNode, resolveEnemyIntent } = require("./enemies");
 const { createCardCatalog } = require("./cardCatalog");
 const { getCombatEnergyBonus } = require("./relics");
+const { applyPotion } = require("./potions");
 
 const DEFAULT_PLAYER_ENERGY = 3;
 const CARD_CATALOG = createCardCatalog();
@@ -26,7 +27,12 @@ const drawCards = (combat, count) => {
       next.reshuffled = true;
     }
     if (next.drawPile.length === 0) break;
-    next.hand.push(next.drawPile.shift());
+    const drawn = next.drawPile.shift();
+    next.hand.push(drawn);
+    // Wound: deal 1 self-damage when drawn
+    if (drawn.id === "wound") {
+      next.player.health = Math.max(0, next.player.health - 1);
+    }
   }
   return next;
 };
@@ -140,6 +146,7 @@ const playCombatCard = (run, handIndex) => {
 
   next.player.energy -= effectiveCost;
   next.hand.splice(handIndex, 1);
+  const enemyHpBefore = next.enemy.health;
 
   // Route card to destination first so draw effects can reshuffle from discard
   if (card.exhaust) {
@@ -382,8 +389,24 @@ const playCombatCard = (run, handIndex) => {
     next.turn = null;
   }
 
+  // Stat tracking
+  const hpDamageDealt = Math.max(0, enemyHpBefore - next.enemy.health);
+  const prevStats = run.stats || {};
+  const cardCounts = { ...(prevStats.cardPlayCounts || {}) };
+  cardCounts[card.id] = (cardCounts[card.id] || 0) + 1;
+  const mostPlayed = Object.entries(cardCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const newStats = {
+    ...prevStats,
+    cardsPlayed: (prevStats.cardsPlayed || 0) + 1,
+    cardPlayCounts: cardCounts,
+    damageDealt: (prevStats.damageDealt || 0) + hpDamageDealt,
+    highestSingleHit: Math.max(prevStats.highestSingleHit || 0, hpDamageDealt),
+    mostPlayedCardId: mostPlayed
+  };
+
   return {
     ...run,
+    stats: newStats,
     combat: next,
     player: { ...run.player, health: next.player.health },
     phoenix_used: run.phoenix_used || false
@@ -430,6 +453,11 @@ const applyEnemyIntent = (combat, intent) => {
     next.enemy.hex = (next.enemy.hex || 0) + (intent.value || 1);
     return next;
   }
+  if (intent.type === "debuff_curse") {
+    // Adds curse cards to the run's deck — handled post-combat via pendingCurses
+    next.pendingCurses = [...(next.pendingCurses || []), intent.curseId || "wound"];
+    return next;
+  }
   return next;
 };
 
@@ -464,6 +492,11 @@ const endCombatTurn = (run) => {
       return { ...nextRun, combat: next, player: { ...run.player, health: 0 }, state: "lost" };
     }
   }
+  // Decay curse: lose 1 block per Decay card still in hand
+  const decayCount = (next.hand || []).filter((c) => c.id === "decay").length;
+  if (decayCount > 0) {
+    next.player.block = Math.max(0, next.player.block - decayCount);
+  }
   // Decay status effects at turn boundary
   next.player.weak = Math.max(0, (next.player.weak || 0) - 1);
   next.enemy.vulnerable = Math.max(0, (next.enemy.vulnerable || 0) - 1);
@@ -497,11 +530,53 @@ const endCombatTurn = (run) => {
     next.state = "victory";
     next.turn = null;
   }
-  return { ...nextRun, combat: next, player: { ...run.player, health: next.player.health } };
+
+  // Stat tracking for turn end
+  const hpLostThisTurn = Math.max(0, healthBeforeIntent - next.player.health);
+  const prevStats = run.stats || {};
+  const turnStats = {
+    ...prevStats,
+    damageTaken: (prevStats.damageTaken || 0) + hpLostThisTurn,
+    turnsPlayed: (prevStats.turnsPlayed || 0) + 1
+  };
+
+  return { ...nextRun, stats: turnStats, combat: next, player: { ...run.player, health: next.player.health } };
+};
+
+const usePotionInCombat = (run, potionId) => {
+  if (!run.combat || run.combat.state !== "active") throw new Error("No active combat");
+  if (!(run.potions || []).some((p) => p.id === potionId)) throw new Error("Potion not found");
+
+  // Inject maxHealth so healing potions cap correctly
+  const combatWithMax = {
+    ...run.combat,
+    player: { ...run.combat.player, maxHealth: run.player.maxHealth || run.player.health }
+  };
+  const nextCombat = applyPotion(clone(combatWithMax), potionId);
+  const firstIdx = run.potions.findIndex((p) => p.id === potionId);
+  const potionsAfter = [...run.potions.slice(0, firstIdx), ...run.potions.slice(firstIdx + 1)];
+
+  return {
+    ...run,
+    potions: potionsAfter,
+    combat: nextCombat,
+    player: { ...run.player, health: nextCombat.player.health }
+  };
+};
+
+const discardPotion = (run, potionId) => {
+  if (!(run.potions || []).some((p) => p.id === potionId)) throw new Error("Potion not found");
+  const firstIdx = run.potions.findIndex((p) => p.id === potionId);
+  return {
+    ...run,
+    potions: [...run.potions.slice(0, firstIdx), ...run.potions.slice(firstIdx + 1)]
+  };
 };
 
 module.exports = {
   startCombatForNode,
   playCombatCard,
-  endCombatTurn
+  endCombatTurn,
+  usePotionInCombat,
+  discardPotion
 };

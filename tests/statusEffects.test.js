@@ -243,7 +243,7 @@ describe("New status effect cards: titan_strike and exploit", () => {
     expect(result.combat.enemy.health).toBe(enemyHpBefore - 14);
   });
 
-  it("exploit deals 12 damage vs Vulnerable enemy", () => {
+  it("exploit deals 22 damage vs Vulnerable enemy", () => {
     const node = makeNode();
     const run = makeRun();
     let withCombat = startCombat(run, node);
@@ -252,8 +252,8 @@ describe("New status effect cards: titan_strike and exploit", () => {
     const enemyHpBefore = withCombat.combat.enemy.health;
     const { idx } = getCard(withCombat.combat, "exploit");
     const result = playCombatCard(withCombat, idx);
-    // 6 (base) + 6 (bonusVsVulnerable) = 12, then × 1.5 = 18
-    expect(result.combat.enemy.health).toBe(enemyHpBefore - 18);
+    // 6 (base) + 9 (bonusVsVulnerable) = 15, then × 1.5 = 22 (floor)
+    expect(result.combat.enemy.health).toBe(enemyHpBefore - 22);
   });
 
   it("exploit deals 6 damage normally", () => {

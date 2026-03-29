@@ -3,6 +3,7 @@ const { addRelicToRun } = require("./relics");
 const { toRenderableCards } = require("./cardCatalog");
 const { upgradeCardInDeck } = require("./cardUpgrade");
 const { startAct2 } = require("./actTransition");
+const { MAX_POTIONS } = require("./potions");
 
 const hasRelic = (run, id) => (run.relics || []).some((relic) => relic.id === id);
 
@@ -83,14 +84,36 @@ const applyVictoryToRun = (run, combat) => {
     newMaxHealth += 1;
   }
 
+  // Apply any curses inflicted during combat (from debuff_curse intents)
+  const pendingCurses = combat.pendingCurses || [];
+  const newDeck = [...run.player.deck, ...pendingCurses];
+
+  // Collect potion reward if any (and there's room)
+  const currentPotions = run.potions || [];
+  const newPotions = rewards.potion && currentPotions.length < MAX_POTIONS
+    ? [...currentPotions, rewards.potion]
+    : currentPotions;
+
+  // Stat tracking
+  const goldGained = rewards.gold + goldBonus;
+  const prevStats = run.stats || {};
+  const newStats = {
+    ...prevStats,
+    enemiesKilled: (prevStats.enemiesKilled || 0) + 1,
+    goldEarned: (prevStats.goldEarned || 0) + goldGained
+  };
+
   return {
     ...run,
     combatsWon: newCombatsWon,
+    potions: newPotions,
+    stats: newStats,
     player: {
       ...run.player,
       health: newHealth,
       maxHealth: newMaxHealth,
-      gold: run.player.gold + rewards.gold + goldBonus
+      gold: run.player.gold + goldGained,
+      deck: newDeck
     },
     combat,
     pendingRewards: rewards
@@ -196,6 +219,16 @@ const claimEventOption = (run, optionId) => {
     nextRun = {
       ...nextRun,
       pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true }
+    };
+  }
+  else if (option.effect === "gold_for_curse") {
+    nextRun = {
+      ...nextRun,
+      player: {
+        ...nextRun.player,
+        gold: nextRun.player.gold + option.amount,
+        deck: [...nextRun.player.deck, option.curseId]
+      }
     };
   }
 

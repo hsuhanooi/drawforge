@@ -390,7 +390,7 @@ describe("card registry completeness after Milestone 10", () => {
     }
   });
 
-  it("total implemented card count is 63 (60 designed + 3 curse cards)", () => {
-    expect(IMPLEMENTED_CARD_IDS.length).toBe(63);
+  it("total implemented card count is 74 (71 designed + 3 curse cards)", () => {
+    expect(IMPLEMENTED_CARD_IDS.length).toBe(74);
   });
 });

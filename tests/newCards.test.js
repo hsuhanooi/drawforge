@@ -144,7 +144,7 @@ describe("card registry completeness", () => {
 
   it("power cards are in registry as implemented", () => {
     const powerCards = CARD_REGISTRY.filter((c) => c.type === "power");
-    expect(powerCards.length).toBe(3);
+    expect(powerCards.length).toBe(8);
     for (const card of powerCards) {
       expect(card.status).toBe("implemented");
     }

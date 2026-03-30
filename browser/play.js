@@ -104,6 +104,12 @@
   function showOnly(screenId) {
     ALL_SCREENS.forEach((s) => (s === screenId ? show(s) : hide(s)));
     hide("deck-overlay");
+    if (screenId === "screen-combat") {
+      window.AnimEngine?.show();
+    } else {
+      window.AnimEngine?.hide();
+      window.AnimEngine?.hidePlayer();
+    }
   }
 
   // ─── Screen Transitions (Task 4) ─────────────────────────────────
@@ -335,8 +341,8 @@
     // Art canvas
     const canvas = document.createElement("canvas");
     canvas.className = "card-art-canvas";
-    canvas.width = large ? 136 : 108;
-    canvas.height = large ? 72 : 58;
+    canvas.width = large ? 150 : 122;
+    canvas.height = large ? 92 : 76;
     div.appendChild(canvas);
     drawCardArt(canvas, card);
 
@@ -357,6 +363,11 @@
     descDiv.textContent = describeCard(card);
     div.appendChild(descDiv);
 
+    // Shine overlay (mouse-tilt highlight)
+    const shine = document.createElement("div");
+    shine.className = "card-shine";
+    div.appendChild(shine);
+
     if (onClick && !unplayable) {
       div.addEventListener("click", onClick);
     }
@@ -369,6 +380,17 @@
     // Hover preview
     div.addEventListener("mouseenter", () => showCardPreview(card, div));
     div.addEventListener("mouseleave", hideCardPreview);
+
+    // Mouse tilt (outside hand-arc; hand-arc overrides via its own handlers)
+    if (!unplayable) {
+      div.addEventListener("mousemove", (e) => {
+        const r = div.getBoundingClientRect();
+        const cx = (e.clientX - r.left) / r.width - 0.5;
+        const cy = (e.clientY - r.top) / r.height - 0.5;
+        shine.style.setProperty("--sx", `${(cx + 0.5) * 100}%`);
+        shine.style.setProperty("--sy", `${(cy + 0.5) * 100}%`);
+      });
+    }
 
     return div;
   }
@@ -690,6 +712,64 @@
     canvas.addEventListener("animationend", () => canvas.classList.remove("hit-flash"), { once: true });
   }
 
+  // ─── AnimEngine position helpers ─────────────────────────────────
+  function getPlayerAnimPos() {
+    const pp = $id("player-panel");
+    if (!pp) return null;
+    const r = pp.getBoundingClientRect();
+    return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.38 };
+  }
+
+  function getEnemyAnimPos() {
+    const ec = $id("enemy-canvas");
+    if (!ec) return null;
+    const r = ec.getBoundingClientRect();
+    return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.46 };
+  }
+
+  function syncAnimBattleState() {
+    if (!currentRun?.combat || !window.AnimEngine) return;
+    const c = currentRun.combat;
+    const maxHp = currentRun.player?.maxHealth || 80;
+    window.AnimEngine.setBattleState(
+      c.player.health / maxHp,
+      !!c.player.charged,
+      c.enemy.hex || 0
+    );
+  }
+
+  // ─── Ambient Particles ────────────────────────────────────────────
+  let ambientParticleTimer = null;
+  function startAmbientParticles(nodeType) {
+    if (ambientParticleTimer) return;
+    const moteTypes = nodeType === "boss"
+      ? ["mote-red", "mote-gold", "mote-purple"]
+      : nodeType === "elite"
+        ? ["mote-red", "mote-purple"]
+        : ["mote-blue", "mote-purple"];
+    ambientParticleTimer = setInterval(() => {
+      const sc = $id("screen-combat");
+      if (!sc || sc.classList.contains("hidden")) { stopAmbientParticles(); return; }
+      const p = document.createElement("div");
+      const cls = moteTypes[Math.floor(Math.random() * moteTypes.length)];
+      p.className = `ambient-particle ${cls}`;
+      p.style.left = `${5 + Math.random() * 90}%`;
+      p.style.bottom = `${15 + Math.random() * 10}%`;
+      const dy = -(120 + Math.random() * 160);
+      const dx = (Math.random() - 0.5) * 80;
+      p.style.setProperty("--rise-dy", `${dy}px`);
+      p.style.setProperty("--rise-dx", `${dx}px`);
+      const dur = 3 + Math.random() * 3.5;
+      p.style.animationDuration = `${dur}s`;
+      sc.appendChild(p);
+      p.addEventListener("animationend", () => p.remove(), { once: true });
+    }, 340);
+  }
+
+  function stopAmbientParticles() {
+    if (ambientParticleTimer) { clearInterval(ambientParticleTimer); ambientParticleTimer = null; }
+  }
+
   // ─── Combat Atmosphere (Task 5) ───────────────────────────────────
   function renderCombatBg(nodeType) {
     const bg = $id("combat-bg");
@@ -792,13 +872,13 @@
     el.addEventListener("animationend", () => el.remove());
   }
 
-  // ─── Hand Arc (Task 2) ────────────────────────────────────────────
+  // ─── Hand Arc ─────────────────────────────────────────────────────
   function applyHandArc(handArea) {
     const cards = Array.from(handArea.querySelectorAll(".card-component"));
     const n = cards.length;
     if (n === 0) return;
     const center = (n - 1) / 2;
-    const ROT_STEP = 3.5;
+    const ROT_STEP = Math.min(4.5, 28 / n);
     const Y_STEP = 5;
     cards.forEach((card, i) => {
       const offset = i - center;
@@ -806,10 +886,26 @@
       const ty  = Math.abs(offset) * Y_STEP;
       card.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
       card.style.setProperty("--arc-rot", `${rot}deg`);
+      card.style.transition = "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s, z-index 0s";
+
       card.addEventListener("mouseenter", () => {
-        card.style.transform = `translateY(-28px) scale(1.1) rotate(0deg)`;
         card.style.zIndex = "30";
+        card.style.transition = "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s";
       }, { capture: false });
+
+      card.addEventListener("mousemove", (e) => {
+        if (card.classList.contains("unplayable")) return;
+        const r = card.getBoundingClientRect();
+        const cx = (e.clientX - r.left) / r.width - 0.5;
+        const cy = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `translateY(-34px) scale(1.12) rotateX(${-cy * 14}deg) rotateY(${cx * 14}deg)`;
+        const shine = card.querySelector(".card-shine");
+        if (shine) {
+          shine.style.setProperty("--sx", `${(cx + 0.5) * 100}%`);
+          shine.style.setProperty("--sy", `${(cy + 0.5) * 100}%`);
+        }
+      }, { capture: false });
+
       card.addEventListener("mouseleave", () => {
         card.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
         card.style.zIndex = "";
@@ -870,6 +966,47 @@
     div.style.top = `${rect.top - 10}px`;
     document.body.appendChild(div);
     div.addEventListener("animationend", () => div.remove());
+  }
+
+  function floatText(anchorEl, text, cls) {
+    if (!anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const div = document.createElement("div");
+    div.className = `float-dmg ${cls || "block-gain"}`;
+    div.textContent = text;
+    div.style.left = `${rect.left + rect.width / 2 - 24}px`;
+    div.style.top = `${rect.top - 10}px`;
+    document.body.appendChild(div);
+    div.addEventListener("animationend", () => div.remove());
+  }
+
+  let bossPhaseWarned = false;
+  function checkBossPhaseWarning(combat) {
+    if (!combat || combat.nodeType !== "boss") { bossPhaseWarned = false; return; }
+    if (bossPhaseWarned) return;
+    const maxHp = combat.enemy.maxHp || combat.enemy.health;
+    const pct = combat.enemy.health / maxHp;
+    if (pct < 0.6 && pct > 0 && !combat.phaseTransition && combat.enemy.phase !== 2) {
+      bossPhaseWarned = true;
+      const overlay = document.createElement("div");
+      overlay.className = "boss-phase-warning";
+      overlay.textContent = "⚡ PHASE 2 APPROACHING";
+      document.body.appendChild(overlay);
+      overlay.addEventListener("animationend", () => overlay.remove());
+    }
+  }
+
+  function checkCurseDrawn(prevHand, nextHand) {
+    const prevCurseIds = new Set((prevHand || []).filter((c) => c.type === "curse").map((c) => c.id));
+    const newCurses = (nextHand || []).filter((c) => c.type === "curse" && !prevCurseIds.has(c.id));
+    if (newCurses.length === 0) return;
+    newCurses.forEach((c) => {
+      const toast = document.createElement("div");
+      toast.className = "curse-toast";
+      toast.textContent = `☠ ${c.name} drawn`;
+      document.body.appendChild(toast);
+      toast.addEventListener("animationend", () => toast.remove());
+    });
   }
 
   function showTurnBanner(text, isEnemy) {
@@ -1347,9 +1484,9 @@
     const result = await api("/run/enter-node.json", { run: currentRun, nodeId: node.id });
     currentRun = result.run;
 
-    if (node.type === "rest" || node.type === "event") {
+    if (node.type === "rest") {
       currentRun.event = await fetchJson(
-        `/play/event.json?nodeType=${encodeURIComponent(node.type)}&row=${node.row || 0}&col=${node.col || 0}`
+        `/play/event.json?nodeType=rest&row=${node.row || 0}&col=${node.col || 0}`
       );
     }
     if (node.type === "shop") {
@@ -1360,7 +1497,7 @@
     render();
   }
 
-  // ─── Badge tracking for animations (Task 7) ──────────────────────
+  // ─── Badge tracking for animations ───────────────────────────────
   let prevBadgeValues = {};
 
   function renderBadgesAnimated(badgesId, stats) {
@@ -1368,19 +1505,38 @@
     if (!el) return;
     clearEl(el);
     stats.forEach(({ label, cls, value, key }) => {
+      const trackKey = `${badgesId}.${key || cls}`;
+      const prev = prevBadgeValues[trackKey] || 0;
+
+      // Status expired — show a brief fading ghost badge
+      if (!value && prev > 0) {
+        const ghost = document.createElement("div");
+        ghost.className = `badge ${cls} badge-expiring`;
+        ghost.textContent = `${label} ${prev}`;
+        el.appendChild(ghost);
+        ghost.addEventListener("animationend", () => ghost.remove(), { once: true });
+        prevBadgeValues[trackKey] = 0;
+        return;
+      }
+
       if (!value) return;
+
       const badge = document.createElement("div");
       badge.className = `badge ${cls}`;
       badge.textContent = `${label} ${value}`;
-      const trackKey = `${badgesId}.${key || cls}`;
-      const prev = prevBadgeValues[trackKey] || 0;
+
       if (value > prev) {
-        // Pop animation on increase
         setTimeout(() => {
           badge.classList.add("badge-pop");
           badge.addEventListener("animationend", () => badge.classList.remove("badge-pop"), { once: true });
         }, 10);
+      } else if (value < prev) {
+        setTimeout(() => {
+          badge.classList.add("badge-decay");
+          badge.addEventListener("animationend", () => badge.classList.remove("badge-decay"), { once: true });
+        }, 10);
       }
+
       prevBadgeValues[trackKey] = value;
       const tipText = STATUS_TIPS[key || cls];
       if (tipText) {
@@ -1436,6 +1592,46 @@
     modal.appendChild(box);
   }
 
+  // ─── Powers Strip ─────────────────────────────────────────────────
+  function renderPowersStrip(powers) {
+    const strip = $id("powers-strip");
+    if (!strip) return;
+    clearEl(strip);
+    if (!powers || powers.length === 0) {
+      strip.style.display = "none";
+      return;
+    }
+    strip.style.display = "flex";
+    powers.forEach((power) => {
+      const chip = document.createElement("div");
+      chip.className = "power-chip";
+      chip.title = power.effectText || power.name || power.id;
+
+      const iconEl = document.createElement("span");
+      iconEl.className = "power-chip-icon";
+      iconEl.textContent = getPowerIcon(power.id);
+
+      const nameEl = document.createElement("span");
+      nameEl.className = "power-chip-name";
+      nameEl.textContent = power.name || power.id;
+
+      chip.appendChild(iconEl);
+      chip.appendChild(nameEl);
+      chip.addEventListener("mouseenter", () => showCardPreview(power, chip));
+      chip.addEventListener("mouseleave", hideCardPreview);
+      strip.appendChild(chip);
+    });
+  }
+
+  function getPowerIcon(id) {
+    const icons = {
+      iron_will: "🛡️", burning_aura: "🔥", hex_resonance: "☠️",
+      storm_call: "⛈️", exhaust_engine: "⚙️", weak_field: "😵",
+      dark_pact: "🩸", vampiric_aura: "🧛"
+    };
+    return icons[id] || "✨";
+  }
+
   // ─── Screen: Combat ───────────────────────────────────────────────
   function renderCombat() {
     if (!currentRun?.combat) return;
@@ -1455,8 +1651,22 @@
     const turnEl = $id("combat-turn-label");
     if (turnEl) turnEl.textContent = combat.turn ?? 1;
     renderRelicStrip("combat-relic-strip", currentRun.relics || []);
-    // Only re-render background when entering combat (not every card play)
-    if (enteringCombat) renderCombatBg(nodeType);
+    // Only re-render background and start particles when entering combat
+    if (enteringCombat) {
+      renderCombatBg(nodeType);
+      startAmbientParticles(nodeType);
+      // Position player character on AnimEngine canvas after layout settles
+      requestAnimationFrame(() => {
+        const pp = getPlayerAnimPos();
+        const ep = getEnemyAnimPos();
+        if (pp && window.AnimEngine) {
+          window.AnimEngine.setPlayer(pp.x, pp.y, currentRun.archetypeId || "static_duelist");
+          window.AnimEngine.onPlayerTurnStart(pp.x, pp.y);
+        }
+        if (ep && window.AnimEngine) window.AnimEngine.setEnemyPos(ep.x, ep.y);
+        syncAnimBattleState();
+      });
+    }
 
     // Player panel
     $id("player-hp-current").textContent = combat.player.health;
@@ -1509,8 +1719,14 @@
     // Potion slots
     renderPotionStrip(currentRun.potions || []);
 
+    // Powers strip
+    renderPowersStrip(combat.powers || []);
+
     // Curse count on deck button
-    const curseCount = (currentRun.player.deck || []).filter((id) => ["wound", "decay", "parasite"].includes(id)).length;
+    const curseCount = (currentRun.player.deck || []).filter((id) => {
+      const catalogCard = cardCatalog && cardCatalog[id];
+      return catalogCard ? catalogCard.type === "curse" : ["wound", "decay", "parasite"].includes(id);
+    }).length;
     const deckBtn = $id("combat-deck-btn");
     if (deckBtn) {
       const existingBadge = deckBtn.querySelector(".curse-count");
@@ -1577,22 +1793,63 @@
       fly.addEventListener("animationend", () => fly.remove());
     }
 
-    const prevEnemyHp = currentRun.combat?.enemy?.health || 0;
+    // AnimEngine: trail + player animation
+    if (window.AnimEngine && card) {
+      const pp = getPlayerAnimPos();
+      const ep = getEnemyAnimPos();
+      if (pp && ep) {
+        window.AnimEngine.onCardPlay(card.type || "skill", pp.x, pp.y, ep.x, ep.y);
+      }
+    }
+
+    const prevEnemyHp    = currentRun.combat?.enemy?.health    || 0;
+    const prevEnemyBlock = currentRun.combat?.enemy?.block     || 0;
+    const prevVuln       = currentRun.combat?.enemy?.vulnerable || 0;
+    const prevWeak       = currentRun.combat?.enemy?.weak       || 0;
+    const prevHex        = currentRun.combat?.enemy?.hex        || 0;
+    const prevCharged    = !!currentRun.combat?.player?.charged;
+    const prevHand = currentRun.combat?.hand || [];
     const updated = await api("/run/play-card.json", { run: currentRun, handIndex });
     currentRun = updated;
     flashTriggeredRelics(updated.combat?.triggeredRelics);
 
     if (updated.combat) {
       const dmg = prevEnemyHp - (updated.combat.enemy?.health ?? prevEnemyHp);
-      if (dmg > 0) {
-        floatNum($id("enemy-panel"), dmg, dmg >= 8 ? "damage big" : "damage");
-        flashEnemyHit();
-        const enemyCanvas = $id("enemy-canvas");
-        if (enemyCanvas) {
-          enemyCanvas.classList.add("shake");
-          enemyCanvas.addEventListener("animationend", () => enemyCanvas.classList.remove("shake"), { once: true });
+      const blockGained = (updated.combat.enemy?.block || 0) - prevEnemyBlock;
+      if (dmg > 0 || blockGained > 0) {
+        const ep = getEnemyAnimPos();
+        if (ep && window.AnimEngine) {
+          window.AnimEngine.onEnemyHit(ep.x, ep.y, dmg > 0 ? dmg : blockGained, dmg === 0 && blockGained > 0);
+        } else {
+          // DOM fallback
+          if (dmg > 0) floatNum($id("enemy-panel"), dmg, dmg >= 8 ? "damage big" : "damage");
+          if (blockGained > 0) floatText($id("enemy-panel"), `+${blockGained} Block`, "block-gain");
+        }
+        if (dmg > 0) {
+          flashEnemyHit();
+          const enemyCanvas = $id("enemy-canvas");
+          if (enemyCanvas) {
+            enemyCanvas.classList.add("shake");
+            enemyCanvas.addEventListener("animationend", () => enemyCanvas.classList.remove("shake"), { once: true });
+          }
         }
       }
+      // Status application — show floating word + puff
+      if (window.AnimEngine) {
+        const ep = getEnemyAnimPos();
+        const pp = getPlayerAnimPos();
+        if (ep) {
+          if ((updated.combat.enemy?.vulnerable || 0) > prevVuln) window.AnimEngine.onStatusApplied(ep.x, ep.y, "vulnerable");
+          if ((updated.combat.enemy?.weak       || 0) > prevWeak)  window.AnimEngine.onStatusApplied(ep.x, ep.y, "weak");
+          if ((updated.combat.enemy?.hex        || 0) > prevHex)   window.AnimEngine.onStatusApplied(ep.x, ep.y, "hex");
+        }
+        if (pp && !prevCharged && !!updated.combat.player?.charged) {
+          window.AnimEngine.onStatusApplied(pp.x, pp.y - 30, "charged");
+        }
+      }
+      checkBossPhaseWarning(updated.combat);
+      checkCurseDrawn(prevHand, updated.combat?.hand);
+      syncAnimBattleState();
       // Phase 2 transition visual
       if (updated.combat.phaseTransition) {
         showKillTextOverlay("⚡ PHASE 2", "#cc44cc");
@@ -1616,6 +1873,9 @@
         showKillTextOverlay("ELITE DEFEATED", "#e07830");
       }
       stopEnemyIdle();
+      stopAmbientParticles();
+      const epVic = getEnemyAnimPos();
+      if (epVic && window.AnimEngine) window.AnimEngine.onVictory(epVic.x, epVic.y);
       // Brief pause for fanfare before reward
       await new Promise((r) => setTimeout(r, nodeType === "boss" ? 900 : 500));
       currentRun = await api("/run/apply-victory.json", { run: currentRun, combat: updated.combat });
@@ -2190,6 +2450,7 @@
 
       const prevPlayerHp = currentRun.combat.player.health;
       const prevPlayerBlock = currentRun.combat.player.block || 0;
+      const prevHandEndTurn = currentRun.combat?.hand || [];
       currentRun = await api("/run/end-turn.json", { run: currentRun });
       flashTriggeredRelics(currentRun.combat?.triggeredRelics);
 
@@ -2197,6 +2458,12 @@
       const newPlayerHp = currentRun.combat?.player?.health ?? currentRun.player?.health ?? prevPlayerHp;
       const dmgTaken = prevPlayerHp - newPlayerHp;
       if (dmgTaken > 0) {
+        const pp = getPlayerAnimPos();
+        if (pp && window.AnimEngine) {
+          window.AnimEngine.onPlayerHit(pp.x, pp.y, dmgTaken);
+        } else {
+          floatNum($id("player-panel"), dmgTaken, dmgTaken >= 8 ? "damage big" : "damage");
+        }
         const enemyPanel = $id("enemy-panel");
         const playerPanel = $id("player-panel");
         if (enemyPanel) {
@@ -2207,33 +2474,44 @@
           playerPanel.classList.add("taking-hit");
           playerPanel.addEventListener("animationend", () => playerPanel.classList.remove("taking-hit"), { once: true });
         }
-        floatNum($id("player-panel"), dmgTaken, dmgTaken >= 8 ? "damage big" : "damage");
         // Block shatter notification
         const newBlock = currentRun.combat?.player?.block ?? 0;
         if (prevPlayerBlock > 0 && newBlock === 0) {
-          const pp = $id("player-panel");
-          if (pp) {
-            const rect = pp.getBoundingClientRect();
-            const bt = document.createElement("div");
-            bt.className = "block-broken-text";
-            bt.textContent = "BLOCK BROKEN";
-            bt.style.left = `${rect.left + rect.width / 2 - 60}px`;
-            bt.style.top  = `${rect.top + 20}px`;
-            document.body.appendChild(bt);
-            bt.addEventListener("animationend", () => bt.remove());
+          const ppPos = getPlayerAnimPos();
+          if (ppPos && window.AnimEngine) {
+            window.AnimEngine.onBlockShatter(ppPos.x, ppPos.y);
+          } else {
+            const ppEl = $id("player-panel");
+            if (ppEl) {
+              const rect = ppEl.getBoundingClientRect();
+              const bt = document.createElement("div");
+              bt.className = "block-broken-text";
+              bt.textContent = "BLOCK BROKEN";
+              bt.style.left = `${rect.left + rect.width / 2 - 60}px`;
+              bt.style.top  = `${rect.top + 20}px`;
+              document.body.appendChild(bt);
+              bt.addEventListener("animationend", () => bt.remove());
+            }
           }
         }
       }
 
+      checkCurseDrawn(prevHandEndTurn, currentRun.combat?.hand);
+
       if (currentRun.state === "lost") {
         stopEnemyIdle();
+        stopAmbientParticles();
+        window.AnimEngine?.onDefeat();
         flashTransition("flash-red");
         saveRun(currentRun);
         render();
         return;
       }
 
+      syncAnimBattleState();
       showTurnBanner("YOUR TURN", false);
+      const ppTurn = getPlayerAnimPos();
+      if (ppTurn && window.AnimEngine) window.AnimEngine.onPlayerTurnStart(ppTurn.x, ppTurn.y);
       saveRun(currentRun);
       render();
     });
@@ -2305,6 +2583,13 @@
         return;
       }
 
+      // Q = use first potion
+      if (e.key === "q" || e.key === "Q") {
+        const firstPotionBtn = document.querySelector(".potion-btn");
+        if (firstPotionBtn) firstPotionBtn.click();
+        return;
+      }
+
       // 1–5 = play hand card by index
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 5) {
@@ -2320,6 +2605,12 @@
 
   // ─── Boot ─────────────────────────────────────────────────────────
   async function initializeApp() {
+    // Boot animation engine
+    const animCanvas = document.getElementById("anim-canvas");
+    if (animCanvas && window.AnimEngine) {
+      window.AnimEngine.init(animCanvas);
+    }
+
     try {
       await loadSharedCatalogs();
     } catch (e) {

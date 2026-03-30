@@ -58,6 +58,19 @@ const createEnemyForNode = (node, act = 1) => {
           { type: "multi_attack", value: 6, hits: 2, label: "Shatter: 2x6" },
           { type: "block", value: 12, label: "Reassemble: gain 12 block" }
         ]
+      }),
+      createEnemy({
+        id: "void_archon",
+        name: "Void Archon",
+        health: 90,
+        damage: 14,
+        rewardGold: 35,
+        intents: [
+          { type: "debuff_hex", value: 3, label: "Void Rift: apply Hex 3" },
+          { type: "multi_attack", value: 7, hits: 2, label: "Annihilate: 2x7" },
+          { type: "buff", value: 3, label: "Ascend: gain +3 damage" },
+          { type: "attack", value: 14, label: "Void Crush for 14" }
+        ]
       })
     ];
 
@@ -147,6 +160,65 @@ const createEnemyForNode = (node, act = 1) => {
         { type: "debuff_weak", value: 1, label: "Screech: apply Weak 1" },
         { type: "attack", value: 7, label: "Dive for 7" }
       ]
+    }),
+    createEnemy({
+      id: "thornling",
+      name: "Thornling",
+      health: 28,
+      damage: 5,
+      rewardGold: 12,
+      intents: [
+        { type: "block", value: 5, label: "Bristle: gain 5 block" },
+        { type: "attack", value: 8, label: "Thorn Lash for 8" },
+        { type: "multi_attack", value: 3, hits: 2, label: "Spike Volley: 2x3" }
+      ]
+    }),
+    createEnemy({
+      id: "phantom_thief",
+      name: "Phantom Thief",
+      health: 24,
+      damage: 5,
+      rewardGold: 14,
+      intents: [
+        { type: "multi_attack", value: 4, hits: 3, label: "Pick Pocket: 3x4" },
+        { type: "debuff_weak", value: 2, label: "Smoke Bomb: apply Weak 2" }
+      ]
+    }),
+    createEnemy({
+      id: "brute",
+      name: "Brute",
+      health: 40,
+      damage: 6,
+      rewardGold: 14,
+      intents: [
+        { type: "buff", value: 3, label: "Wind Up: gain +3 damage" },
+        { type: "attack", value: 9, label: "Heavy Swing for 9" },
+        { type: "attack", value: 9, label: "Heavy Swing for 9" }
+      ]
+    }),
+    createEnemy({
+      id: "hex_cultist",
+      name: "Hex Cultist",
+      health: 28,
+      damage: 6,
+      rewardGold: 14,
+      intents: [
+        { type: "debuff_hex", value: 2, label: "Hex Chant: apply Hex 2" },
+        { type: "attack", value: 8, label: "Dark Slash for 8" },
+        { type: "debuff_weak", value: 1, label: "Curse Word: apply Weak 1" }
+      ]
+    }),
+    createEnemy({
+      id: "shield_crawler",
+      name: "Shield Crawler",
+      health: 36,
+      damage: 7,
+      rewardGold: 14,
+      intents: [
+        { type: "block", value: 8, label: "Curl Up: gain 8 block" },
+        { type: "block", value: 6, label: "Harden: gain 6 block" },
+        { type: "attack", value: 10, label: "Crush for 10" }
+      ]
     })
   ];
 
@@ -185,6 +257,55 @@ const createEnemyForNode = (node, act = 1) => {
         { type: "attack", value: 11, label: "Phase Strike for 11" },
         { type: "debuff_hex", value: 1, label: "Haunt: apply Hex 1" },
         { type: "multi_attack", value: 6, hits: 2, label: "Spectral Barrage: 2x6" }
+      ]
+    }),
+    createEnemy({
+      id: "void_walker",
+      name: "Void Walker",
+      health: 44,
+      damage: 10,
+      rewardGold: 16,
+      intents: [
+        { type: "attack", value: 10, label: "Rift Step for 10" },
+        { type: "debuff_hex", value: 2, label: "Void Gaze: apply Hex 2" },
+        { type: "multi_attack", value: 5, hits: 2, label: "Phase Burst: 2x5" }
+      ]
+    }),
+    createEnemy({
+      id: "dread_knight",
+      name: "Dread Knight",
+      health: 58,
+      damage: 11,
+      rewardGold: 16,
+      intents: [
+        { type: "block", value: 8, label: "Shield Up: gain 8 block" },
+        { type: "attack", value: 11, label: "Dark Cleave for 11" },
+        { type: "debuff_curse", curseId: "wound", label: "Dread Mark: add Wound to deck" }
+      ]
+    }),
+    createEnemy({
+      id: "hex_wraith",
+      name: "Hex Wraith",
+      health: 38,
+      damage: 9,
+      rewardGold: 16,
+      intents: [
+        { type: "debuff_hex", value: 3, label: "Hex Flood: apply Hex 3" },
+        { type: "attack", value: 9, label: "Wail for 9" },
+        { type: "debuff_weak", value: 2, label: "Siphon Will: apply Weak 2" }
+      ]
+    }),
+    createEnemy({
+      id: "soul_siphon",
+      name: "Soul Siphon",
+      health: 46,
+      damage: 8,
+      rewardGold: 16,
+      intents: [
+        { type: "buff", value: 2, label: "Feed: gain +2 damage" },
+        { type: "attack", value: 10, label: "Drain for 10" },
+        { type: "buff", value: 2, label: "Feed: gain +2 damage" },
+        { type: "multi_attack", value: 6, hits: 2, label: "Feast: 2x6" }
       ]
     })
   ];

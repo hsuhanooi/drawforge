@@ -47,22 +47,25 @@ describe("Act 2 enemy routing", () => {
   const bossNode = () => ({ id: "n3", type: "boss", row: 4, col: 1 });
 
   it("act 1 combat still returns act 1 enemies only", () => {
-    const act1Ids = ["slime", "fangling", "mossling", "hexbat"];
-    for (let i = 0; i < 8; i += 1) {
+    const act1Ids = [
+      "slime", "fangling", "mossling", "hexbat",
+      "thornling", "phantom_thief", "brute", "hex_cultist", "shield_crawler"
+    ];
+    for (let i = 0; i < 18; i += 1) {
       const enemy = createEnemyForNode(combatNode(i % 5, i % 3), 1);
       expect(act1Ids).toContain(enemy.id);
     }
   });
 
-  it("act 2 combat can return new act 2 enemies", () => {
+  it("act 2 combat can return act 2-exclusive enemies", () => {
     const act2Ids = new Set();
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < 60; i += 1) {
       const enemy = createEnemyForNode(combatNode(i, i % 4), 2);
       act2Ids.add(enemy.id);
     }
-    expect(act2Ids).toContain("hex_fiend");
     expect(act2Ids).toContain("ironback");
-    expect(act2Ids).toContain("void_specter");
+    expect(act2Ids).toContain("void_walker");
+    expect(act2Ids).toContain("hex_wraith");
   });
 
   it("act 2 elite pool includes bone_colossus", () => {

@@ -231,6 +231,13 @@ const claimEventOption = (run, optionId) => {
       }
     };
   }
+  else if (option.effect === "max_health_up") {
+    const maxHealth = (nextRun.player.maxHealth || nextRun.player.health) + (option.amount || 5);
+    nextRun = {
+      ...nextRun,
+      player: { ...nextRun.player, maxHealth }
+    };
+  }
 
   return nextRun;
 };

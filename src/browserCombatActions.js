@@ -220,6 +220,10 @@ const playCombatCard = (run, handIndex) => {
       next.hex_lantern_used = true;
       next.triggeredRelics.push("hex_lantern");
     }
+    if (remainingDamage > 0 && (next.powers || []).some((p) => p.id === "vampiric_aura")) {
+      const maxHealth = run.player.maxHealth || run.player.health;
+      next.player.health = Math.min(next.player.health + 2, maxHealth);
+    }
     // repeatIfHexed: deal damage a second time if enemy had hex (no_mercy)
     if (card.repeatIfHexed && hexStacks > 0) {
       const blocked2 = Math.min(next.enemy.block || 0, totalDamage);
@@ -532,6 +536,22 @@ const endCombatTurn = (run) => {
       next.enemy.health = Math.max(0, next.enemy.health - (3 - thornBlocked));
     } else if (power.id === "hex_resonance") {
       next.enemy.hex = (next.enemy.hex || 0) + 1;
+    } else if (power.id === "storm_call") {
+      const hexCount = next.enemy.hex || 0;
+      if (hexCount > 0) {
+        const stormDmg = hexCount * 2;
+        const stormBlocked = Math.min(next.enemy.block || 0, stormDmg);
+        next.enemy.block = (next.enemy.block || 0) - stormBlocked;
+        next.enemy.health = Math.max(0, next.enemy.health - (stormDmg - stormBlocked));
+      }
+    } else if (power.id === "exhaust_engine") {
+      const energyGain = Math.min((next.exhaustPile || []).length, 3);
+      next.player.energy += energyGain;
+    } else if (power.id === "weak_field") {
+      next.enemy.weak = (next.enemy.weak || 0) + 1;
+    } else if (power.id === "dark_pact") {
+      next.player.health = Math.max(1, next.player.health - 2);
+      next.player.energy += 1;
     }
   }
   next = checkPhaseShift(next);

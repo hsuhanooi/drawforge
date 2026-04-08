@@ -25,4 +25,12 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('"/run/claim-choice-relic.json"');
     expect(playJs).toContain('"/run/claim-event-option.json"');
   });
+
+  it("renders keyword glossary tooltips in card surfaces", () => {
+    expect(playJs).toContain("const KEYWORD_GLOSSARY = {");
+    expect(playJs).toContain('keywordEl.className = "keyword-term"');
+    expect(playJs).toContain('tooltip.className = "keyword-tooltip"');
+    expect(playJs).toContain("renderRulesText(descDiv, describeCard(card));");
+    expect(playJs).toContain('renderRulesText(effEl, card.effectText || describeCard(card));');
+  });
 });

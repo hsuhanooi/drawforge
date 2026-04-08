@@ -180,7 +180,7 @@
 
     const effEl = document.createElement("div");
     effEl.className = "preview-effect";
-    effEl.textContent = card.effectText || describeCard(card);
+    renderRulesText(effEl, card.effectText || describeCard(card));
     body.appendChild(effEl);
 
     if (card.archetype) {
@@ -253,6 +253,58 @@
     if (card.exhaust) parts.push(`Exhaust`);
     if (parts.length <= 1 && card.effectText) parts.push(card.effectText);
     return parts.join(" · ");
+  }
+
+  const KEYWORD_GLOSSARY = {
+    Hex: "A stacking curse on the enemy. Some cards deal extra damage or trigger bonuses against Hexed targets.",
+    Charged: "A temporary empowered state that enables card bonuses and energy effects until it is spent or the turn ends.",
+    Exhaust: "The card leaves combat for the rest of the fight instead of going to the discard pile.",
+    Draw: "Take cards from your draw pile into your hand.",
+    Block: "Prevents incoming damage until the end of the turn unless a rule says otherwise.",
+    Weak: "Reduces attack damage dealt while it lasts.",
+    Vulnerable: "Makes the target take increased damage while it lasts.",
+    Strength: "Increases outgoing attack damage.",
+    Dexterity: "Increases block gained from defensive cards and effects.",
+    Energy: "Your per-turn resource for playing cards.",
+    Cost: "How much energy you must spend to play the card."
+  };
+
+  function buildKeywordNodes(text) {
+    const fragment = document.createDocumentFragment();
+    const keywordPattern = /\b(Hex|Hexed|Charged|Exhaust|Draw|Block|Weak|Vulnerable|Strength|Dexterity|energy|Cost)\b/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = keywordPattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+
+      const rawKeyword = match[0];
+      const glossaryKey = rawKeyword === "Hexed" ? "Hex" : (rawKeyword === "energy" ? "Energy" : rawKeyword);
+      const keywordEl = document.createElement("span");
+      keywordEl.className = "keyword-term";
+      keywordEl.tabIndex = 0;
+      keywordEl.textContent = rawKeyword;
+
+      const tooltip = document.createElement("span");
+      tooltip.className = "keyword-tooltip";
+      tooltip.textContent = KEYWORD_GLOSSARY[glossaryKey] || rawKeyword;
+      keywordEl.appendChild(tooltip);
+      fragment.appendChild(keywordEl);
+      lastIndex = match.index + rawKeyword.length;
+    }
+
+    if (lastIndex < text.length) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+
+    return fragment;
+  }
+
+  function renderRulesText(targetEl, text) {
+    clearEl(targetEl);
+    targetEl.appendChild(buildKeywordNodes(text || ""));
   }
 
   // ─── Card Art (canvas) ────────────────────────────────────────────
@@ -360,7 +412,7 @@
     // Description
     const descDiv = document.createElement("div");
     descDiv.className = "card-desc";
-    descDiv.textContent = describeCard(card);
+    renderRulesText(descDiv, describeCard(card));
     div.appendChild(descDiv);
 
     // Shine overlay (mouse-tilt highlight)

@@ -77,6 +77,7 @@
     <div id="turn-indicator">
       <div id="turn-label">TURN</div>
       <div id="turn-icon">⚔️</div>
+      <div id="turn-state-chip" aria-live="polite">Your turn · play cards or end turn</div>
     </div>
 
     <!-- Enemy panel -->
@@ -107,21 +108,21 @@
   <!-- Bottom: piles + hand + end turn -->
   <div id="combat-bottom">
     <div id="pile-counters">
-      <div class="pile-counter">
+      <button class="pile-counter" id="draw-pile-btn" type="button" aria-label="Open draw pile">
         <span class="pile-icon">🎴</span>
         <span class="pile-num" id="draw-count">0</span>
-        <span>Draw</span>
-      </div>
-      <div class="pile-counter">
+        <span class="pile-label">Draw</span>
+      </button>
+      <button class="pile-counter" id="discard-pile-btn" type="button" aria-label="Open discard pile">
         <span class="pile-icon">🔃</span>
         <span class="pile-num" id="discard-count">0</span>
-        <span>Discard</span>
-      </div>
-      <div class="pile-counter">
+        <span class="pile-label">Discard</span>
+      </button>
+      <button class="pile-counter" id="exhaust-pile-btn" type="button" aria-label="Open exhaust pile">
         <span class="pile-icon">🔥</span>
         <span class="pile-num" id="exhaust-count">0</span>
-        <span>Exhaust</span>
-      </div>
+        <span class="pile-label">Exhaust</span>
+      </button>
     </div>
     <div id="hand-area"></div>
     <button id="end-turn-btn">End Turn</button>

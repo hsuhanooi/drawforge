@@ -500,6 +500,12 @@
   function flashTriggeredRelics(triggeredRelics) {
     if (!triggeredRelics?.length) return;
     const relics = currentRun?.relics || [];
+    const triggeredNames = triggeredRelics
+      .map((relicId) => relics.find((r) => r.id === relicId)?.name)
+      .filter(Boolean);
+    if (triggeredNames.length > 0) {
+      setCombatStateMessage(`Relic triggered · ${triggeredNames.join(", ")}`, "relic");
+    }
     ["combat-relic-strip", "map-relic-strip"].forEach((stripId) => {
       const strip = $id(stripId);
       if (!strip) return;
@@ -1073,6 +1079,13 @@
     }, { once: true });
   }
 
+  function setCombatStateMessage(message, tone = "player") {
+    const chip = $id("turn-state-chip");
+    if (!chip) return;
+    chip.textContent = message;
+    chip.dataset.tone = tone;
+  }
+
   function spawnConfetti() {
     const colors = ["#f0c040", "#4f8ef7", "#44c068", "#9b59b6", "#e07830"];
     for (let i = 0; i < 55; i++) {
@@ -1602,6 +1615,10 @@
   }
 
   // ─── Pile Modal ───────────────────────────────────────────────────
+  function hidePileModal() {
+    $id("pile-modal")?.classList.add("hidden");
+  }
+
   function showPileModal(title, cards) {
     let modal = $id("pile-modal");
     if (!modal) {
@@ -1609,7 +1626,7 @@
       modal.id = "pile-modal";
       modal.className = "pile-modal";
       document.body.appendChild(modal);
-      modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); });
+      modal.addEventListener("click", (e) => { if (e.target === modal) hidePileModal(); });
     }
     modal.classList.remove("hidden");
     clearEl(modal);
@@ -1619,13 +1636,22 @@
 
     const hdr = document.createElement("div");
     hdr.className = "pile-modal-header";
+    const titleWrap = document.createElement("div");
     const titleEl = document.createElement("span");
     titleEl.textContent = `${title} (${cards.length})`;
+    const subtitleEl = document.createElement("div");
+    subtitleEl.className = "pile-modal-subtitle";
+    subtitleEl.textContent = cards.length === 0
+      ? "No cards are in this pile right now."
+      : "Click outside the panel or press Escape to return to combat.";
+    titleWrap.appendChild(titleEl);
+    titleWrap.appendChild(subtitleEl);
     const closeBtn = document.createElement("button");
     closeBtn.className = "pile-modal-close";
+    closeBtn.type = "button";
     closeBtn.textContent = "✕";
-    closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
-    hdr.appendChild(titleEl);
+    closeBtn.addEventListener("click", hidePileModal);
+    hdr.appendChild(titleWrap);
     hdr.appendChild(closeBtn);
 
     const grid = document.createElement("div");
@@ -1642,6 +1668,7 @@
     box.appendChild(hdr);
     box.appendChild(grid);
     modal.appendChild(box);
+    closeBtn.focus();
   }
 
   // ─── Powers Strip ─────────────────────────────────────────────────
@@ -1696,12 +1723,26 @@
     const { combat } = currentRun;
     const maxHp = currentRun.player.maxHealth || 80;
     const enemyMaxHp = combat.enemy.maxHp || combat.enemy.health;
+    const isCombatResolved = combat.state === "victory" || combat.state === "defeat";
 
     // Topbar
     const nodeType = combat.nodeType || "combat";
     $id("combat-floor-label").textContent = nodeType.toUpperCase();
     const turnEl = $id("combat-turn-label");
     if (turnEl) turnEl.textContent = combat.turn ?? 1;
+    const turnLabelEl = $id("turn-label");
+    if (turnLabelEl) turnLabelEl.textContent = isCombatResolved ? "Result" : `Turn ${combat.turn ?? 1}`;
+    const turnIconEl = $id("turn-icon");
+    if (turnIconEl) {
+      turnIconEl.textContent = combat.state === "victory" ? "🏆" : combat.state === "defeat" ? "💀" : "⚔️";
+    }
+    if (combat.state === "victory") {
+      setCombatStateMessage("Victory secured · claim your spoils", "victory");
+    } else if (combat.state === "defeat") {
+      setCombatStateMessage("Defeat · the run is over", "defeat");
+    } else {
+      setCombatStateMessage("Your turn · play cards or end turn", "player");
+    }
     renderRelicStrip("combat-relic-strip", currentRun.relics || []);
     // Only re-render background and start particles when entering combat
     if (enteringCombat) {
@@ -1756,17 +1797,19 @@
     renderIntent(combat.enemyIntent);
 
     // Pile counters (clickable to view contents)
-    const pileSetup = (elId, pile, label) => {
-      const el = $id(elId);
-      if (!el) return;
-      el.textContent = pile.length;
-      el.style.cursor = "pointer";
-      el.title = `View ${label}`;
-      el.onclick = () => showPileModal(label, pile);
+    const pileSetup = (buttonId, countId, pile, label) => {
+      const countEl = $id(countId);
+      if (!countEl) return;
+      countEl.textContent = pile.length;
+      const buttonEl = $id(buttonId);
+      if (!buttonEl) return;
+      buttonEl.title = `Open ${label}`;
+      buttonEl.setAttribute("aria-label", `Open ${label}, ${pile.length} cards`);
+      buttonEl.onclick = () => showPileModal(label, pile);
     };
-    pileSetup("draw-count",    combat.drawPile    || [], "Draw Pile");
-    pileSetup("discard-count", combat.discardPile || [], "Discard Pile");
-    pileSetup("exhaust-count", combat.exhaustPile || [], "Exhaust Pile");
+    pileSetup("draw-pile-btn", "draw-count", combat.drawPile || [], "Draw Pile");
+    pileSetup("discard-pile-btn", "discard-count", combat.discardPile || [], "Discard Pile");
+    pileSetup("exhaust-pile-btn", "exhaust-count", combat.exhaustPile || [], "Exhaust Pile");
 
     // Potion slots
     renderPotionStrip(currentRun.potions || []);
@@ -1810,7 +1853,15 @@
 
     // End turn button state
     const endBtn = $id("end-turn-btn");
-    if (endBtn) endBtn.disabled = false;
+    if (endBtn) {
+      endBtn.disabled = isCombatResolved;
+      endBtn.textContent = combat.state === "victory"
+        ? "Victory"
+        : combat.state === "defeat"
+          ? "Defeat"
+          : "End Turn";
+      endBtn.setAttribute("aria-label", endBtn.textContent);
+    }
   }
 
   async function playCard(handIndex, cardEl) {
@@ -2498,7 +2549,18 @@
     $id("end-turn-btn")?.addEventListener("click", async () => {
       if (!currentRun?.combat) return;
       const btn = $id("end-turn-btn");
-      if (btn) btn.disabled = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Enemy Turn...";
+        btn.setAttribute("aria-label", "Enemy Turn...");
+      }
+      const enemyIntentLabel = currentRun.combat.enemyIntent?.label || "Enemy action";
+      const turnIconEl = $id("turn-icon");
+      const turnLabelEl = $id("turn-label");
+      if (turnIconEl) turnIconEl.textContent = "☄️";
+      if (turnLabelEl) turnLabelEl.textContent = "Enemy Turn";
+      setCombatStateMessage(`Enemy turn · ${enemyIntentLabel}`, "enemy");
+      showTurnBanner("ENEMY TURN", true);
 
       const prevPlayerHp = currentRun.combat.player.health;
       const prevPlayerBlock = currentRun.combat.player.block || 0;
@@ -2607,9 +2669,10 @@
   // ─── Keyboard Shortcuts ───────────────────────────────────────────
   function initKeyboard() {
     document.addEventListener("keydown", (e) => {
-      // Escape closes deck overlay
+      // Escape closes overlays
       if (e.key === "Escape") {
         hide("deck-overlay");
+        hidePileModal();
         return;
       }
 

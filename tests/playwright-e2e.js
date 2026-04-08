@@ -108,15 +108,19 @@ async function run() {
     info('Deck choice screen visible ✓');
 
     // Check deck options
-    const deckOptions = await page.$$('#deck-choice-row > *');
+    const deckOptions = await page.$$('#deck-choice-row .archetype-panel');
     if (deckOptions.length === 0) {
       bug('2. Deck Choice Options', 'Deck options rendered in #deck-choice-row', 'No deck options found');
     } else {
       info(`${deckOptions.length} deck options found ✓`);
-      // Click first deck option
-      await deckOptions[0].click();
-      await wait(1500);
-      info('Clicked first deck option');
+      const firstSelectButton = await page.$('#deck-choice-row .archetype-select-btn');
+      if (!firstSelectButton) {
+        bug('2. Deck Choice Select', 'Each deck option exposes a selectable button', 'No .archetype-select-btn found');
+      } else {
+        await firstSelectButton.click();
+        await wait(1500);
+        info('Clicked first deck option');
+      }
     }
   } else if (mapVisibleAfterNewRun) {
     bug('2. Deck Choice Screen', 'Deck choice screen shown before map on New Run', 'Map shown immediately - deck choice screen skipped entirely');
@@ -289,6 +293,31 @@ async function run() {
       bug('4. Player HP Display', 'Player HP shows a number', `Player HP shows "${playerHpCurrent}"`);
     }
 
+    // Check pile inspection controls
+    info('Checking clickable pile inspection modal');
+    const drawPileBtn = await page.$('#draw-pile-btn');
+    if (!drawPileBtn) {
+      bug('4. Draw Pile Button', 'Draw pile button exists in combat', 'Missing #draw-pile-btn');
+    } else {
+      await drawPileBtn.click();
+      await wait(250);
+      const pileModalVisible = await page.$eval('#pile-modal', el => !el.classList.contains('hidden')).catch(() => false);
+      const pileTitle = await page.textContent('.pile-modal-header span').catch(() => '');
+      if (!pileModalVisible || !pileTitle.includes('Draw Pile')) {
+        bug('4. Pile Inspection Modal', 'Clicking draw pile opens Draw Pile modal', `Visible=${pileModalVisible}, title="${pileTitle}"`);
+      } else {
+        info('Draw pile modal opens correctly ✓');
+      }
+      await page.keyboard.press('Escape');
+      await wait(150);
+      const pileModalClosed = await page.$eval('#pile-modal', el => el.classList.contains('hidden')).catch(() => true);
+      if (!pileModalClosed) {
+        bug('4. Pile Modal Escape Close', 'Escape closes pile modal', 'Pile modal remained open after Escape');
+      } else {
+        info('Pile modal closes with Escape ✓');
+      }
+    }
+
     // ─── 5. Play a Card ─────────────────────────────────────────────
     info('=== TEST 5: Play a Card ===');
     const handCardsBefore = await page.$$('#hand-area .card-component, #hand-area .card');
@@ -403,9 +432,10 @@ async function run() {
       // Play all playable cards via JS evaluate to avoid stale element issues
       const enemyHpNow = await page.textContent('#enemy-hp-current').catch(() => '?');
       const playResult = await page.evaluate(async () => {
-        const cards = Array.from(document.querySelectorAll('#hand-area .card-component:not(.unplayable)'));
         let played = 0;
-        for (const card of cards) {
+        for (;;) {
+          const card = document.querySelector('#hand-area .card-component:not(.unplayable)');
+          if (!card) break;
           card.click();
           played++;
           await new Promise(r => setTimeout(r, 350));
@@ -601,9 +631,13 @@ async function run() {
       }
     }
 
-    // Go back
-    await page.click('#reward-skip-btn').catch(() => {});
-    await wait(500);
+    // Go back via the campfire's leave option
+    await page.evaluate(() => {
+      const leaveBtn = Array.from(document.querySelectorAll('#rest-options-row .rest-option-btn'))
+        .find((btn) => btn.textContent?.toLowerCase().includes('leave'));
+      if (leaveBtn) leaveBtn.click();
+    }).catch(() => {});
+    await wait(800);
   } else {
     info('Campfire screen not reached');
   }
@@ -684,7 +718,7 @@ async function run() {
     // If deck choice shown, pick first
     const dcVisible = await isVisible('screen-deck-choice');
     if (dcVisible) {
-      const firstOpt = await page.$('#deck-choice-row > *');
+      const firstOpt = await page.$('#deck-choice-row .archetype-select-btn');
       if (firstOpt) { await firstOpt.click(); await wait(1500); }
     }
     onMap = await isVisible('screen-map');

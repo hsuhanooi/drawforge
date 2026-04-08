@@ -33,4 +33,20 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain("renderRulesText(descDiv, describeCard(card));");
     expect(playJs).toContain('renderRulesText(effEl, card.effectText || describeCard(card));');
   });
+
+  it("wires clickable pile inspection controls and modal dismissal", () => {
+    expect(playJs).toContain('function hidePileModal()');
+    expect(playJs).toContain('buttonEl.setAttribute("aria-label", `Open ${label}, ${pile.length} cards`)');
+    expect(playJs).toContain('buttonEl.onclick = () => showPileModal(label, pile);');
+    expect(playJs).toContain('subtitleEl.className = "pile-modal-subtitle"');
+    expect(playJs).toContain('hidePileModal();');
+  });
+
+  it("renders a dedicated turn-state message for player, enemy, victory, defeat, and relic triggers", () => {
+    expect(playJs).toContain('function setCombatStateMessage(message, tone = "player")');
+    expect(playJs).toContain('setCombatStateMessage("Victory secured · claim your spoils", "victory")');
+    expect(playJs).toContain('setCombatStateMessage("Defeat · the run is over", "defeat")');
+    expect(playJs).toContain('setCombatStateMessage(`Enemy turn · ${enemyIntentLabel}`, "enemy")');
+    expect(playJs).toContain('setCombatStateMessage(`Relic triggered · ${triggeredNames.join(", ")}`, "relic")');
+  });
 });

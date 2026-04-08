@@ -601,6 +601,37 @@ html, body {
   letter-spacing: 2px;
 }
 #turn-icon { font-size: 30px; }
+#turn-state-chip {
+  min-width: 180px;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 142, 247, 0.22);
+  background: rgba(9, 14, 25, 0.72);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+}
+#turn-state-chip[data-tone="enemy"] {
+  border-color: rgba(224, 80, 80, 0.35);
+  color: #ffb0b0;
+}
+#turn-state-chip[data-tone="victory"] {
+  border-color: rgba(240, 192, 64, 0.38);
+  color: #ffd978;
+}
+#turn-state-chip[data-tone="defeat"] {
+  border-color: rgba(224, 80, 80, 0.48);
+  color: #ff9d9d;
+}
+#turn-state-chip[data-tone="relic"] {
+  border-color: rgba(155, 89, 182, 0.4);
+  color: #d9bbff;
+}
 
 /* ─── Turn Banner ─────────────────────────────────────────────────── */
 #turn-banner {
@@ -669,14 +700,28 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  min-width: 70px;
+  padding: 8px 10px;
   font-size: 11px;
   color: var(--text-dim);
-  cursor: default;
-  transition: color 0.15s;
+  background: rgba(12, 16, 28, 0.82);
+  border: 1px solid rgba(79, 142, 247, 0.14);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
-.pile-counter:hover { color: var(--text); }
+.pile-counter:hover,
+.pile-counter:focus-visible {
+  color: var(--text);
+  border-color: rgba(79, 142, 247, 0.5);
+  background: rgba(18, 24, 40, 0.96);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+  outline: none;
+}
 .pile-counter .pile-icon { font-size: 20px; }
 .pile-counter .pile-num  { font-weight: 700; color: var(--text); }
+.pile-counter .pile-label { letter-spacing: 0.04em; text-transform: uppercase; }
 
 #hand-area {
   flex: 1;
@@ -2508,12 +2553,20 @@ canvas.card-art-canvas {
 }
 .pile-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 16px;
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 1px;
+}
+.pile-modal-subtitle {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
 }
 .pile-modal-close {
   background: none;

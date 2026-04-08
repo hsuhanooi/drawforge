@@ -198,7 +198,7 @@
           "Verify the displayed cards match the underlying pile contents",
           "Verify counts update correctly as cards move between piles"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -212,7 +212,7 @@
           "Verify the UI displays the correct combat result state",
           "Verify relic-trigger states can display without blocking core combat controls"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -632,7 +632,7 @@
           "Move cards between piles during combat",
           "Verify counts and inspection contents update correctly"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -684,7 +684,7 @@
           "Verify turn-state messaging does not obstruct primary combat interactions",
           "Verify the turn-state system supports future transitions and boss introductions"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -801,7 +801,7 @@
           "Create follow-up polish items from the review",
           "Store the checklist with the milestone documentation"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

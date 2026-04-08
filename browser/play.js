@@ -943,23 +943,37 @@
     const cards = Array.from(handArea.querySelectorAll(".card-component"));
     const n = cards.length;
     if (n === 0) return;
+
     const center = (n - 1) / 2;
-    const ROT_STEP = Math.min(4.5, 28 / n);
-    const Y_STEP = 5;
+    const width = handArea.clientWidth || 900;
+    const compact = n >= 8 || width < 980;
+    const rotStep = Math.min(compact ? 4.2 : 5.2, (compact ? 26 : 30) / n);
+    const liftStep = compact ? 4 : 5;
+    const overlapPx = n <= 4 ? 0 : Math.min(44, 8 + (n - 4) * 6);
+
+    handArea.style.setProperty("--hand-count", String(n));
+    handArea.style.setProperty("--hand-overlap", `${overlapPx}px`);
+    handArea.classList.toggle("hand-dense", compact);
+
     cards.forEach((card, i) => {
       const offset = i - center;
-      const rot = offset * ROT_STEP;
-      const ty  = Math.abs(offset) * Y_STEP;
+      const rot = offset * rotStep;
+      const ty = Math.abs(offset) * liftStep;
+      const isEdge = i === 0 || i === n - 1;
       card.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
       card.style.setProperty("--arc-rot", `${rot}deg`);
+      card.style.setProperty("--arc-lift", `${ty}px`);
+      card.style.marginLeft = i === 0 ? "0px" : `-${overlapPx}px`;
+      card.style.marginRight = isEdge ? "0px" : "";
+      card.style.zIndex = String(20 + i);
       card.style.transition = "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s, z-index 0s";
 
-      card.addEventListener("mouseenter", () => {
-        card.style.zIndex = "30";
+      card.onmouseenter = () => {
+        card.style.zIndex = "60";
         card.style.transition = "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s";
-      }, { capture: false });
+      };
 
-      card.addEventListener("mousemove", (e) => {
+      card.onmousemove = (e) => {
         if (card.classList.contains("unplayable")) return;
         const r = card.getBoundingClientRect();
         const cx = (e.clientX - r.left) / r.width - 0.5;
@@ -970,12 +984,12 @@
           shine.style.setProperty("--sx", `${(cx + 0.5) * 100}%`);
           shine.style.setProperty("--sy", `${(cy + 0.5) * 100}%`);
         }
-      }, { capture: false });
+      };
 
-      card.addEventListener("mouseleave", () => {
+      card.onmouseleave = () => {
         card.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
-        card.style.zIndex = "";
-      }, { capture: false });
+        card.style.zIndex = String(20 + i);
+      };
     });
   }
 

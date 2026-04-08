@@ -42,7 +42,7 @@
           "Verify layout supports one enemy without overlapping critical UI",
           "Verify combat UI can render from live combat state"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -55,7 +55,7 @@
           "Render disabled styling when the player cannot play the card",
           "Verify the card component can be reused in hand, rewards, deck view, and card library"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -68,7 +68,7 @@
           "Move focus between multiple cards",
           "Verify only the active card is highlighted"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -171,7 +171,7 @@
           "Advance the turn",
           "Verify intent updates for the next enemy action"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -185,7 +185,7 @@
           "Verify active statuses such as Charged are displayed if present",
           "Verify the HUD updates immediately as combat state changes"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -528,7 +528,7 @@
           "Verify the component works in hand, rewards, deck view, shop view, and library view",
           "Verify missing art falls back safely to placeholder rendering"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -541,7 +541,7 @@
           "Verify the selected or hovered card can rise above neighbors cleanly",
           "Verify the hand layout is responsive across supported desktop resolutions"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -593,7 +593,7 @@
           "Display active statuses such as Charged or other future mechanics",
           "Verify the HUD remains readable and visually subordinate to the hand"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -606,7 +606,7 @@
           "Verify the enemy panel remains readable while a card is selected",
           "Verify intent updates correctly at turn transitions"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -619,7 +619,7 @@
           "Advance the turn and verify the intent updates correctly",
           "Verify the intent remains legible in under one second of player attention"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

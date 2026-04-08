@@ -1879,10 +1879,16 @@ canvas.card-art-canvas {
 #hand-area {
   overflow: visible;
   padding-bottom: 8px;
+  --hand-count: 0;
+  --hand-overlap: 0px;
 }
 #hand-area .card-component {
   transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.18s, z-index 0s;
   transform-origin: bottom center;
+  will-change: transform;
+}
+#hand-area.hand-dense .card-component {
+  filter: saturate(0.98);
 }
 #hand-area .card-component:hover:not(.unplayable),
 #hand-area .card-component.is-active:not(.unplayable),

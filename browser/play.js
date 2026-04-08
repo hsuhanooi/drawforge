@@ -9,6 +9,8 @@
   let prevShopGold = -1;
   let deckSortMode = "type"; // "type" | "cost"
   let isCardPlaying = false;
+  let selectedHandCardIndex = null;
+  let dragHandState = null;
 
   const ARCHETYPES = [
     {
@@ -1108,6 +1110,148 @@
     chip.dataset.tone = tone;
   }
 
+  function clearSelectedHandCard() {
+    selectedHandCardIndex = null;
+    dragHandState = null;
+  }
+
+  function getSelectedCombatCard() {
+    return selectedHandCardIndex === null ? null : currentRun?.combat?.hand?.[selectedHandCardIndex] || null;
+  }
+
+  function setSelectedHandCard(handArea, handIndex, cardEl, card) {
+    selectedHandCardIndex = handIndex;
+    dragHandState = null;
+    setActiveHandCard(handArea, cardEl);
+    Array.from(handArea.querySelectorAll(".card-component")).forEach((el, idx) => {
+      el.classList.toggle("is-selected", idx === handIndex);
+    });
+    const mode = card?.type === "attack" ? "click the enemy to confirm" : "click again or drag upward to play";
+    setCombatStateMessage(`Card ready · ${mode}`, "player");
+  }
+
+  function buildCardPreviewSummary(card, combat) {
+    if (!card || !combat) return null;
+    const parts = [];
+    let totalDamage = card.damage || 0;
+    if (card.type === "attack") {
+      totalDamage += combat.player.strength || 0;
+      if ((combat.enemy.hex || 0) > 0) totalDamage += card.bonusVsHex || 0;
+      if ((combat.enemy.vulnerable || 0) > 0) totalDamage += card.bonusVsVulnerable || 0;
+      if ((combat.player.weak || 0) > 0) totalDamage = Math.floor(totalDamage * 0.75);
+      if ((combat.enemy.vulnerable || 0) > 0) totalDamage = Math.floor(totalDamage * 1.5);
+      if (totalDamage > 0) parts.push(`Deal ${totalDamage}`);
+    }
+    let blockGain = card.block || 0;
+    if (blockGain > 0) {
+      blockGain += combat.player.dexterity || 0;
+      if (card.bonusBlockIfHexed && (combat.enemy.hex || 0) > 0) blockGain += card.bonusBlockIfHexed;
+      if (card.bonusBlockIfCharged && combat.player.charged) blockGain += card.bonusBlockIfCharged;
+      parts.push(`Gain ${blockGain} block`);
+    }
+    if (card.draw) parts.push(`Draw ${card.draw}`);
+    if (card.energyGain) parts.push(`Gain ${card.energyGain} energy`);
+    if (card.hex) parts.push(`Apply ${card.hex} Hex`);
+    if (card.vulnerable) parts.push(`Apply ${card.vulnerable} Vulnerable`);
+    if (card.weak) parts.push(`Apply ${card.weak} Weak`);
+    return parts.length ? parts.join(" · ") : describeCard(card);
+  }
+
+  function renderCardSelectionPreview(card, combat) {
+    ["player-preview-chip", "enemy-preview-chip"].forEach((id) => {
+      let chip = $id(id);
+      if (!chip) {
+        chip = document.createElement("div");
+        chip.id = id;
+        chip.className = "combat-preview-chip hidden";
+        const parentId = id === "player-preview-chip" ? "player-panel" : "enemy-panel";
+        $id(parentId)?.appendChild(chip);
+      }
+    });
+
+    const playerChip = $id("player-preview-chip");
+    const enemyChip = $id("enemy-preview-chip");
+    if (!playerChip || !enemyChip) return;
+
+    if (!card || !combat || combat.turn !== "player" || combat.state !== "active") {
+      playerChip.classList.add("hidden");
+      enemyChip.classList.add("hidden");
+      return;
+    }
+
+    const summary = buildCardPreviewSummary(card, combat);
+    playerChip.textContent = card.block || card.energyGain || card.draw ? summary : "";
+    enemyChip.textContent = card.type === "attack" || card.hex || card.vulnerable || card.weak ? summary : "";
+    playerChip.classList.toggle("hidden", !playerChip.textContent);
+    enemyChip.classList.toggle("hidden", !enemyChip.textContent);
+  }
+
+  function bindHandCardInteraction({ handArea, cardEl, card, idx, canAfford }) {
+    if (!handArea || !cardEl || !canAfford) return;
+
+    const resetDragVisual = () => {
+      cardEl.classList.remove("is-dragging");
+      cardEl.style.removeProperty("--drag-x");
+      cardEl.style.removeProperty("--drag-y");
+    };
+
+    const finishDrag = async (event) => {
+      if (!dragHandState || dragHandState.handIndex !== idx) return;
+      const deltaX = event.clientX - dragHandState.startX;
+      const deltaY = event.clientY - dragHandState.startY;
+      const draggedFarEnough = Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10;
+      const shouldPlay = draggedFarEnough && deltaY <= -90 && card.type !== "attack";
+      dragHandState = null;
+      resetDragVisual();
+      if (shouldPlay) {
+        setCombatStateMessage(card.type === "attack" ? "Attack launched" : "Card released", "player");
+        await playCard(idx, cardEl);
+        return;
+      }
+      if (!draggedFarEnough) {
+        if (selectedHandCardIndex === idx) {
+          if (card.type === "attack") {
+            setCombatStateMessage("Target locked · click the enemy to strike", "player");
+          } else {
+            await playCard(idx, cardEl);
+          }
+        } else {
+          setSelectedHandCard(handArea, idx, cardEl, card);
+        }
+        return;
+      }
+      setSelectedHandCard(handArea, idx, cardEl, card);
+    };
+
+    cardEl.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || isCardPlaying) return;
+      dragHandState = {
+        handIndex: idx,
+        startX: event.clientX,
+        startY: event.clientY
+      };
+      cardEl.setPointerCapture?.(event.pointerId);
+      setSelectedHandCard(handArea, idx, cardEl, card);
+    });
+
+    cardEl.addEventListener("pointermove", (event) => {
+      if (!dragHandState || dragHandState.handIndex !== idx) return;
+      const deltaX = event.clientX - dragHandState.startX;
+      const deltaY = event.clientY - dragHandState.startY;
+      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+        cardEl.classList.add("is-dragging");
+        cardEl.style.setProperty("--drag-x", `${deltaX}px`);
+        cardEl.style.setProperty("--drag-y", `${deltaY}px`);
+      }
+    });
+
+    cardEl.addEventListener("pointerup", finishDrag);
+    cardEl.addEventListener("pointercancel", () => {
+      dragHandState = null;
+      resetDragVisual();
+    });
+  }
+
   function spawnConfetti() {
     const colors = ["#f0c040", "#4f8ef7", "#44c068", "#9b59b6", "#e07830"];
     for (let i = 0; i < 55; i++) {
@@ -1769,6 +1913,10 @@
       setCombatStateMessage("Victory secured · claim your spoils", "victory");
     } else if (combat.state === "defeat") {
       setCombatStateMessage("Defeat · the run is over", "defeat");
+    } else if (combat.turn === "player" && selectedHandCardIndex !== null && combat.hand?.[selectedHandCardIndex]) {
+      const selectedCard = combat.hand[selectedHandCardIndex];
+      const mode = selectedCard?.type === "attack" ? "click the enemy to confirm" : "click again or drag upward to play";
+      setCombatStateMessage(`Card ready · ${mode}`, "player");
     } else {
       setCombatStateMessage("Your turn · play cards or end turn", "player");
     }
@@ -1825,6 +1973,22 @@
     // Intent with icon system
     renderIntent(combat.enemyIntent);
 
+    const enemyPanel = $id("enemy-panel");
+    const selectedCard = getSelectedCombatCard();
+    renderCardSelectionPreview(selectedCard, combat);
+    const enemyTargetingActive = combat.turn === "player" && selectedCard?.type === "attack" && combat.state === "active";
+    if (enemyPanel) {
+      enemyPanel.classList.toggle("targetable", enemyTargetingActive);
+      enemyPanel.classList.toggle("target-selected", enemyTargetingActive);
+      enemyPanel.onclick = enemyTargetingActive
+        ? () => {
+            const targetIndex = selectedHandCardIndex;
+            const targetCardEl = $id("hand-area")?.querySelectorAll(".card-component")?.[targetIndex];
+            playCard(targetIndex, targetCardEl || null);
+          }
+        : null;
+    }
+
     // Pile counters (clickable to view contents)
     const pileSetup = (buttonId, countId, pile, label) => {
       const countEl = $id(countId);
@@ -1871,13 +2035,17 @@
         const canAfford = combat.player.energy >= (card.cost || 0);
         const cardEl = makeCard(card, {
           unplayable: !canAfford,
-          dealDelay: -1,
-          onClick: () => playCard(idx, cardEl)
+          dealDelay: -1
         });
         cardEl.addEventListener("mouseenter", () => setActiveHandCard(handArea, cardEl));
         cardEl.addEventListener("focus", () => setActiveHandCard(handArea, cardEl));
         cardEl.addEventListener("mouseleave", () => setActiveHandCard(handArea));
         cardEl.addEventListener("blur", () => setActiveHandCard(handArea));
+        if (selectedHandCardIndex === idx) {
+          cardEl.classList.add("is-selected");
+          setActiveHandCard(handArea, cardEl);
+        }
+        bindHandCardInteraction({ handArea, cardEl, card, idx, canAfford });
         handArea.appendChild(cardEl);
       });
       // Apply arc after layout
@@ -1886,8 +2054,15 @@
 
     // End turn button state
     const endBtn = $id("end-turn-btn");
+    if (enemyPanel && enemyTargetingActive) {
+      enemyPanel.setAttribute("aria-label", `Target ${combat.enemy.name || "enemy"}`);
+    }
+
     if (endBtn) {
       endBtn.disabled = isCombatResolved;
+      if (isCombatResolved || combat.turn !== "player") {
+        clearSelectedHandCard();
+      }
       endBtn.textContent = combat.state === "victory"
         ? "Victory"
         : combat.state === "defeat"
@@ -1899,6 +2074,7 @@
 
   async function playCard(handIndex, cardEl) {
     if (isCardPlaying) return;
+    clearSelectedHandCard();
     isCardPlaying = true;
     try {
     const card = currentRun.combat?.hand?.[handIndex];
@@ -2020,6 +2196,9 @@
     saveRun(currentRun);
     render();
     } finally {
+      if (!currentRun?.combat || currentRun.combat.turn !== "player") {
+        clearSelectedHandCard();
+      }
       isCardPlaying = false;
     }
   }

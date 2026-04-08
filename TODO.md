@@ -81,7 +81,7 @@
           "Verify energy is spent and the card effect resolves",
           "Verify the played card leaves the hand and transitions correctly"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -94,7 +94,7 @@
           "Verify the card resolves against the selected target",
           "Attempt to resolve without a valid target and verify play is blocked"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -108,7 +108,7 @@
           "Verify the UI previews keyword or debuff application where supported",
           "Deselect the card and verify previews are cleared"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -567,7 +567,7 @@
           "Release on a valid target and verify the card resolves",
           "Cancel the interaction and verify the card returns to its original state cleanly"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -671,7 +671,7 @@
           "Select a card with conditional logic and verify the preview reflects the current state correctly",
           "Deselect the card and verify all previews are removed"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

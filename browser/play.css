@@ -383,6 +383,21 @@ html, body {
   border-color: rgba(224,80,80,0.3);
   box-shadow: 0 0 12px rgba(224,80,80,0.12);
 }
+#enemy-panel.targetable {
+  cursor: crosshair;
+}
+#enemy-panel.targetable .combatant-avatar {
+  border-color: rgba(240,192,64,0.72);
+  box-shadow: 0 0 22px rgba(240,192,64,0.26);
+}
+#enemy-panel.target-selected .combatant-avatar {
+  animation: target-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes target-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 18px rgba(240,192,64,0.24); }
+  50% { transform: scale(1.04); box-shadow: 0 0 28px rgba(240,192,64,0.5); }
+}
 
 /* Shake (hit) */
 .combatant-avatar.shake { animation: shake 0.35s ease; }
@@ -422,6 +437,23 @@ html, body {
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 1.5px;
+}
+.combat-preview-chip {
+  margin-top: -2px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(240,192,64,0.28);
+  background: rgba(13, 17, 28, 0.86);
+  color: #ffd978;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.24);
+}
+.combat-preview-chip.hidden {
+  display: none;
 }
 .hp-bar-wrap { width: 200px; }
 .hp-bar-label {
@@ -1900,6 +1932,15 @@ canvas.card-art-canvas {
 #hand-area .card-component:focus-visible:not(.unplayable) {
   outline: none;
   box-shadow: 0 24px 52px rgba(0,0,0,0.78), 0 0 28px rgba(79,142,247,0.45);
+}
+#hand-area .card-component.is-selected:not(.unplayable) {
+  box-shadow: 0 28px 58px rgba(0,0,0,0.82), 0 0 32px rgba(240,192,64,0.42);
+}
+#hand-area .card-component.is-dragging:not(.unplayable) {
+  cursor: grabbing;
+  transform: translate(var(--drag-x, 0px), var(--drag-y, 0px)) scale(1.08) rotate(0deg) !important;
+  z-index: 45;
+  transition: none;
 }
 
 /* Card fly toward enemy (attack) */

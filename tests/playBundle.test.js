@@ -58,6 +58,38 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('if (event.key === "Enter" || event.key === " ")');
   });
 
+  it("supports click-to-select and drag-up-to-play hand interactions", () => {
+    expect(playJs).toContain('let selectedHandCardIndex = null;');
+    expect(playJs).toContain('function setSelectedHandCard(handArea, handIndex, cardEl, card) {');
+    expect(playJs).toContain('selectedHandCardIndex = handIndex;');
+    expect(playJs).toContain('el.classList.toggle("is-selected", idx === handIndex);');
+    expect(playJs).toContain('function bindHandCardInteraction({ handArea, cardEl, card, idx, canAfford }) {');
+    expect(playJs).toContain('cardEl.addEventListener("pointerdown", (event) => {');
+    expect(playJs).toContain('cardEl.addEventListener("pointermove", (event) => {');
+    expect(playJs).toContain('const shouldPlay = draggedFarEnough && deltaY <= -90 && card.type !== "attack";');
+    expect(playJs).toContain('await playCard(idx, cardEl);');
+  });
+
+  it("requires enemy target confirmation for selected attack cards", () => {
+    expect(playJs).toContain('function getSelectedCombatCard() {');
+    expect(playJs).toContain('const enemyTargetingActive = combat.turn === "player" && selectedCard?.type === "attack" && combat.state === "active";');
+    expect(playJs).toContain('enemyPanel.classList.toggle("targetable", enemyTargetingActive);');
+    expect(playJs).toContain('enemyPanel.classList.toggle("target-selected", enemyTargetingActive);');
+    expect(playJs).toContain('setCombatStateMessage("Target locked · click the enemy to strike", "player")');
+    expect(playJs).toContain('enemyPanel.onclick = enemyTargetingActive');
+    expect(playJs).toContain('playCard(targetIndex, targetCardEl || null);');
+  });
+
+  it("shows selected-card outcome previews for damage, block, and status effects", () => {
+    expect(playJs).toContain('function buildCardPreviewSummary(card, combat) {');
+    expect(playJs).toContain('if (totalDamage > 0) parts.push(`Deal ${totalDamage}`);');
+    expect(playJs).toContain('parts.push(`Gain ${blockGain} block`);');
+    expect(playJs).toContain('if (card.hex) parts.push(`Apply ${card.hex} Hex`);');
+    expect(playJs).toContain('function renderCardSelectionPreview(card, combat) {');
+    expect(playJs).toContain('chip.className = "combat-preview-chip hidden";');
+    expect(playJs).toContain('renderCardSelectionPreview(selectedCard, combat);');
+  });
+
   it("applies an adaptive arced hand layout for dense combat hands", () => {
     expect(playJs).toContain('function applyHandArc(handArea) {');
     expect(playJs).toContain('const compact = n >= 8 || width < 980;');

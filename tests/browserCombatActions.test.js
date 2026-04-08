@@ -17,11 +17,17 @@ describe("browser combat actions", () => {
   it("plays a combat card through the shared action", () => {
     const run = makeRun();
     const combat = startCombatForNode(run, combatNode);
+    const playedCard = combat.hand[0];
     const nextRun = playCombatCard({ ...run, combat }, 0);
 
-    expect(nextRun.combat.player.energy).toBeLessThan(combat.player.energy);
+    expect(nextRun.combat.hand.length).toBe(combat.hand.length - 1);
     expect(nextRun.player.health).toBe(nextRun.combat.player.health);
     expect(nextRun.combat.discardPile.length + (nextRun.combat.exhaustPile || []).length).toBeGreaterThan(0);
+    if ((playedCard.cost || 0) > 0) {
+      expect(nextRun.combat.player.energy).toBeLessThan(combat.player.energy);
+    } else {
+      expect(nextRun.combat.player.energy).toBe(combat.player.energy);
+    }
   });
 
   it("resolves end turn through the shared action", () => {

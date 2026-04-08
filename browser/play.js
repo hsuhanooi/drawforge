@@ -421,7 +421,15 @@
     div.appendChild(shine);
 
     if (onClick && !unplayable) {
+      div.tabIndex = 0;
+      div.setAttribute("role", "button");
       div.addEventListener("click", onClick);
+      div.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      });
     }
 
     if (dealDelay >= 0) {
@@ -1712,6 +1720,13 @@
   }
 
   // ─── Screen: Combat ───────────────────────────────────────────────
+  function setActiveHandCard(handArea, activeEl = null) {
+    if (!handArea) return;
+    Array.from(handArea.querySelectorAll(".card-component")).forEach((el) => {
+      el.classList.toggle("is-active", el === activeEl);
+    });
+  }
+
   function renderCombat() {
     if (!currentRun?.combat) return;
     const enteringCombat = lastScreen !== "combat";
@@ -1845,6 +1860,10 @@
           dealDelay: -1,
           onClick: () => playCard(idx, cardEl)
         });
+        cardEl.addEventListener("mouseenter", () => setActiveHandCard(handArea, cardEl));
+        cardEl.addEventListener("focus", () => setActiveHandCard(handArea, cardEl));
+        cardEl.addEventListener("mouseleave", () => setActiveHandCard(handArea));
+        cardEl.addEventListener("blur", () => setActiveHandCard(handArea));
         handArea.appendChild(cardEl);
       });
       // Apply arc after layout

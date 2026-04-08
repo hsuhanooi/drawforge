@@ -49,4 +49,12 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('setCombatStateMessage(`Enemy turn · ${enemyIntentLabel}`, "enemy")');
     expect(playJs).toContain('setCombatStateMessage(`Relic triggered · ${triggeredNames.join(", ")}`, "relic")');
   });
+
+  it("supports active hand-card focus states for readability and keyboard play", () => {
+    expect(playJs).toContain('function setActiveHandCard(handArea, activeEl = null)');
+    expect(playJs).toContain('cardEl.addEventListener("focus", () => setActiveHandCard(handArea, cardEl));');
+    expect(playJs).toContain('cardEl.addEventListener("mouseenter", () => setActiveHandCard(handArea, cardEl));');
+    expect(playJs).toContain('div.addEventListener("keydown", (event) => {');
+    expect(playJs).toContain('if (event.key === "Enter" || event.key === " ")');
+  });
 });

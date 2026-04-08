@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* global window, document, localStorage */
 /**
  * Drawforge Playwright E2E Test
  * Tests all user flows as specified
@@ -210,7 +212,6 @@ async function run() {
   info(`Available combat nodes: ${combatNodes.length}, any available: ${anyAvailable.length}`);
 
   let enteredCombat = false;
-  let enteredNodeType = null;
 
   // Try combat nodes first, then any available
   const nodesToTry = combatNodes.length > 0 ? combatNodes : anyAvailable;
@@ -228,7 +229,6 @@ async function run() {
     const combatNow = await isVisible('screen-combat');
     if (combatNow) {
       enteredCombat = true;
-      enteredNodeType = nodeType;
       info(`Entered combat via ${nodeType} node ✓`);
       break;
     }
@@ -292,7 +292,6 @@ async function run() {
     // ─── 5. Play a Card ─────────────────────────────────────────────
     info('=== TEST 5: Play a Card ===');
     const handCardsBefore = await page.$$('#hand-area .card-component, #hand-area .card');
-    const enemyHpBefore = parseInt(await page.textContent('#enemy-hp-current').catch(() => '0')) || 0;
     const discardBefore = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
 
     if (handCardsBefore.length > 0) {
@@ -382,7 +381,6 @@ async function run() {
         info('Keyboard "1" shortcut plays first card ✓');
       } else {
         // Could be exhaust card - check exhaust count
-        const exhaustAfter = parseInt(await page.textContent('#exhaust-count').catch(() => '0')) || 0;
         const handAfterKey = await page.$$('#hand-area .card-component, #hand-area .card');
         if (handAfterKey.length < handBeforeKey.length) {
           info('Keyboard "1" shortcut plays first card (card exhausted or otherwise removed) ✓');
@@ -395,12 +393,9 @@ async function run() {
     // ─── 7. Win Combat ───────────────────────────────────────────────
     info('=== TEST 7: Win Combat ===');
 
-    let rewardScreenShown = false;
     for (let turn = 0; turn < 15; turn++) {
       const stillInCombat = await isVisible('screen-combat');
       if (!stillInCombat) {
-        const rewardNow = await isVisible('screen-reward');
-        if (rewardNow) rewardScreenShown = true;
         info(`Combat ended at turn ${turn}`);
         break;
       }

@@ -1348,7 +1348,14 @@ canvas.card-art-canvas {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-#reward-skip-btn {
+#reward-actions-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+#reward-skip-btn,
+#reward-continue-btn {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
@@ -1360,7 +1367,8 @@ canvas.card-art-canvas {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-#reward-skip-btn:hover { border-color: var(--text); color: var(--text); }
+#reward-skip-btn:hover,
+#reward-continue-btn:hover { border-color: var(--text); color: var(--text); }
 
 /* Event choices */
 #event-panel {

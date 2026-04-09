@@ -153,12 +153,23 @@ describe("play.js thin-client regression coverage", () => {
   });
 
   it("renders post-combat reward cards with the shared large card component and claim interaction", () => {
+    expect(playJs).toContain('async function continueRewardFlow() {');
+    expect(playJs).toContain('clearSelectedHandCard();');
+    expect(playJs).toContain('hide("reward-content", "event-panel", "relic-choice-panel", "removal-panel");');
+    expect(playJs).toContain('show("reward-actions-row", "reward-continue-btn");');
+    expect(playJs).toContain('hide("reward-skip-btn");');
     expect(playJs).toContain('const cardRow = $id("reward-cards-row");');
     expect(playJs).toContain('const el = makeCard(card, {');
     expect(playJs).toContain('large: true,');
     expect(playJs).toContain('dealDelay: i * 80,');
     expect(playJs).toContain('el.classList.add("card-picked");');
     expect(playJs).toContain('currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });');
+    expect(playJs).toContain('show("relic-choice-panel", "reward-actions-row", "reward-continue-btn");');
+    expect(playJs).toContain('$id("reward-continue-btn").textContent = "Skip Relic";');
+    expect(playJs).toContain('show("reward-content", "reward-actions-row", "reward-continue-btn", "reward-skip-btn");');
+    expect(playJs).toContain('$id("reward-header").textContent = "Reward Claimed";');
+    expect(playJs).toContain('$id("reward-continue-btn")?.addEventListener("click", async () => {');
+    expect(playJs).toContain('await continueRewardFlow();');
     expect(playJs).toContain('el.classList.add("reward-item");');
     expect(playJs).toContain('cardRow.appendChild(el);');
   });

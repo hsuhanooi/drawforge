@@ -854,6 +854,43 @@
           "Confirm the workflow is green on the default branch"
         ],
         "passes": true
+      },
+      {
+        "category": "bug",
+        "description": "Burn-in DOM playtesting can dead-end on reward flows with no actionable control available to continue the run",
+        "steps": [
+          "Reproduce the reward dead-end during DOM-driven playtesting",
+          "Identify whether the blocked state is a missing reward action, hidden continue path, or renderer state mismatch",
+          "Fix the reward flow so at least one valid continue action is always exposed when the reward screen is active",
+          "Add regression coverage for the affected reward subflow",
+          "Re-run DOM playtesting to verify the run no longer stalls on the reward screen"
+        ],
+        "passes": false
+      },
+      {
+        "category": "bug",
+        "description": "Burn-in DOM playtesting can dead-end in combat with no playable card, target resolution, or turn-advance control available",
+        "steps": [
+          "Reproduce the combat dead-end during DOM-driven playtesting",
+          "Inspect whether the blocked state is caused by selection state, target confirmation, disabled turn controls, or combat state desync",
+          "Fix the combat UI/state flow so the run can always either resolve a selected card or legally advance the turn",
+          "Add regression coverage for the affected combat dead-end path",
+          "Re-run DOM playtesting to verify combat no longer stalls in the broken state"
+        ],
+        "passes": false
+      },
+      {
+        "category": "responsive",
+        "description": "Make `play.html` and the play UI mobile-compatible so the full run loop is usable on phone-sized screens",
+        "steps": [
+          "Audit the current play flow on a phone-sized viewport",
+          "Identify layout breakage across start, map, combat, reward, shop, rest, overlays, and end screens",
+          "Adapt layout, spacing, hit targets, and scrolling behavior for narrow touch screens",
+          "Verify core interactions work without hover-only affordances",
+          "Add regression coverage for at least one mobile viewport",
+          "Re-test the main run loop on mobile dimensions"
+        ],
+        "passes": false
       }
     ]
   }

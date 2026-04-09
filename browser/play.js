@@ -14,6 +14,7 @@
   let isCardPlaying = false;
   let selectedHandCardIndex = null;
   let dragHandState = null;
+  let rewardAdvanceInFlight = false;
 
   const ARCHETYPES = [
     {
@@ -1892,6 +1893,7 @@
 
   function renderMap() {
     if (!currentRun?.map) return;
+    clearSelectedHandCard();
     applySurfaceTheme({ run: currentRun, screen: "map", nodeType: currentRun.currentNodeType || "combat" });
     if (lastScreen !== "map") flashTransition("flash");
     lastScreen = "map";
@@ -2562,8 +2564,26 @@
   }
 
   // ─── Screen: Reward ───────────────────────────────────────────────
+  async function continueRewardFlow() {
+    if (!currentRun || rewardAdvanceInFlight) return;
+    rewardAdvanceInFlight = true;
+    try {
+      const rewards = currentRun.pendingRewards;
+      if (rewards?.cards?.length || rewards?.relics?.length) {
+        currentRun = await api("/run/skip-rewards.json", { run: currentRun });
+      } else {
+        currentRun = await api("/run/finish-node.json", { run: currentRun });
+      }
+      saveRun(currentRun);
+      render();
+    } finally {
+      rewardAdvanceInFlight = false;
+    }
+  }
+
   function renderReward() {
     if (!currentRun?.pendingRewards) return;
+    clearSelectedHandCard();
     applySurfaceTheme({ run: currentRun, screen: "reward", nodeType: currentRun.currentNodeType || "combat" });
     const enteringReward = lastScreen !== "reward";
     showOnly("screen-reward");
@@ -2572,6 +2592,9 @@
     const rewards = currentRun.pendingRewards;
 
     hide("reward-content", "event-panel", "relic-choice-panel", "removal-panel");
+    show("reward-actions-row", "reward-continue-btn");
+    hide("reward-skip-btn");
+    $id("reward-continue-btn").textContent = "Continue";
 
     if (rewards.removeCard && !rewards.cards?.length && !rewards.relics?.length && !rewards.relic) {
       // Removal phase
@@ -2598,7 +2621,8 @@
 
     if (rewards.cards?.length) {
       // Card reward phase
-      show("reward-content");
+      show("reward-content", "reward-actions-row", "reward-continue-btn", "reward-skip-btn");
+      $id("reward-continue-btn").textContent = "Continue";
       if (enteringReward) {
         setTimeout(() => spawnConfetti(), 150);
         // Float gold earned
@@ -2644,7 +2668,9 @@
 
     if (rewards.relics?.length) {
       // Elite relic choice phase
-      show("relic-choice-panel");
+      show("relic-choice-panel", "reward-actions-row", "reward-continue-btn");
+      hide("reward-skip-btn");
+      $id("reward-continue-btn").textContent = "Skip Relic";
       $id("relic-choice-label").textContent = "Choose a Relic";
       const relicRow = $id("reward-cards-row-relics");
       if (relicRow) {
@@ -2664,7 +2690,9 @@
 
     if (rewards.relic) {
       // Boss relic claim phase
-      show("relic-choice-panel");
+      show("relic-choice-panel", "reward-actions-row", "reward-continue-btn");
+      hide("reward-skip-btn");
+      $id("reward-continue-btn").textContent = "Continue";
       $id("relic-choice-label").textContent = "Boss Relic";
       const relicRow = $id("reward-cards-row-relics");
       if (relicRow) {
@@ -2680,12 +2708,20 @@
       return;
     }
 
-    // Nothing left — finish node
-    api("/run/finish-node.json", { run: currentRun }).then((run) => {
-      currentRun = run;
-      saveRun(run);
-      render();
-    });
+    // Nothing left, but keep a visible escape hatch instead of a dead-end while the run advances.
+    show("reward-content", "reward-actions-row", "reward-continue-btn");
+    hide("reward-skip-btn");
+    $id("reward-continue-btn").textContent = "Continue";
+    $id("reward-header").textContent = "Reward Claimed";
+    $id("reward-subtitle").textContent = rewardAdvanceInFlight
+      ? "Advancing to the next node..."
+      : "Your reward is locked in. Continue the run when you're ready.";
+    clearEl($id("reward-cards-row"));
+    clearEl($id("reward-cards-row-relics"));
+
+    if (!rewardAdvanceInFlight) {
+      continueRewardFlow();
+    }
   }
 
   // ─── Screen: Event ────────────────────────────────────────────────
@@ -2694,7 +2730,7 @@
     applySurfaceTheme({ run: currentRun, screen: "reward", nodeType: currentRun.currentNodeType || "combat" });
     showOnly("screen-reward");
 
-    hide("reward-content", "relic-choice-panel", "removal-panel");
+    hide("reward-content", "relic-choice-panel", "removal-panel", "reward-actions-row");
     show("event-panel");
 
     const evt = currentRun.event;
@@ -3226,6 +3262,10 @@
       currentRun = await api("/run/skip-rewards.json", { run: currentRun });
       saveRun(currentRun);
       render();
+    });
+
+    $id("reward-continue-btn")?.addEventListener("click", async () => {
+      await continueRewardFlow();
     });
 
     // Removal skip → finish node

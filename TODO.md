@@ -428,7 +428,7 @@
           "Verify keyword tooltip content renders for supported mechanics",
           "Verify relic tooltip and inspection views render correctly"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -440,7 +440,7 @@
           "Repeat for relic, enemy, icon, and background assets",
           "Verify missing assets do not crash the screen"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -452,7 +452,7 @@
           "Include the testing coverage added for that task",
           "Verify prior progress entries remain intact"
         ],
-        "passes": false
+        "passes": true
       }
     ]
   }
@@ -814,7 +814,7 @@
           "Add tests for relic display and inspection behavior",
           "Add tests for missing assets and presentation-disabled scenarios"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -827,7 +827,7 @@
           "Verify prior progress entries remain intact",
           "Verify the new entry reflects the milestone name and current status"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

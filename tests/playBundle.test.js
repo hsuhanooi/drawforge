@@ -110,6 +110,7 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('const cardType = card.type || "skill";');
     expect(playJs).toContain('const frameVariant = resolveCardFrameVariant(card, themeId);');
     expect(playJs).toContain('`type-${cardType}`');
+    expect(playJs).toContain('unplayable ? "unplayable" : ""');
     expect(playJs).toContain('div.dataset.theme = themeId;');
     expect(playJs).toContain('div.dataset.frameVariant = frameVariant;');
     expect(playJs).toContain('stripe.dataset.frameVariant = frameVariant;');
@@ -123,6 +124,18 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('cardsRow.appendChild(makeCard(card, { dealDelay: -1 }));');
     expect(playJs).toContain('cards.forEach((card) => grid.appendChild(makeCard(card, { dealDelay: -1 })));');
     expect(playJs).toContain('const cardEl = makeCard(card, {');
+  });
+
+  it("covers tooltip and inspection systems across combat, map, and relic UI surfaces", () => {
+    expect(playJs).toContain('function renderRulesText(targetEl, text) {');
+    expect(playJs).toContain('keywordEl.className = "keyword-term"');
+    expect(playJs).toContain('tooltip.className = "keyword-tooltip"');
+    expect(playJs).toContain('tip.className = "node-tooltip"');
+    expect(playJs).toContain('tipEl.className = "status-tooltip"');
+    expect(playJs).toContain('tip.className = "relic-tooltip"');
+    expect(playJs).toContain('buttonEl.onclick = () => showPileModal(label, pile);');
+    expect(playJs).toContain('badge.addEventListener("click", () => openRelicOverlay(relic.id));');
+    expect(playJs).toContain('openRelicOverlay(highlightRelicId = null)');
   });
 
   it("applies theme-aware surface and frame variants across run screens", () => {
@@ -265,6 +278,16 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('const effectiveDelay = arePresentationEffectsEnabled() ? durationMs : 0;');
     expect(playJs).toContain('await waitForPresentationBeat(700);');
     expect(playJs).toContain('await waitForPresentationBeat(nodeType === "boss" ? 900 : 500);');
+  });
+
+  it("keeps presentation-only safety hooks separate from server-backed combat rules", () => {
+    expect(playJs).toContain('window.AnimEngine?.onDefeat();');
+    expect(playJs).toContain('if (nextCombat.reshuffled) {');
+    expect(playJs).toContain('window.AnimEngine.onShuffle(pp.x, pp.y);');
+    expect(playJs).toContain('const effectiveDelay = arePresentationEffectsEnabled() ? durationMs : 0;');
+    expect(playJs).toContain('const updated = await api("/run/play-card.json", { run: currentRun, handIndex });');
+    expect(playJs).toContain('currentRun = await api("/run/end-turn.json", { run: currentRun });');
+    expect(playJs).toContain('currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });');
   });
 
   it("issues presentation-only hooks for draw, discard, reshuffle, exhaust, and enemy intent updates", () => {

@@ -23,6 +23,34 @@ describe("asset pipeline helpers", () => {
     });
   });
 
+  it("keeps card, relic, enemy, icon, and background fallbacks safe across all presentation surfaces", () => {
+    expect(resolveAsset({ category: ASSET_CATEGORIES.card, assetRef: "relics/not-a-card" })).toMatchObject({
+      category: ASSET_CATEGORIES.card,
+      assetRef: PLACEHOLDER_ASSETS.card,
+      isPlaceholder: true
+    });
+    expect(resolveAsset({ category: ASSET_CATEGORIES.relic, assetRef: "cards/not-a-relic" })).toMatchObject({
+      category: ASSET_CATEGORIES.relic,
+      assetRef: PLACEHOLDER_ASSETS.relic,
+      isPlaceholder: true
+    });
+    expect(resolveAsset({ category: ASSET_CATEGORIES.enemy, assetRef: "icons/not-an-enemy" })).toMatchObject({
+      category: ASSET_CATEGORIES.enemy,
+      assetRef: PLACEHOLDER_ASSETS.enemy,
+      isPlaceholder: true
+    });
+    expect(resolveAsset({ category: ASSET_CATEGORIES.icon, assetRef: "backgrounds/not-an-icon" })).toMatchObject({
+      category: ASSET_CATEGORIES.icon,
+      assetRef: PLACEHOLDER_ASSETS.icon,
+      isPlaceholder: true
+    });
+    expect(resolveAsset({ category: ASSET_CATEGORIES.background, assetRef: "vfx/not-a-background" })).toMatchObject({
+      category: ASSET_CATEGORIES.background,
+      assetRef: PLACEHOLDER_ASSETS.background,
+      isPlaceholder: true
+    });
+  });
+
   it("builds multi-surface presentation bundles for cards, relics, enemies, icons, backgrounds, and vfx", () => {
     expect(buildPresentationAssets({ cardId: "strike", iconId: "attack", vfxId: "attack" })).toEqual({
       card: { category: "card", assetRef: "cards/strike", placeholderRef: "cards/_placeholder", isPlaceholder: false },

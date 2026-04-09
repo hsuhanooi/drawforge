@@ -315,7 +315,7 @@
           "Add at least one new triggered relic using the new format",
           "Verify existing relics still function correctly after migration"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

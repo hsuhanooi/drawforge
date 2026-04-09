@@ -403,7 +403,7 @@
           "Add tests for visual-trigger or event-emission hooks where applicable",
           "Verify all card engine tests pass deterministically"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -415,7 +415,7 @@
           "Add tests for invalid or unsupported relic definitions",
           "Verify all relic engine tests pass deterministically"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

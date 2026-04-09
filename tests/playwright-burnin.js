@@ -153,6 +153,20 @@ async function actOnRewardScreen(page) {
 
   if (!rewardTarget) return null;
   const clicked = await clickFirst(page, [rewardTarget]);
+  if (clicked && /reward-cards-row|removal-cards/.test(rewardTarget)) {
+    await page.waitForFunction(() => {
+      const isShown = (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+      };
+      return isShown('#screen-map')
+        || isShown('#screen-combat')
+        || isShown('#screen-end')
+        || !isShown('#screen-reward');
+    }, { timeout: 1500 }).catch(() => {});
+  }
   return clicked ? `reward:${clicked}` : null;
 }
 

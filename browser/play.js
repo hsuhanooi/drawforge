@@ -15,6 +15,7 @@
   let selectedHandCardIndex = null;
   let dragHandState = null;
   let rewardAdvanceInFlight = false;
+  let rewardClaimInFlight = false;
 
   const ARCHETYPES = [
     {
@@ -2564,8 +2565,18 @@
   }
 
   // ─── Screen: Reward ───────────────────────────────────────────────
+  async function withRewardClaim(action) {
+    if (!currentRun || rewardClaimInFlight || rewardAdvanceInFlight) return;
+    rewardClaimInFlight = true;
+    try {
+      await action();
+    } finally {
+      rewardClaimInFlight = false;
+    }
+  }
+
   async function continueRewardFlow() {
-    if (!currentRun || rewardAdvanceInFlight) return;
+    if (!currentRun || rewardAdvanceInFlight || rewardClaimInFlight) return;
     rewardAdvanceInFlight = true;
     try {
       const rewards = currentRun.pendingRewards;
@@ -2610,11 +2621,11 @@
           const el = makeCard(card, {
             large: false,
             dealDelay: -1,
-            onClick: async () => {
+            onClick: async () => withRewardClaim(async () => {
               currentRun = await api("/run/remove-card.json", { run: currentRun, cardId: card.id });
               saveRun(currentRun);
               render();
-            }
+            })
           });
           el.classList.add("reward-item");
           removalCards.appendChild(el);
@@ -2656,13 +2667,13 @@
           const el = makeCard(card, {
             large: true,
             dealDelay: i * 80,
-            onClick: async () => {
+            onClick: async () => withRewardClaim(async () => {
               el.classList.add("card-picked");
               await new Promise((r) => setTimeout(r, 260));
               currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });
               saveRun(currentRun);
               render();
-            }
+            })
           });
           el.classList.add("reward-item");
           cardRow.appendChild(el);
@@ -2682,11 +2693,11 @@
       if (relicRow) {
         clearEl(relicRow);
         rewards.relics.forEach((relic) => {
-          const el = makeRelicCard(relic, async () => {
+          const el = makeRelicCard(relic, async () => withRewardClaim(async () => {
             currentRun = await api("/run/claim-choice-relic.json", { run: currentRun, relicId: relic.id });
             saveRun(currentRun);
             render();
-          });
+          }));
           relicRow.appendChild(el);
         });
       }
@@ -2704,11 +2715,11 @@
       clearEl(removalCards);
       if (relicRow) {
         clearEl(relicRow);
-        const el = makeRelicCard(rewards.relic, async () => {
+        const el = makeRelicCard(rewards.relic, async () => withRewardClaim(async () => {
           currentRun = await api("/run/claim-relic.json", { run: currentRun, relicId: rewards.relic.id });
           saveRun(currentRun);
           render();
-        });
+        }));
         relicRow.appendChild(el);
       }
       hide("reward-skip-btn");

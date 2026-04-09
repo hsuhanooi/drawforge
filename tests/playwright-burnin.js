@@ -208,6 +208,59 @@ async function actOnRewardScreen(page) {
   return clicked ? `reward:${clicked}` : null;
 }
 
+async function actOnCombatScreen(page) {
+  const actions = [];
+
+  for (let microStep = 0; microStep < 8; microStep += 1) {
+    const combatState = await collectState(page).catch(() => null);
+    if (!combatState || await visibleScreen(page).catch(() => 'combat') !== 'combat') {
+      return actions.length ? `combat:${actions.join('|')}` : null;
+    }
+
+    const selectedAttack = await page.evaluate(() => {
+      const selected = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+      if (!selected) return false;
+      return selected.classList.contains('type-attack');
+    }).catch(() => false);
+
+    if (selectedAttack) {
+      const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
+      if (target) {
+        actions.push(`target:${target}`);
+        await sleep(90);
+        continue;
+      }
+    }
+
+    if ((combatState.combatSummary?.playableCards || 0) <= 0) break;
+
+    const played = await clickCombatCard(page);
+    if (!played) break;
+
+    await sleep(90);
+    const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
+    actions.push(`play:${played}${target ? `:${target}` : ':no-target'}`);
+    await sleep(90);
+  }
+
+  if (await visibleScreen(page).catch(() => 'combat') !== 'combat') {
+    return actions.length ? `combat:${actions.join('|')}` : null;
+  }
+
+  const endTurn = await clickFirst(page, ['#end-turn-btn']);
+  if (endTurn) {
+    actions.push('end-turn');
+    return `combat:${actions.join('|')}`;
+  }
+  try {
+    await page.keyboard.press('e');
+    actions.push('key-end-turn');
+    return `combat:${actions.join('|')}`;
+  } catch {
+    return actions.length ? `combat:${actions.join('|')}` : null;
+  }
+}
+
 async function actOnScreen(page, screen) {
   switch (screen) {
     case 'start':
@@ -231,33 +284,8 @@ async function actOnScreen(page, screen) {
       ]);
       return choice ? `map:${choice}` : null;
     }
-    case 'combat': {
-      const selectedAttack = await page.evaluate(() => {
-        const selected = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
-        if (!selected) return false;
-        return selected.classList.contains('type-attack');
-      }).catch(() => false);
-
-      if (selectedAttack) {
-        const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
-        if (target) return `combat:target:${target}`;
-      }
-
-      const played = await clickCombatCard(page);
-      if (played) {
-        await sleep(90);
-        const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
-        return `combat:play:${played}${target ? `:${target}` : ':no-target'}`;
-      }
-      const endTurn = await clickFirst(page, ['#end-turn-btn']);
-      if (endTurn) return 'combat:end-turn';
-      try {
-        await page.keyboard.press('e');
-        return 'combat:key-end-turn';
-      } catch {
-        return null;
-      }
-    }
+    case 'combat':
+      return actOnCombatScreen(page);
     case 'reward':
       return actOnRewardScreen(page);
     case 'event': {

@@ -502,7 +502,7 @@
           "Define iconography rules for energy, block, statuses, intents, and piles",
           "Document all rules in a style guide artifact usable by design and engineering"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -515,7 +515,7 @@
           "Verify card frames remain distinct without copying another game's exact frame language",
           "Approve the frame system for implementation"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -554,7 +554,7 @@
           "Open an inspection state for detailed card reading if supported",
           "Verify the interaction improves clarity without obscuring nearby cards or controls"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -580,7 +580,7 @@
           "Attempt to target an invalid entity and verify the action is blocked",
           "Resolve the card and verify the preview disappears after completion"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -853,7 +853,7 @@
           "Document the CI expectations in the repo README or contributor docs",
           "Confirm the workflow is green on the default branch"
         ],
-        "passes": false
+        "passes": true
       }
     ]
   }

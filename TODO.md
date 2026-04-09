@@ -390,7 +390,7 @@
           "Resolve enemy turn and verify presentation updates correctly",
           "Verify combat engine state remains the source of truth"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

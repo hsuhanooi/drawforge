@@ -49,6 +49,14 @@ describe("relic system", () => {
     expect(RELICS).toHaveLength(44);
   });
 
+  it("derives relic descriptions and metadata from the canonical registry", () => {
+    const luckyCoin = RELICS.find((r) => r.id === "lucky_coin");
+    expect(luckyCoin.description).toBe(luckyCoin.effectText);
+    expect(luckyCoin.triggerType).toBe("passive");
+    expect(luckyCoin.assetRef).toBe("relics/lucky_coin");
+    expect(luckyCoin.status).toBe("implemented");
+  });
+
   it("tier 1 reward (elite) only returns common or uncommon relics", () => {
     // Run many samples to verify no rare ever comes from tier 1
     for (let i = 0; i < 50; i += 1) {

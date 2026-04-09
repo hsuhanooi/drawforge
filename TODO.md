@@ -327,7 +327,7 @@
           "Verify assets can be referenced from data-driven card and relic definitions",
           "Verify asset loading errors do not crash combat or reward screens"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -736,7 +736,7 @@
           "Verify missing assets fall back to approved placeholder assets",
           "Verify asset failures do not crash gameplay surfaces"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

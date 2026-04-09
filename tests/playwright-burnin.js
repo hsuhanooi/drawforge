@@ -5,8 +5,10 @@ const { chromium } = require('playwright');
 const RUNS = Number(process.env.BURNIN_RUNS || 50);
 const BASE = process.env.PLAYWRIGHT_BASE || 'http://localhost:3000/play.html';
 const MAX_STEPS_PER_RUN = Number(process.env.BURNIN_MAX_STEPS || 220);
-const DEFAULT_RUN_TIMEOUT_MS = Math.max(45000, (MAX_STEPS_PER_RUN * 450) + 10000);
-const RUN_TIMEOUT_MS = Number(process.env.BURNIN_RUN_TIMEOUT_MS || DEFAULT_RUN_TIMEOUT_MS);
+const DEFAULT_RUN_IDLE_TIMEOUT_MS = Math.max(12000, (MAX_STEPS_PER_RUN * 180) + 4000);
+const DEFAULT_RUN_HARD_TIMEOUT_MS = Math.max(300000, (MAX_STEPS_PER_RUN * 2000) + 60000);
+const RUN_IDLE_TIMEOUT_MS = Number(process.env.BURNIN_RUN_IDLE_TIMEOUT_MS || DEFAULT_RUN_IDLE_TIMEOUT_MS);
+const RUN_HARD_TIMEOUT_MS = Number(process.env.BURNIN_RUN_TIMEOUT_MS || DEFAULT_RUN_HARD_TIMEOUT_MS);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -83,34 +85,70 @@ async function clickFirst(page, selectors) {
 }
 
 async function collectState(page) {
-  return page.evaluate(() => ({
-    location: window.location.href,
-    title: document.title,
-    visibleScreens: Array.from(document.querySelectorAll('[id^="screen-"]'))
-      .filter((el) => {
-        const style = window.getComputedStyle(el);
-        return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
-      })
-      .map((el) => el.id),
-    combatTurnLabel: document.querySelector('#combat-turn-label')?.textContent || null,
-    combatTurnState: document.querySelector('#turn-state-chip')?.textContent || null,
-    eventTitle: document.querySelector('#event-title')?.textContent || null,
-    rewardHeader: document.querySelector('#reward-header')?.textContent || null,
-    rewardSubtitle: document.querySelector('#reward-subtitle')?.textContent || null,
-    mapStats: {
-      hp: document.querySelector('#map-hp')?.textContent || null,
-      gold: document.querySelector('#map-gold')?.textContent || null,
-      deck: document.querySelector('#map-deck-count')?.textContent || null
-    },
-    combatSummary: {
-      playerHp: document.querySelector('#player-hp-current')?.textContent || null,
-      enemyHp: document.querySelector('#enemy-hp-current')?.textContent || null,
-      intent: document.querySelector('#enemy-intent-label')?.textContent || null,
-      playableCards: document.querySelectorAll('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)').length,
-      selectedCards: document.querySelectorAll('#hand-area .card-component.is-selected, #hand-area .card.is-selected').length,
-      endTurnDisabled: document.querySelector('#end-turn-btn')?.disabled ?? null
-    }
-  }));
+  return page.evaluate(() => {
+    const isShown = (selector) => {
+      const el = document.querySelector(selector);
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+    };
+    const countVisible = (selector) => Array.from(document.querySelectorAll(selector)).filter((el) => {
+      const style = window.getComputedStyle(el);
+      return !el.classList.contains('hidden')
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && el.getBoundingClientRect().width > 0
+        && el.getBoundingClientRect().height > 0
+        && !el.closest('.hidden');
+    }).length;
+
+    const rewardMode = isShown('#event-panel')
+      ? 'event'
+      : isShown('#removal-panel')
+        ? 'removal'
+        : isShown('#relic-choice-panel')
+          ? 'relic'
+          : isShown('#reward-content')
+            ? 'cards'
+            : 'none';
+
+    return {
+      location: window.location.href,
+      title: document.title,
+      visibleScreens: Array.from(document.querySelectorAll('[id^="screen-"]'))
+        .filter((el) => {
+          const style = window.getComputedStyle(el);
+          return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+        })
+        .map((el) => el.id),
+      combatTurnLabel: document.querySelector('#combat-turn-label')?.textContent || null,
+      combatTurnState: document.querySelector('#turn-state-chip')?.textContent || null,
+      eventTitle: document.querySelector('#event-title')?.textContent || null,
+      rewardHeader: document.querySelector('#reward-header')?.textContent || null,
+      rewardSubtitle: document.querySelector('#reward-subtitle')?.textContent || null,
+      rewardSummary: {
+        mode: rewardMode,
+        cardChoices: countVisible('#reward-cards-row > *'),
+        relicChoices: countVisible('#reward-cards-row-relics > *'),
+        removalChoices: countVisible('#removal-cards > *'),
+        continueVisible: isShown('#reward-continue-btn'),
+        skipVisible: isShown('#reward-skip-btn') || isShown('#removal-skip-btn')
+      },
+      mapStats: {
+        hp: document.querySelector('#map-hp')?.textContent || null,
+        gold: document.querySelector('#map-gold')?.textContent || null,
+        deck: document.querySelector('#map-deck-count')?.textContent || null
+      },
+      combatSummary: {
+        playerHp: document.querySelector('#player-hp-current')?.textContent || null,
+        enemyHp: document.querySelector('#enemy-hp-current')?.textContent || null,
+        intent: document.querySelector('#enemy-intent-label')?.textContent || null,
+        playableCards: document.querySelectorAll('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)').length,
+        selectedCards: document.querySelectorAll('#hand-area .card-component.is-selected, #hand-area .card.is-selected').length,
+        endTurnDisabled: document.querySelector('#end-turn-btn')?.disabled ?? null
+      }
+    };
+  });
 }
 
 async function clickCombatCard(page) {
@@ -237,6 +275,8 @@ async function runSingle(browser, runIndex) {
   const pageErrors = [];
   const actions = [];
   const startedAt = Date.now();
+  let lastProgressAt = startedAt;
+  let lastProgressKey = null;
   let repeatedState = null;
   let repeatedCount = 0;
 
@@ -251,7 +291,13 @@ async function runSingle(browser, runIndex) {
     await page.reload({ waitUntil: 'load' });
 
     for (let step = 0; step < MAX_STEPS_PER_RUN; step += 1) {
-      if ((Date.now() - startedAt) > RUN_TIMEOUT_MS) {
+      if (step > 0 && step % 25 === 0) {
+        const liveState = await collectState(page).catch(() => null);
+        const liveScreen = await visibleScreen(page).catch(() => 'unknown');
+        console.log(`[PROGRESS] run ${runIndex} step=${step} screen=${liveScreen} hp=${liveState?.mapStats?.hp || '—'} gold=${liveState?.mapStats?.gold || '—'} deck=${liveState?.mapStats?.deck || '—'} rewardMode=${liveState?.rewardSummary?.mode || 'none'}`);
+      }
+      const now = Date.now();
+      if (RUN_HARD_TIMEOUT_MS > 0 && (now - startedAt) > RUN_HARD_TIMEOUT_MS) {
         const state = await collectState(page).catch(() => null);
         return {
           runIndex,
@@ -261,7 +307,21 @@ async function runSingle(browser, runIndex) {
           actions,
           consoleErrors,
           pageErrors,
-          bug: `Run timed out after ${RUN_TIMEOUT_MS}ms`,
+          bug: `Run hard-timed out after ${RUN_HARD_TIMEOUT_MS}ms`,
+          state
+        };
+      }
+      if ((now - lastProgressAt) > RUN_IDLE_TIMEOUT_MS) {
+        const state = await collectState(page).catch(() => null);
+        return {
+          runIndex,
+          ok: false,
+          ended: false,
+          steps: step,
+          actions,
+          consoleErrors,
+          pageErrors,
+          bug: `Run stalled for ${RUN_IDLE_TIMEOUT_MS}ms without progress`,
           state
         };
       }
@@ -273,6 +333,19 @@ async function runSingle(browser, runIndex) {
       }
 
       const stateBeforeAction = await collectState(page).catch(() => null);
+      const progressKey = JSON.stringify({
+        screen,
+        visibleScreens: stateBeforeAction?.visibleScreens,
+        mapStats: stateBeforeAction?.mapStats,
+        rewardSummary: stateBeforeAction?.rewardSummary,
+        rewardSubtitle: stateBeforeAction?.rewardSubtitle,
+        combatSummary: stateBeforeAction?.combatSummary
+      });
+      if (progressKey !== lastProgressKey) {
+        lastProgressKey = progressKey;
+        lastProgressAt = Date.now();
+      }
+
       const action = await actOnScreen(page, screen);
       actions.push({ step, screen, action, state: stateBeforeAction });
 
@@ -295,6 +368,7 @@ async function runSingle(browser, runIndex) {
         screen,
         action,
         combat: stateBeforeAction?.combatSummary,
+        rewardSummary: stateBeforeAction?.rewardSummary,
         rewardSubtitle: stateBeforeAction?.rewardSubtitle,
         visibleScreens: stateBeforeAction?.visibleScreens
       });
@@ -325,6 +399,20 @@ async function runSingle(browser, runIndex) {
           ? 90
           : 120;
       await sleep(postActionDelay);
+
+      const stateAfterAction = await collectState(page).catch(() => null);
+      const postActionKey = JSON.stringify({
+        screen: await visibleScreen(page).catch(() => screen),
+        visibleScreens: stateAfterAction?.visibleScreens,
+        mapStats: stateAfterAction?.mapStats,
+        rewardSummary: stateAfterAction?.rewardSummary,
+        rewardSubtitle: stateAfterAction?.rewardSubtitle,
+        combatSummary: stateAfterAction?.combatSummary
+      });
+      if (postActionKey !== lastProgressKey) {
+        lastProgressKey = postActionKey;
+        lastProgressAt = Date.now();
+      }
     }
 
     const state = await collectState(page);

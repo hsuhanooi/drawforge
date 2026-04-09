@@ -749,7 +749,7 @@
           "Define status and intent icon specifications",
           "Publish the asset specification for use by artists and implementation agents"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -775,7 +775,7 @@
           "Resolve combat end and verify presentation transitions occur",
           "Verify the combat engine remains the source of truth for rules and outcomes"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

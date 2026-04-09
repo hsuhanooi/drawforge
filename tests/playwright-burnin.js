@@ -57,13 +57,26 @@ async function visibleScreen(page) {
 
 async function clickFirst(page, selectors) {
   for (const selector of selectors) {
-    const handle = await page.$(selector);
-    if (!handle) continue;
-    try {
-      await handle.click({ force: true, timeout: 3000 });
-      return selector;
-    } catch {
-      // keep trying
+    const handles = await page.$$(selector);
+    for (const handle of handles) {
+      try {
+        const actionable = await handle.evaluate((el) => {
+          const style = window.getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return !el.classList.contains('hidden')
+            && style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && rect.width > 0
+            && rect.height > 0
+            && !el.disabled
+            && !el.closest('.hidden');
+        });
+        if (!actionable) continue;
+        await handle.click({ force: true, timeout: 800 });
+        return selector;
+      } catch {
+        // keep trying visible candidates/selectors
+      }
     }
   }
   return null;
@@ -100,6 +113,49 @@ async function collectState(page) {
   }));
 }
 
+async function clickCombatCard(page) {
+  return clickFirst(page, [
+    '#hand-area .card-component.type-attack:not(.unplayable)',
+    '#hand-area .card.type-attack:not(.unplayable)',
+    '#hand-area .card-component:not(.unplayable)',
+    '#hand-area .card:not(.unplayable)',
+    '#hand-area .card-component.is-selected',
+    '#hand-area .card.is-selected'
+  ]);
+}
+
+async function actOnRewardScreen(page) {
+  const rewardTarget = await page.evaluate(() => {
+    const isShown = (selector) => {
+      const el = document.querySelector(selector);
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+    };
+    const countVisible = (selector) => Array.from(document.querySelectorAll(selector)).filter((el) => {
+      const style = window.getComputedStyle(el);
+      return !el.classList.contains('hidden')
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && el.getBoundingClientRect().width > 0
+        && el.getBoundingClientRect().height > 0
+        && !el.closest('.hidden');
+    }).length;
+
+    if (isShown('#relic-choice-panel') && countVisible('#reward-cards-row-relics > *') > 0) return '#reward-cards-row-relics > *';
+    if (isShown('#reward-content') && countVisible('#reward-cards-row > *') > 0) return '#reward-cards-row > *';
+    if (isShown('#removal-panel') && countVisible('#removal-cards > *') > 0) return '#removal-cards > *';
+    if (isShown('#reward-continue-btn')) return '#reward-continue-btn';
+    if (isShown('#reward-skip-btn')) return '#reward-skip-btn';
+    if (isShown('#removal-skip-btn')) return '#removal-skip-btn';
+    return null;
+  });
+
+  if (!rewardTarget) return null;
+  const clicked = await clickFirst(page, [rewardTarget]);
+  return clicked ? `reward:${clicked}` : null;
+}
+
 async function actOnScreen(page, screen) {
   switch (screen) {
     case 'start':
@@ -124,12 +180,7 @@ async function actOnScreen(page, screen) {
       return choice ? `map:${choice}` : null;
     }
     case 'combat': {
-      const played = await clickFirst(page, [
-        '#hand-area .card-component:not(.unplayable)',
-        '#hand-area .card:not(.unplayable)',
-        '#hand-area .card-component.is-selected',
-        '#hand-area .card.is-selected'
-      ]);
+      const played = await clickCombatCard(page);
       if (played) {
         await sleep(90);
         await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
@@ -144,20 +195,8 @@ async function actOnScreen(page, screen) {
         return null;
       }
     }
-    case 'reward': {
-      const rewardChoice = await clickFirst(page, [
-        '#reward-cards-row-relics > * button',
-        '#reward-cards-row-relics > *',
-        '#reward-cards-row > * button',
-        '#reward-cards-row > *',
-        '#removal-cards > * button',
-        '#removal-cards > *',
-        '#reward-skip-btn',
-        '#reward-continue-btn',
-        '#removal-skip-btn'
-      ]);
-      return rewardChoice ? `reward:${rewardChoice}` : null;
-    }
+    case 'reward':
+      return actOnRewardScreen(page);
     case 'event': {
       const choice = await clickFirst(page, ['#event-choices > * button', '#event-choices > *']);
       return choice ? `event:${choice}` : null;
@@ -267,10 +306,10 @@ async function runSingle(browser, runIndex) {
       }
 
       const postActionDelay = screen === 'reward'
-        ? 550
+        ? 450
         : screen === 'combat'
-          ? 170
-          : 200;
+          ? 90
+          : 120;
       await sleep(postActionDelay);
     }
 

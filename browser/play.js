@@ -2590,6 +2590,9 @@
     lastScreen = "reward";
 
     const rewards = currentRun.pendingRewards;
+    const cardRow = $id("reward-cards-row");
+    const relicRow = $id("reward-cards-row-relics");
+    const removalCards = $id("removal-cards");
 
     hide("reward-content", "event-panel", "relic-choice-panel", "removal-panel");
     show("reward-actions-row", "reward-continue-btn");
@@ -2599,7 +2602,8 @@
     if (rewards.removeCard && !rewards.cards?.length && !rewards.relics?.length && !rewards.relic) {
       // Removal phase
       show("removal-panel");
-      const removalCards = $id("removal-cards");
+      clearEl(cardRow);
+      clearEl(relicRow);
       if (removalCards) {
         clearEl(removalCards);
         getDeckCards().forEach((card) => {
@@ -2644,7 +2648,8 @@
       const potionNotice = rewards.potion ? ` · ${POTION_ICONS[rewards.potion.id] || "🫧"} ${rewards.potion.name} added` : "";
       $id("reward-subtitle").textContent = `Choose a card to add to your deck${potionNotice}`;
 
-      const cardRow = $id("reward-cards-row");
+      clearEl(relicRow);
+      clearEl(removalCards);
       if (cardRow) {
         clearEl(cardRow);
         rewards.cards.forEach((card, i) => {
@@ -2672,7 +2677,8 @@
       hide("reward-skip-btn");
       $id("reward-continue-btn").textContent = "Skip Relic";
       $id("relic-choice-label").textContent = "Choose a Relic";
-      const relicRow = $id("reward-cards-row-relics");
+      clearEl(cardRow);
+      clearEl(removalCards);
       if (relicRow) {
         clearEl(relicRow);
         rewards.relics.forEach((relic) => {
@@ -2694,7 +2700,8 @@
       hide("reward-skip-btn");
       $id("reward-continue-btn").textContent = "Continue";
       $id("relic-choice-label").textContent = "Boss Relic";
-      const relicRow = $id("reward-cards-row-relics");
+      clearEl(cardRow);
+      clearEl(removalCards);
       if (relicRow) {
         clearEl(relicRow);
         const el = makeRelicCard(rewards.relic, async () => {
@@ -2716,8 +2723,9 @@
     $id("reward-subtitle").textContent = rewardAdvanceInFlight
       ? "Advancing to the next node..."
       : "Your reward is locked in. Continue the run when you're ready.";
-    clearEl($id("reward-cards-row"));
-    clearEl($id("reward-cards-row-relics"));
+    clearEl(cardRow);
+    clearEl(relicRow);
+    clearEl(removalCards);
 
     if (!rewardAdvanceInFlight) {
       continueRewardFlow();

@@ -7,7 +7,18 @@
  * @param {CardDefinitionInput} definition
  * @returns {Card}
  */
-const createCard = ({ id, name, cost, type, effect, effects, exhaust = false, rarity = "common", keywords = [] }) => ({
+const createCard = ({
+  id,
+  name,
+  cost,
+  type,
+  effect,
+  effects,
+  exhaust = false,
+  rarity = "common",
+  keywords = [],
+  ...rest
+}) => ({
   id,
   name,
   cost,
@@ -16,7 +27,8 @@ const createCard = ({ id, name, cost, type, effect, effects, exhaust = false, ra
   effects,
   exhaust,
   rarity,
-  keywords
+  keywords,
+  ...rest
 });
 
 module.exports = {

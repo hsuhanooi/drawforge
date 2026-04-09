@@ -302,7 +302,7 @@
           "Add at least one new multi-effect card using the new format",
           "Verify existing cards still function correctly after migration"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -658,7 +658,7 @@
           "Verify the tooltip system can be reused across combat, rewards, deck, and relic views",
           "Verify tooltip content is sourced from shared rules metadata"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

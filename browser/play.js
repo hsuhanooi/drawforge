@@ -2,6 +2,7 @@
 (() => {
   // ─── Globals ──────────────────────────────────────────────────────
   const SAVE_KEY = "drawforge.v1";
+  const QUERY_PARAMS = new URLSearchParams(window.location.search);
   let cardCatalog = null;
   let currentRun = null;
   let prevMapHp   = -1;
@@ -120,6 +121,17 @@
   }
 
   // ─── Network ──────────────────────────────────────────────────────
+  function arePresentationEffectsEnabled() {
+    if (QUERY_PARAMS.get("fx") === "off") return false;
+    return !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  }
+
+  async function waitForPresentationBeat(durationMs) {
+    const effectiveDelay = arePresentationEffectsEnabled() ? durationMs : 0;
+    if (!effectiveDelay) return;
+    await new Promise((resolve) => setTimeout(resolve, effectiveDelay));
+  }
+
   async function fetchJson(url, options = {}) {
     const res = await fetch(url, {
       cache: "no-store",
@@ -1235,6 +1247,7 @@
       ? (prevCombat.hand || []).length
       : Math.max(0, (prevCombat.hand || []).length - handConsumed);
     const cardsDrawn = Math.max(0, (nextCombat.hand || []).length - handDeltaBase);
+    const discardDelta = Math.max(0, (nextCombat.discardPile || []).length - (prevCombat.discardPile || []).length);
     const exhaustDelta = Math.max(0, (nextCombat.exhaustPile || []).length - (prevCombat.exhaustPile || []).length);
 
     if (playerBlockGain > 0) {
@@ -1255,9 +1268,19 @@
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onDraw(pp.x, pp.y, cardsDrawn);
     }
+    if (discardDelta > 0) {
+      floatText(playerPanel, `Discard ${discardDelta}`, "block-gain");
+      const pp = getPlayerAnimPos();
+      if (pp && window.AnimEngine) window.AnimEngine.onDiscard(pp.x, pp.y, discardDelta);
+    }
     if (exhaustDelta > 0) {
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onExhaust(pp.x, pp.y, exhaustDelta);
+    }
+    if (nextCombat.reshuffled) {
+      floatText(playerPanel, "Reshuffle", "draw-gain");
+      const pp = getPlayerAnimPos();
+      if (pp && window.AnimEngine) window.AnimEngine.onShuffle(pp.x, pp.y);
     }
 
     if ((nextEnemy.vulnerable || 0) > (prevEnemy.vulnerable || 0)) {
@@ -2475,7 +2498,7 @@
       if (updated.combat.phaseTransition) {
         showKillTextOverlay("⚡ PHASE 2", "#cc44cc");
         screenShake();
-        await new Promise((r) => setTimeout(r, 700));
+        await waitForPresentationBeat(700);
         // Clear the flag so it doesn't re-trigger on next render
         currentRun = { ...currentRun, combat: { ...currentRun.combat, phaseTransition: false } };
       }
@@ -2498,7 +2521,7 @@
       const epVic = getEnemyAnimPos();
       if (epVic && window.AnimEngine) window.AnimEngine.onVictory(epVic.x, epVic.y);
       // Brief pause for fanfare before reward
-      await new Promise((r) => setTimeout(r, nodeType === "boss" ? 900 : 500));
+      await waitForPresentationBeat(nodeType === "boss" ? 900 : 500);
       currentRun = await api("/run/apply-victory.json", { run: currentRun, combat: updated.combat });
     }
 

@@ -1111,6 +1111,34 @@
       spawnFloat(x, y - 24, `DRAW ${count}`, "#7cc5ff", count >= 2);
     },
 
+    onDiscard(x, y, count = 1) {
+      emit({
+        x, y: y - 14, count: 8 + count * 2,
+        colors: ["#c8b7ff", "#8f7fda", "#ffffff"],
+        speedMin: 18, speedMax: 76,
+        angleMin: -Math.PI * 0.92, angleMax: -Math.PI * 0.08,
+        sizeMin: 1.5, sizeMax: 3.5,
+        lifeMin: 0.22, lifeMax: 0.5,
+        gravity: -18, drag: 0.94,
+      });
+      spawnRing(x, y - 10, "#9f8bf5", 54, 0.28);
+      spawnFloat(x, y - 22, `DISCARD ${count}`, "#c8b7ff", count >= 3);
+    },
+
+    onShuffle(x, y) {
+      emit({
+        x, y: y - 18, count: 20,
+        colors: ["#f5d36c", "#ffefae", "#ffffff"],
+        speedMin: 25, speedMax: 120,
+        angleMin: 0, angleMax: TAU,
+        sizeMin: 1.5, sizeMax: 3.8,
+        lifeMin: 0.25, lifeMax: 0.65,
+        gravity: -28, drag: 0.93,
+      });
+      spawnRing(x, y - 12, "#f5d36c", 70, 0.34);
+      spawnFloat(x, y - 24, "RESHUFFLE", "#f5d36c", false);
+    },
+
     onExhaust(x, y, count = 1) {
       emit({
         x, y: y - 12, count: 10 + count * 3,

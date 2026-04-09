@@ -364,7 +364,7 @@
           "Introduce an intentionally delayed VFX sequence",
           "Verify combat logic remains deterministic and does not block incorrectly"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -378,7 +378,7 @@
           "Verify those UI state changes expose animation hooks",
           "Verify combat state remains correct even if animations are disabled"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -723,7 +723,7 @@
           "Verify combat logic remains correct and deterministic",
           "Document the separation between game engine state and presentation state"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

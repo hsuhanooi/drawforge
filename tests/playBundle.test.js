@@ -246,9 +246,24 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('window.AnimEngine?.onDefeat();');
   });
 
-  it("issues presentation-only hooks for draw, exhaust, and enemy intent updates", () => {
+  it("keeps presentation delays optional so combat rules do not depend on VFX timing", () => {
+    expect(playJs).toContain('const QUERY_PARAMS = new URLSearchParams(window.location.search);');
+    expect(playJs).toContain('function arePresentationEffectsEnabled() {');
+    expect(playJs).toContain('if (QUERY_PARAMS.get("fx") === "off") return false;');
+    expect(playJs).toContain('window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;');
+    expect(playJs).toContain('async function waitForPresentationBeat(durationMs) {');
+    expect(playJs).toContain('const effectiveDelay = arePresentationEffectsEnabled() ? durationMs : 0;');
+    expect(playJs).toContain('await waitForPresentationBeat(700);');
+    expect(playJs).toContain('await waitForPresentationBeat(nodeType === "boss" ? 900 : 500);');
+  });
+
+  it("issues presentation-only hooks for draw, discard, reshuffle, exhaust, and enemy intent updates", () => {
+    expect(playJs).toContain('const discardDelta = Math.max(0, (nextCombat.discardPile || []).length - (prevCombat.discardPile || []).length);');
     expect(playJs).toContain('const exhaustDelta = Math.max(0, (nextCombat.exhaustPile || []).length - (prevCombat.exhaustPile || []).length);');
     expect(playJs).toContain('window.AnimEngine.onDraw(pp.x, pp.y, cardsDrawn);');
+    expect(playJs).toContain('window.AnimEngine.onDiscard(pp.x, pp.y, discardDelta);');
+    expect(playJs).toContain('if (nextCombat.reshuffled) {');
+    expect(playJs).toContain('window.AnimEngine.onShuffle(pp.x, pp.y);');
     expect(playJs).toContain('window.AnimEngine.onExhaust(pp.x, pp.y, exhaustDelta);');
     expect(playJs).toContain('let lastEnemyIntentFxKey = null;');
     expect(playJs).toContain('const enemyIntentKey = combat.enemyIntent ? `${combat.enemyIntent.type || "unknown"}:${combat.enemyIntent.value || combat.enemyIntent.label || ""}` : null;');

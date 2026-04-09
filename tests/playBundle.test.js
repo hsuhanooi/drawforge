@@ -108,7 +108,11 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('"card-component"');
     expect(playJs).toContain('`rarity-${card.rarity || "common"}`');
     expect(playJs).toContain('const cardType = card.type || "skill";');
+    expect(playJs).toContain('const frameVariant = resolveCardFrameVariant(card, themeId);');
     expect(playJs).toContain('`type-${cardType}`');
+    expect(playJs).toContain('div.dataset.theme = themeId;');
+    expect(playJs).toContain('div.dataset.frameVariant = frameVariant;');
+    expect(playJs).toContain('stripe.dataset.frameVariant = frameVariant;');
     expect(playJs).toContain('costDiv.className = `card-cost cost-${costVal}`;');
     expect(playJs).toContain('canvas.className = "card-art-canvas"');
     expect(playJs).toContain('nameDiv.className = "card-name"');
@@ -119,6 +123,20 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('cardsRow.appendChild(makeCard(card, { dealDelay: -1 }));');
     expect(playJs).toContain('cards.forEach((card) => grid.appendChild(makeCard(card, { dealDelay: -1 })));');
     expect(playJs).toContain('const cardEl = makeCard(card, {');
+  });
+
+  it("applies theme-aware surface and frame variants across run screens", () => {
+    expect(playJs).toContain('const VISUAL_THEMES = {');
+    expect(playJs).toContain('function getRunThemeId(run = currentRun) {');
+    expect(playJs).toContain('function resolveCardFrameVariant(card = {}, themeId = getRunThemeId()) {');
+    expect(playJs).toContain('function applySurfaceTheme({ run = currentRun, screen = "map", nodeType = null } = {}) {');
+    expect(playJs).toContain('document.body.dataset.theme = theme.id;');
+    expect(playJs).toContain('document.body.dataset.themePanel = theme.panel;');
+    expect(playJs).toContain('document.body.dataset.themeAccent = theme.accent;');
+    expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "map", nodeType: currentRun.currentNodeType || "combat" });');
+    expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "combat", nodeType: currentRun.combat?.nodeType || "combat" });');
+    expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "shop", nodeType: "shop" });');
+    expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "rest", nodeType: "rest" });');
   });
 
   it("renders post-combat reward cards with the shared large card component and claim interaction", () => {

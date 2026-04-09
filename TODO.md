@@ -339,7 +339,7 @@
           "Apply a theme or skin override where supported",
           "Verify variant rendering remains consistent across hand, rewards, and deck views"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -762,7 +762,7 @@
           "Verify theme data can be configured without rewriting combat components",
           "Document the theme-aware rendering approach"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

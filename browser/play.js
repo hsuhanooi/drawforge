@@ -40,6 +40,67 @@
     }
   ];
 
+  const VISUAL_THEMES = {
+    base: {
+      id: "base",
+      panel: "obsidian",
+      accent: "forge"
+    },
+    hex_witch: {
+      id: "hex_witch",
+      panel: "hex",
+      accent: "violet"
+    },
+    ashen_knight: {
+      id: "ashen_knight",
+      panel: "ember",
+      accent: "ember"
+    },
+    static_duelist: {
+      id: "static_duelist",
+      panel: "storm",
+      accent: "storm"
+    }
+  };
+
+  function getRunThemeId(run = currentRun) {
+    return run?.archetype && VISUAL_THEMES[run.archetype] ? run.archetype : "base";
+  }
+
+  function getNodeTone(nodeType) {
+    if (nodeType === "boss") return "boss";
+    if (nodeType === "elite") return "elite";
+    if (nodeType === "shop") return "shop";
+    if (nodeType === "rest") return "rest";
+    return "combat";
+  }
+
+  function resolveCardFrameVariant(card = {}, themeId = getRunThemeId()) {
+    const archetype = String(card.archetype || "").toLowerCase();
+    if (themeId === "hex_witch" || archetype.includes("hex")) return "hex";
+    if (themeId === "ashen_knight" || archetype.includes("exhaust")) return "ember";
+    if (themeId === "static_duelist" || archetype.includes("charged")) return "storm";
+    if ((card.type || "").toLowerCase() === "power") return "royal";
+    return "neutral";
+  }
+
+  function applySurfaceTheme({ run = currentRun, screen = "map", nodeType = null } = {}) {
+    const themeId = getRunThemeId(run);
+    const theme = VISUAL_THEMES[themeId] || VISUAL_THEMES.base;
+    const tone = getNodeTone(nodeType || run?.combat?.nodeType || run?.currentNodeType);
+    document.body.dataset.theme = theme.id;
+    document.body.dataset.themePanel = theme.panel;
+    document.body.dataset.themeAccent = theme.accent;
+    document.body.dataset.screen = screen;
+    document.body.dataset.nodeTone = tone;
+    ["screen-map", "screen-combat", "screen-reward", "screen-shop", "screen-rest"].forEach((id) => {
+      const el = $id(id);
+      if (!el) return;
+      el.dataset.theme = theme.id;
+      el.dataset.nodeTone = tone;
+    });
+  }
+
   function calcRunScore(run) {
     const s = run.stats || {};
     return Math.max(0,
@@ -146,6 +207,8 @@
 
   function showCardPreview(card, anchorEl) {
     clearTimeout(previewHideTimer);
+    const themeId = getRunThemeId();
+    const frameVariant = resolveCardFrameVariant(card, themeId);
     let popup = $id("card-preview-popup");
     if (!popup) {
       popup = document.createElement("div");
@@ -154,6 +217,8 @@
     }
     clearEl(popup);
     popup.className = `rarity-${card.rarity || "common"}`;
+    popup.dataset.theme = themeId;
+    popup.dataset.frameVariant = frameVariant;
 
     const canvas = document.createElement("canvas");
     canvas.className = "preview-art-canvas";
@@ -379,6 +444,8 @@
     const { large = false, unplayable = false, onClick = null, dealDelay = 0 } = opts;
     const div = document.createElement("div");
     const cardType = card.type || "skill";
+    const themeId = getRunThemeId();
+    const frameVariant = resolveCardFrameVariant(card, themeId);
     div.className = [
       "card-component",
       `rarity-${card.rarity || "common"}`,
@@ -387,6 +454,8 @@
       unplayable ? "unplayable" : ""
     ].filter(Boolean).join(" ");
     div.dataset.cardType = cardType;
+    div.dataset.theme = themeId;
+    div.dataset.frameVariant = frameVariant;
     if (card.id) div.dataset.cardId = card.id;
 
     // Cost gem
@@ -407,6 +476,7 @@
     // Type stripe
     const stripe = document.createElement("div");
     stripe.className = "card-type-stripe";
+    stripe.dataset.frameVariant = frameVariant;
     div.appendChild(stripe);
 
     // Name
@@ -1614,6 +1684,7 @@
 
   // ─── Screen: Deck Choice (Archetype) ─────────────────────────────
   function renderDeckChoice() {
+    applySurfaceTheme({ run: currentRun, screen: "deck-choice", nodeType: null });
     if (lastScreen !== "deck-choice") flashTransition("flash");
     lastScreen = "deck-choice";
     showOnly("screen-deck-choice");
@@ -1740,6 +1811,7 @@
 
   function renderMap() {
     if (!currentRun?.map) return;
+    applySurfaceTheme({ run: currentRun, screen: "map", nodeType: currentRun.currentNodeType || "combat" });
     if (lastScreen !== "map") flashTransition("flash");
     lastScreen = "map";
     showOnly("screen-map");
@@ -2091,6 +2163,7 @@
 
   function renderCombat() {
     if (!currentRun?.combat) return;
+    applySurfaceTheme({ run: currentRun, screen: "combat", nodeType: currentRun.combat?.nodeType || "combat" });
     const enteringCombat = lastScreen !== "combat";
     if (enteringCombat) flashTransition("flash-slow");
     lastScreen = "combat";
@@ -2402,6 +2475,7 @@
   // ─── Screen: Reward ───────────────────────────────────────────────
   function renderReward() {
     if (!currentRun?.pendingRewards) return;
+    applySurfaceTheme({ run: currentRun, screen: "reward", nodeType: currentRun.currentNodeType || "combat" });
     const enteringReward = lastScreen !== "reward";
     showOnly("screen-reward");
     lastScreen = "reward";
@@ -2528,6 +2602,7 @@
   // ─── Screen: Event ────────────────────────────────────────────────
   function renderEvent() {
     if (!currentRun?.event) return;
+    applySurfaceTheme({ run: currentRun, screen: "reward", nodeType: currentRun.currentNodeType || "combat" });
     showOnly("screen-reward");
 
     hide("reward-content", "relic-choice-panel", "removal-panel");
@@ -2584,6 +2659,7 @@
   // ─── Screen: Rest (Campfire) ──────────────────────────────────────
   function renderRest() {
     if (!currentRun?.event) return;
+    applySurfaceTheme({ run: currentRun, screen: "rest", nodeType: "rest" });
     showOnly("screen-rest");
     hide("upgrade-panel");
 
@@ -2705,6 +2781,7 @@
   // ─── Screen: Shop ─────────────────────────────────────────────────
   function renderShop() {
     if (!currentRun?.shop) return;
+    applySurfaceTheme({ run: currentRun, screen: "shop", nodeType: "shop" });
     showOnly("screen-shop");
 
     const shop = currentRun.shop;
@@ -2828,6 +2905,7 @@
 
   // ─── Screen: End State ────────────────────────────────────────────
   function renderEndState() {
+    applySurfaceTheme({ run: currentRun, screen: "end", nodeType: currentRun.state === "won" ? "boss" : "combat" });
     lastScreen = "end";
     const win = currentRun.state === "won";
     const screen = $id("screen-end");

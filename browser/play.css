@@ -2707,6 +2707,18 @@ canvas.card-art-canvas {
   text-shadow: 0 0 8px rgba(136,187,255,0.5);
 }
 
+.float-dmg.draw-gain {
+  font-size: 18px;
+  color: #f4d97f;
+  text-shadow: 0 0 10px rgba(244,217,127,0.65);
+}
+
+.float-dmg.status-gain {
+  font-size: 17px;
+  color: #d4a9ff;
+  text-shadow: 0 0 10px rgba(178,116,255,0.65);
+}
+
 /* ─── Badge status expiry / decay ────────────────────────────────── */
 @keyframes badge-expiring-anim {
   0%   { opacity: 1; transform: scale(1); }

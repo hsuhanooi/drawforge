@@ -1,4 +1,5 @@
 const { createCard } = require("../src/card");
+const { createCardCatalog, toRenderableCard } = require("../src/cardCatalog");
 const {
   STRIKE_DAMAGE,
   DEFEND_BLOCK,
@@ -65,11 +66,36 @@ describe("card model", () => {
       cost: 2,
       type: "attack",
       effect: expect.any(Function),
+      effects: undefined,
       exhaust: false,
-      rarity: "common"
+      rarity: "common",
+      keywords: []
     });
   });
-});
+
+  it("supports ordered effect pipelines and structured keywords on cards", () => {
+    const card = createCard({
+      id: "test",
+      name: "Pipeline Test",
+      cost: 1,
+      type: "skill",
+      effects: [
+        { type: "energy", amount: 1 },
+        { type: "draw", amount: 2 }
+      ],
+      keywords: [{ key: "Energy" }, { key: "Draw", label: "Draw" }]
+    });
+
+    expect(card.effects).toEqual([
+      { type: "energy", amount: 1 },
+      { type: "draw", amount: 2 }
+    ]);
+    expect(card.keywords).toEqual([
+      { key: "Energy" },
+      { key: "Draw", label: "Draw" }
+    ]);
+  });
+ });
 
 describe("card definitions", () => {
   it("creates strike, defend, and extended reward card instances", () => {
@@ -148,6 +174,79 @@ describe("card definitions", () => {
     expect(executeCardEffect(volley, state).enemy.health).toBe(20 - VOLLEY_DAMAGE);
   });
 
+  it("executes multiple ordered effects in sequence", () => {
+    const comboCard = createCard({
+      id: "test",
+      name: "Combo Test",
+      cost: 1,
+      type: "skill",
+      effects: [
+        { type: "damage", amount: 4 },
+        { type: "draw", amount: 1 },
+        { type: "energy", amount: 2 },
+        { type: "hex", amount: 1 },
+        { type: "block", amount: 3 },
+        { type: "exhaust_hand" }
+      ]
+    });
+    const state = {
+      player: { health: 80, block: 0, energy: 1, charged: false },
+      enemy: { health: 20, hex: 0 },
+      drawCount: 0,
+      exhaustedThisTurn: 0
+    };
+
+    const nextState = executeCardEffect(comboCard, state);
+
+    expect(nextState.enemy.health).toBe(16);
+    expect(nextState.drawCount).toBe(1);
+    expect(nextState.player.energy).toBe(3);
+    expect(nextState.enemy.hex).toBe(1);
+    expect(nextState.player.block).toBe(3);
+    expect(nextState.exhaustFromHand).toBe(true);
+  });
+
+  it("supports deterministic conditional effect branches", () => {
+    const conditionalCard = createCard({
+      id: "test",
+      name: "Conditional Test",
+      cost: 1,
+      type: "attack",
+      effects: [
+        { type: "damage", amount: 5 },
+        {
+          type: "conditional",
+          condition: { kind: "enemy_hexed" },
+          then: [{ type: "damage", amount: 4 }],
+          else: [{ type: "block", amount: 2 }]
+        },
+        {
+          type: "conditional",
+          condition: { kind: "player_charged" },
+          then: [{ type: "energy", amount: 1 }]
+        }
+      ]
+    });
+
+    const baseState = {
+      player: { health: 80, block: 0, energy: 1, charged: false },
+      enemy: { health: 20, hex: 0 },
+      exhaustedThisTurn: 0
+    };
+
+    const plain = executeCardEffect(conditionalCard, baseState);
+    const chargedHexed = executeCardEffect(conditionalCard, {
+      ...baseState,
+      player: { ...baseState.player, charged: true },
+      enemy: { ...baseState.enemy, hex: 2 }
+    });
+
+    expect(plain.enemy.health).toBe(15);
+    expect(plain.player.block).toBe(2);
+    expect(chargedHexed.enemy.health).toBe(11);
+    expect(chargedHexed.player.energy).toBe(2);
+  });
+ 
   it("executes hex package card effects", () => {
     const wither = witherCardDefinition();
     const siphonWard = siphonWardCardDefinition();
@@ -175,6 +274,17 @@ describe("card definitions", () => {
 
     const afterCurse = executeCardEffect(lingeringCurse, baseState);
     expect(afterCurse.enemy.hex).toBe(LINGERING_CURSE_HEX);
+  });
+});
+
+describe("card catalog metadata", () => {
+  it("derives structured keyword metadata for renderable cards", () => {
+    const catalog = createCardCatalog();
+
+    expect(catalog.hex.keywords).toEqual([{ key: "Hex", label: "Hex" }, { key: "Exhaust", label: "Exhaust" }]);
+    expect(catalog.charge_up.keywords).toEqual([{ key: "Charged", label: "Charged" }, { key: "Draw", label: "Draw" }]);
+    expect(catalog.hexburst.keywords).toEqual([{ key: "Hex", label: "Hex" }, { key: "Consume", label: "Consume" }]);
+    expect(toRenderableCard("strike").keywords).toEqual([]);
   });
 });
 

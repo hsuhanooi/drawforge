@@ -122,6 +122,23 @@ const legacyLiveCards = [
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+const deriveKeywords = (card) => {
+  if (Array.isArray(card.keywords) && card.keywords.length > 0) {
+    return card.keywords.map((keyword) => typeof keyword === "string"
+      ? { key: keyword, label: keyword }
+      : { key: keyword.key, label: keyword.label || keyword.key });
+  }
+
+  const keys = [];
+  if (card.hex || card.bonusVsHex || card.costReduceIfHexed || card.ifHexedExhaustFromHand || card.ifHexedEnergyGain || card.consumeHexBonus) keys.push("Hex");
+  if (card.setCharged || card.drawIfCharged || card.energyIfCharged || card.costReduceIfCharged || card.bonusBlockIfCharged) keys.push("Charged");
+  if (card.exhaust || card.exhaustFromHand || card.exhaustHand || card.exhaustSkillsFromHand || card.exhaustFromHandCount || card.energyPerExhausted || card.bonusVsExhaust || card.bonusDmgPerExhausted) keys.push("Exhaust");
+  if (card.draw || card.drawIfCharged) keys.push("Draw");
+  if (card.energyGain || card.energyPerExhausted || card.energyIfCharged || card.ifHexedEnergyGain) keys.push("Energy");
+  if (card.consumeHexBonus) keys.push("Consume");
+  return [...new Set(keys)].map((key) => ({ key, label: key }));
+};
+
 const buildCatalog = () => {
   const catalog = {};
   for (const card of CARD_REGISTRY) {
@@ -137,6 +154,7 @@ const buildCatalog = () => {
       starter: !!card.starter,
       ...(implementedOverrides[card.id] || {})
     };
+    catalog[card.id].keywords = deriveKeywords(catalog[card.id]);
   }
   for (const card of legacyLiveCards) {
     if (!catalog[card.id]) {
@@ -144,10 +162,12 @@ const buildCatalog = () => {
         ...card,
         ...(implementedOverrides[card.id] || {})
       };
+      catalog[card.id].keywords = deriveKeywords(catalog[card.id]);
     }
   }
   for (const card of UPGRADED_CARD_ENTRIES) {
     catalog[card.id] = { ...card };
+    catalog[card.id].keywords = deriveKeywords(catalog[card.id]);
   }
   return catalog;
 };

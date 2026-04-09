@@ -121,7 +121,7 @@
           "Verify cards with one effect still work",
           "Verify unsupported effect definitions fail safely"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -134,7 +134,7 @@
           "Verify the bonus effect is applied",
           "Verify condition evaluation is deterministic and testable"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -146,7 +146,7 @@
           "Verify keyword metadata can be used for tooltips, styling, and glossary views",
           "Verify cards without keywords still render correctly"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -226,7 +226,7 @@
           "Verify visible feedback appears for energy or card draw changes",
           "Trigger a status or relic effect and verify feedback is visible"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -697,7 +697,7 @@
           "Apply a status or trigger a relic and verify the effect is communicated visually",
           "Verify feedback improves clarity without slowing combat excessively"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

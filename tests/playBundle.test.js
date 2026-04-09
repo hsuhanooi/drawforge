@@ -72,7 +72,9 @@ describe("play.js thin-client regression coverage", () => {
 
   it("requires enemy target confirmation for selected attack cards", () => {
     expect(playJs).toContain('function getSelectedCombatCard() {');
-    expect(playJs).toContain('const enemyTargetingActive = combat.turn === "player" && selectedCard?.type === "attack" && combat.state === "active";');
+    expect(playJs).toContain('function syncCombatSelectionState(combat = currentRun?.combat) {');
+    expect(playJs).toContain('const selectedCard = getSelectedCombatCard();');
+    expect(playJs).toContain('const enemyTargetingActive = combat?.turn === "player" && selectedCard?.type === "attack" && combat?.state === "active";');
     expect(playJs).toContain('enemyPanel.classList.toggle("targetable", enemyTargetingActive);');
     expect(playJs).toContain('enemyPanel.classList.toggle("target-selected", enemyTargetingActive);');
     expect(playJs).toContain('setCombatStateMessage("Target locked · click the enemy to strike", "player")');
@@ -147,5 +149,28 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('tip.innerHTML = `<div class="relic-name">${relic.name}</div>${relic.description || ""}`;');
     expect(playJs).toContain('setCombatStateMessage(`Relic triggered · ${triggeredNames.join(", ")}`, "relic")');
     expect(playJs).toContain('badges[idx].classList.add("relic-triggered");');
+  });
+
+  it("surfaces combat feedback for block, energy, draw, status, and relic-trigger deltas", () => {
+    expect(playJs).toContain('function showCombatDeltaFeedback({');
+    expect(playJs).toContain('if (playerBlockGain > 0) floatText(playerPanel, `+${playerBlockGain} Block`, "block-gain");');
+    expect(playJs).toContain('if (energyDelta > 0) floatText(playerPanel, `+${energyDelta} Energy`, "energy");');
+    expect(playJs).toContain('if (energyDelta < 0) floatText(playerPanel, `${energyDelta} Energy`, "energy");');
+    expect(playJs).toContain('if (cardsDrawn > 0) floatText(playerPanel, `Draw ${cardsDrawn}`, "draw-gain");');
+    expect(playJs).toContain('floatText(enemyPanel, `Vulnerable +${(nextEnemy.vulnerable || 0) - (prevEnemy.vulnerable || 0)}`, "status-gain");');
+    expect(playJs).toContain('floatText(enemyPanel, `Weak +${(nextEnemy.weak || 0) - (prevEnemy.weak || 0)}`, "status-gain");');
+    expect(playJs).toContain('floatText(enemyPanel, `Hex +${(nextEnemy.hex || 0) - (prevEnemy.hex || 0)}`, "status-gain");');
+    expect(playJs).toContain('floatText(playerPanel, "Charged", "status-gain");');
+    expect(playJs).toContain('setCombatStateMessage(`Relics answered ${playedCard.name}`, "relic")');
+    expect(playJs).toContain('showCombatDeltaFeedback({');
+    expect(playJs).toContain('treatNextHandAsFreshDraw: true');
+  });
+
+  it("keeps hand-card activation working for plain click and keyboard shortcut flows", () => {
+    expect(playJs).toContain('let suppressNextClick = false;');
+    expect(playJs).toContain('cardEl.addEventListener("click", async () => {');
+    expect(playJs).toContain('if (suppressNextClick) {');
+    expect(playJs).toContain('await activateCard();');
+    expect(playJs).toContain('if (playable[num - 1]) playable[num - 1].click();');
   });
 });

@@ -31,7 +31,7 @@ export const CARD_IDS = [
 ] as const;
 
 export type CardId = (typeof CARD_IDS)[number];
-export type CardType = "attack" | "skill";
+export type CardType = "attack" | "skill" | "power" | "curse";
 export type EventKind = "shrine" | "forge" | "camp";
 
 export interface IntentLike {
@@ -77,14 +77,34 @@ export interface CombatState extends CombatMutationState {
 
 export type CardRarity = "common" | "uncommon" | "rare";
 
+export interface CardKeyword {
+  key: string;
+  label?: string;
+}
+
+export interface CardCondition {
+  kind: "enemy_hexed" | "player_charged" | "exhausted_this_turn" | "player_energy_at_least";
+  value?: number;
+}
+
+export interface CardEffectStep {
+  type: "damage" | "block" | "draw" | "energy" | "hex" | "exhaust_hand" | "conditional";
+  amount?: number;
+  condition?: CardCondition;
+  then?: CardEffectStep[];
+  else?: CardEffectStep[];
+}
+
 export interface Card {
   id: CardId;
   name: string;
   cost: number;
   type: CardType;
-  effect: (state: CombatState) => CombatState;
+  effect?: (state: CombatState) => CombatState;
+  effects?: CardEffectStep[];
   exhaust?: boolean;
   rarity?: CardRarity;
+  keywords?: CardKeyword[];
   damage?: number;
   block?: number;
   draw?: number;
@@ -101,9 +121,11 @@ export interface CardDefinitionInput {
   name: string;
   cost: number;
   type: CardType;
-  effect: (state: CombatState) => CombatState;
+  effect?: (state: CombatState) => CombatState;
+  effects?: CardEffectStep[];
   exhaust?: boolean;
   rarity?: CardRarity;
+  keywords?: CardKeyword[];
 }
 
 export interface RelicReward {

@@ -10,6 +10,7 @@
   let prevShopGold = -1;
   let deckSortMode = "type"; // "type" | "cost"
   let deckFilterMode = "all"; // "all" | card type
+  let deckOverlayMode = "deck";
   let isCardPlaying = false;
   let selectedHandCardIndex = null;
   let dragHandState = null;
@@ -1652,14 +1653,24 @@
     });
   }
 
+  function getLibraryCards() {
+    return Object.values(cardCatalog || {})
+      .filter((card) => card && !card.id.endsWith("_plus"))
+      .map((card) => ({ ...card }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   // ─── Deck Overlay ─────────────────────────────────────────────────
-  function openDeckOverlay() {
+  function openDeckOverlay(mode = "deck") {
     const container = $id("deck-panel-cards");
     if (!container) return;
 
-    const cards = getDeckCards();
+    deckOverlayMode = mode;
+    const cards = mode === "library" ? getLibraryCards() : getDeckCards();
     const countLabel = $id("deck-panel-title");
-    if (countLabel) countLabel.textContent = `Your Deck (${cards.length})`;
+    if (countLabel) countLabel.textContent = mode === "library"
+      ? `Card Library (${cards.length})`
+      : `Your Deck (${cards.length})`;
 
     // Controls row (sort + summary) — create once, reuse
     let controls = $id("deck-overlay-controls");
@@ -1670,12 +1681,26 @@
     }
     clearEl(controls);
 
+    const modeBar = document.createElement("div");
+    modeBar.id = "deck-mode-bar";
+    [["deck", "Deck"], ["library", "Library"]].forEach(([modeId, label]) => {
+      const btn = document.createElement("button");
+      btn.className = "deck-mode-btn";
+      btn.dataset.active = modeId === deckOverlayMode ? "true" : "false";
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        deckOverlayMode = modeId;
+        openDeckOverlay(modeId);
+      });
+      modeBar.appendChild(btn);
+    });
+
     const sortBtn = document.createElement("button");
     sortBtn.id = "deck-sort-btn";
     sortBtn.textContent = deckSortMode === "type" ? "Sort: Type" : "Sort: Cost";
     sortBtn.addEventListener("click", () => {
       deckSortMode = deckSortMode === "type" ? "cost" : "type";
-      openDeckOverlay();
+      openDeckOverlay(deckOverlayMode);
     });
 
     const typeCounts = { attack: 0, skill: 0, power: 0, curse: 0 };
@@ -1695,7 +1720,7 @@
       btn.textContent = type === "all" ? "All" : type[0].toUpperCase() + type.slice(1);
       btn.addEventListener("click", () => {
         deckFilterMode = type;
-        openDeckOverlay();
+        openDeckOverlay(deckOverlayMode);
       });
       filterBar.appendChild(btn);
     });
@@ -1708,6 +1733,7 @@
       ? `${cards.length} cards · ${parts.join(" ")}`
       : `${filteredCards.length} ${deckFilterMode} card${filteredCards.length === 1 ? "" : "s"} shown · ${cards.length} total`;
 
+    controls.appendChild(modeBar);
     controls.appendChild(sortBtn);
     controls.appendChild(filterBar);
     controls.appendChild(summary);
@@ -3186,8 +3212,10 @@
     });
 
     // Deck overlay
-    $id("map-deck-btn")?.addEventListener("click", () => openDeckOverlay());
-    $id("combat-deck-btn")?.addEventListener("click", () => openDeckOverlay());
+    $id("map-deck-btn")?.addEventListener("click", () => openDeckOverlay("deck"));
+    $id("combat-deck-btn")?.addEventListener("click", () => openDeckOverlay("deck"));
+    $id("map-library-btn")?.addEventListener("click", () => openDeckOverlay("library"));
+    $id("combat-library-btn")?.addEventListener("click", () => openDeckOverlay("library"));
     $id("map-relics-btn")?.addEventListener("click", () => openRelicOverlay());
     $id("combat-relics-btn")?.addEventListener("click", () => openRelicOverlay());
     $id("deck-close-btn")?.addEventListener("click", () => hide("deck-overlay"));

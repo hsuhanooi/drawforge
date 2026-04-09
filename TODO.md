@@ -788,7 +788,7 @@
           "Verify hover, tooltip, and inspection behavior remains consistent across all views",
           "Verify shared card rendering reduces duplication across the UI system"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

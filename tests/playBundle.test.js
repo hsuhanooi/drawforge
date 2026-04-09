@@ -150,14 +150,24 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('cardRow.appendChild(el);');
   });
 
-  it("supports deck overlay filtering alongside shared card rendering", () => {
+  it("supports deck and library overlay browsing with shared card rendering", () => {
     expect(playJs).toContain('let deckFilterMode = "all";');
+    expect(playJs).toContain('let deckOverlayMode = "deck";');
+    expect(playJs).toContain('function getLibraryCards() {');
+    expect(playJs).toContain('filter((card) => card && !card.id.endsWith("_plus"))');
+    expect(playJs).toContain('function openDeckOverlay(mode = "deck") {');
+    expect(playJs).toContain('const cards = mode === "library" ? getLibraryCards() : getDeckCards();');
+    expect(playJs).toContain('countLabel.textContent = mode === "library"');
+    expect(playJs).toContain('modeBar.id = "deck-mode-bar";');
+    expect(playJs).toContain('btn.className = "deck-mode-btn";');
     expect(playJs).toContain('filterBar.id = "deck-filter-bar";');
     expect(playJs).toContain('["all", "attack", "skill", "power", "curse"].forEach((type) => {');
     expect(playJs).toContain('btn.className = "deck-filter-btn";');
     expect(playJs).toContain('deckFilterMode = type;');
     expect(playJs).toContain('const filteredCards = deckFilterMode === "all"');
     expect(playJs).toContain('const sorted = [...filteredCards];');
+    expect(playJs).toContain('$id("map-library-btn")?.addEventListener("click", () => openDeckOverlay("library"));');
+    expect(playJs).toContain('$id("combat-library-btn")?.addEventListener("click", () => openDeckOverlay("library"));');
   });
 
   it("supports relic inspection controls from map and combat surfaces", () => {

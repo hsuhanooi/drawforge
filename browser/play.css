@@ -2669,7 +2669,8 @@ canvas.card-art-canvas {
   margin-bottom: 8px;
 }
 #deck-sort-btn,
-.deck-filter-btn {
+.deck-filter-btn,
+.deck-mode-btn {
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -2680,16 +2681,19 @@ canvas.card-art-canvas {
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 #deck-sort-btn:hover,
-.deck-filter-btn:hover {
+.deck-filter-btn:hover,
+.deck-mode-btn:hover {
   border-color: var(--accent);
   color: var(--text);
 }
+#deck-mode-bar,
 #deck-filter-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
-.deck-filter-btn[data-active="true"] {
+.deck-filter-btn[data-active="true"],
+.deck-mode-btn[data-active="true"] {
   color: var(--text);
   border-color: var(--accent);
   background: rgba(79, 142, 247, 0.18);

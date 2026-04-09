@@ -52,6 +52,8 @@ Run lint:
 npm run lint
 ```
 
+The repo now includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs the same `npm test` and `npm run lint` checks on pushes to `main` and on pull requests.
+
 Start the minimal browser demo:
 
 ```bash
@@ -209,6 +211,7 @@ A few conventions are already clear from the repo:
 - keep gameplay logic deterministic where possible
 - add tests for every meaningful feature
 - update `progress.txt` when work is completed
+- keep `npm test` and `npm run lint` passing locally before pushing, because GitHub Actions runs the same checks on pushes to `main` and pull requests
 
 ## Browser architecture principle
 

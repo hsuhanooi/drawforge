@@ -828,6 +828,32 @@
           "Verify the new entry reflects the milestone name and current status"
         ],
         "passes": false
+      },
+      {
+        "category": "functional",
+        "description": "Run the full automated test suite after each major phase change before claiming the phase is stable or complete",
+        "steps": [
+          "Identify that a major phase change or milestone slice has landed",
+          "Run the full Jest suite",
+          "Run lint",
+          "Record any failures and fix them before calling the phase stable",
+          "Append the verification result to progress.txt",
+          "Verify the repo is green before moving to the next major phase"
+        ],
+        "passes": false
+      },
+      {
+        "category": "functional",
+        "description": "Add CI/CD so Drawforge automatically runs tests and lint on pushes and pull requests",
+        "steps": [
+          "Choose a CI provider and workflow layout for the repo",
+          "Create an automated workflow that installs dependencies and runs the full Jest suite",
+          "Run eslint in the same workflow",
+          "Verify the workflow triggers on pushes and pull requests",
+          "Document the CI expectations in the repo README or contributor docs",
+          "Confirm the workflow is green on the default branch"
+        ],
+        "passes": false
       }
     ]
   }

@@ -352,7 +352,7 @@
           "Apply a status or trigger a relic and verify the correct VFX plays",
           "Complete combat and verify victory or defeat VFX can play"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -710,7 +710,7 @@
           "Trigger a relic and verify relic activation VFX plays",
           "Resolve victory or defeat and verify end-of-combat VFX can play"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

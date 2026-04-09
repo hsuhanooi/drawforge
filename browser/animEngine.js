@@ -1054,6 +1054,93 @@
       triggerFlash("rgba(100,180,255,0.12)", 0.12);
     },
 
+    onTargetingStart(ex, ey, cardType = "attack") {
+      const color = cardType === "attack" ? "#ff8844" : "#66ccff";
+      spawnRing(ex, ey, color, 72, 0.32);
+      emit({
+        x: ex, y: ey - 8, count: 12,
+        colors: [color, "#ffffff"],
+        speedMin: 24, speedMax: 90,
+        angleMin: -Math.PI, angleMax: 0,
+        sizeMin: 1.5, sizeMax: 3.5,
+        lifeMin: 0.2, lifeMax: 0.45,
+        gravity: -30, drag: 0.93,
+      });
+    },
+
+    onDefenseGain(x, y, type = "block", amount = 0) {
+      const heal = type === "heal";
+      const color = heal ? "#61d394" : "#88ccff";
+      emit({
+        x, y: y - 18, count: heal ? 18 : 14,
+        colors: heal ? ["#61d394", "#b4f8c8", "#ffffff"] : ["#88ccff", "#d7f0ff", "#ffffff"],
+        speedMin: 30, speedMax: heal ? 130 : 110,
+        angleMin: -Math.PI, angleMax: 0,
+        sizeMin: 1.5, sizeMax: 4,
+        lifeMin: 0.25, lifeMax: 0.6,
+        gravity: -50, drag: 0.91,
+      });
+      spawnRing(x, y - 12, color, heal ? 84 : 64, heal ? 0.42 : 0.34);
+      spawnFloat(x, y - 24, heal ? `+${amount} HP` : `+${amount} Block`, color, heal && amount >= 8);
+    },
+
+    onRelicTrigger(x, y, label = "RELIC") {
+      emit({
+        x, y: y - 16, count: 20,
+        colors: ["#f0c040", "#ffe38a", "#ffffff"],
+        speedMin: 35, speedMax: 150,
+        angleMin: -Math.PI, angleMax: 0,
+        sizeMin: 1.5, sizeMax: 4.5,
+        lifeMin: 0.3, lifeMax: 0.7,
+        gravity: -35, drag: 0.92,
+      });
+      spawnRing(x, y - 10, "#f0c040", 76, 0.38);
+      spawnFloat(x, y - 28, label.toUpperCase(), "#f0c040", false);
+    },
+
+    onDraw(x, y, count = 1) {
+      emit({
+        x, y: y - 18, count: 8 + count * 2,
+        colors: ["#7cc5ff", "#c7ecff", "#ffffff"],
+        speedMin: 30, speedMax: 120,
+        angleMin: -Math.PI, angleMax: 0,
+        sizeMin: 1.5, sizeMax: 3.5,
+        lifeMin: 0.2, lifeMax: 0.5,
+        gravity: -55, drag: 0.92,
+      });
+      spawnFloat(x, y - 24, `DRAW ${count}`, "#7cc5ff", count >= 2);
+    },
+
+    onExhaust(x, y, count = 1) {
+      emit({
+        x, y: y - 12, count: 10 + count * 3,
+        colors: ["#ff9d57", "#ffcf8a", "#6e4a2c"],
+        speedMin: 22, speedMax: 90,
+        angleMin: -Math.PI * 0.95, angleMax: -Math.PI * 0.05,
+        sizeMin: 1.5, sizeMax: 4,
+        lifeMin: 0.22, lifeMax: 0.55,
+        gravity: -20, drag: 0.94,
+      });
+      spawnRing(x, y - 10, "#ff9d57", 62, 0.3);
+      spawnFloat(x, y - 22, `EXHAUST ${count}`, "#ff9d57", false);
+    },
+
+    onEnemyIntent(x, y, intentType = "attack") {
+      const color = intentType === "attack" || intentType === "multi_attack" ? "#ff7a59"
+        : intentType === "block" ? "#7cc5ff"
+        : "#d0a8ff";
+      spawnRing(x, y - 18, color, 58, 0.26);
+      emit({
+        x, y: y - 28, count: 10,
+        colors: [color, "#ffffff"],
+        speedMin: 18, speedMax: 70,
+        angleMin: -Math.PI, angleMax: 0,
+        sizeMin: 1, sizeMax: 3,
+        lifeMin: 0.18, lifeMax: 0.4,
+        gravity: -28, drag: 0.94,
+      });
+    },
+
     onBlockShatter(x, y) {
       emit({
         x, y, count: 22,

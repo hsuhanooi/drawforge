@@ -207,10 +207,16 @@ describe("play.js thin-client regression coverage", () => {
 
   it("surfaces combat feedback for block, energy, draw, status, and relic-trigger deltas", () => {
     expect(playJs).toContain('function showCombatDeltaFeedback({');
-    expect(playJs).toContain('if (playerBlockGain > 0) floatText(playerPanel, `+${playerBlockGain} Block`, "block-gain");');
+    expect(playJs).toContain('const playerHealGain = Math.max(0, (nextPlayer.health || 0) - (prevPlayer.health || 0));');
+    expect(playJs).toContain('if (playerBlockGain > 0) {');
+    expect(playJs).toContain('window.AnimEngine.onDefenseGain(pp.x, pp.y, "block", playerBlockGain);');
+    expect(playJs).toContain('if (playerHealGain > 0) {');
+    expect(playJs).toContain('floatText(playerPanel, `+${playerHealGain} HP`, "heal");');
+    expect(playJs).toContain('window.AnimEngine.onDefenseGain(pp.x, pp.y, "heal", playerHealGain);');
     expect(playJs).toContain('if (energyDelta > 0) floatText(playerPanel, `+${energyDelta} Energy`, "energy");');
     expect(playJs).toContain('if (energyDelta < 0) floatText(playerPanel, `${energyDelta} Energy`, "energy");');
-    expect(playJs).toContain('if (cardsDrawn > 0) floatText(playerPanel, `Draw ${cardsDrawn}`, "draw-gain");');
+    expect(playJs).toContain('if (cardsDrawn > 0) {');
+    expect(playJs).toContain('floatText(playerPanel, `Draw ${cardsDrawn}`, "draw-gain");');
     expect(playJs).toContain('floatText(enemyPanel, `Vulnerable +${(nextEnemy.vulnerable || 0) - (prevEnemy.vulnerable || 0)}`, "status-gain");');
     expect(playJs).toContain('floatText(enemyPanel, `Weak +${(nextEnemy.weak || 0) - (prevEnemy.weak || 0)}`, "status-gain");');
     expect(playJs).toContain('floatText(enemyPanel, `Hex +${(nextEnemy.hex || 0) - (prevEnemy.hex || 0)}`, "status-gain");');
@@ -228,5 +234,24 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('div.dataset.cardType = cardType;');
     expect(playJs).toContain('function handleCombatShortcutCard(playableIndex) {');
     expect(playJs).toContain('handleCombatShortcutCard(num - 1);');
+  });
+
+  it("routes advanced combat VFX hooks through targeting, defense, relic, and result flows", () => {
+    expect(playJs).toContain('let lastTargetingFxKey = null;');
+    expect(playJs).toContain('window.AnimEngine.onTargetingStart(ep.x, ep.y, selectedCard?.type || "attack");');
+    expect(playJs).toContain('window.AnimEngine.onRelicTrigger(playerPos.x, playerPos.y, triggeredNames[0]);');
+    expect(playJs).toContain('window.AnimEngine.onDefenseGain(pp.x, pp.y, "block", playerBlockGain);');
+    expect(playJs).toContain('window.AnimEngine.onDefenseGain(pp.x, pp.y, "heal", playerHealGain);');
+    expect(playJs).toContain('window.AnimEngine.onVictory(epVic.x, epVic.y);');
+    expect(playJs).toContain('window.AnimEngine?.onDefeat();');
+  });
+
+  it("issues presentation-only hooks for draw, exhaust, and enemy intent updates", () => {
+    expect(playJs).toContain('const exhaustDelta = Math.max(0, (nextCombat.exhaustPile || []).length - (prevCombat.exhaustPile || []).length);');
+    expect(playJs).toContain('window.AnimEngine.onDraw(pp.x, pp.y, cardsDrawn);');
+    expect(playJs).toContain('window.AnimEngine.onExhaust(pp.x, pp.y, exhaustDelta);');
+    expect(playJs).toContain('let lastEnemyIntentFxKey = null;');
+    expect(playJs).toContain('const enemyIntentKey = combat.enemyIntent ? `${combat.enemyIntent.type || "unknown"}:${combat.enemyIntent.value || combat.enemyIntent.label || ""}` : null;');
+    expect(playJs).toContain('window.AnimEngine.onEnemyIntent(ep.x, ep.y, combat.enemyIntent.type || "attack");');
   });
 });

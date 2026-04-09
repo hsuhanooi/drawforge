@@ -654,6 +654,10 @@
       .filter(Boolean);
     if (triggeredNames.length > 0) {
       setCombatStateMessage(`Relic triggered · ${triggeredNames.join(", ")}`, "relic");
+      const playerPos = getPlayerAnimPos();
+      if (playerPos && window.AnimEngine) {
+        window.AnimEngine.onRelicTrigger(playerPos.x, playerPos.y, triggeredNames[0]);
+      }
     }
     ["combat-relic-strip", "map-relic-strip"].forEach((stripId) => {
       const strip = $id(stripId);
@@ -1225,17 +1229,36 @@
 
     const playerBlockGain = (nextPlayer.block || 0) - (prevPlayer.block || 0);
     const enemyBlockGain = (nextEnemy.block || 0) - (prevEnemy.block || 0);
+    const playerHealGain = Math.max(0, (nextPlayer.health || 0) - (prevPlayer.health || 0));
     const energyDelta = (nextPlayer.energy || 0) - (prevPlayer.energy || 0);
     const handDeltaBase = treatNextHandAsFreshDraw
       ? (prevCombat.hand || []).length
       : Math.max(0, (prevCombat.hand || []).length - handConsumed);
     const cardsDrawn = Math.max(0, (nextCombat.hand || []).length - handDeltaBase);
+    const exhaustDelta = Math.max(0, (nextCombat.exhaustPile || []).length - (prevCombat.exhaustPile || []).length);
 
-    if (playerBlockGain > 0) floatText(playerPanel, `+${playerBlockGain} Block`, "block-gain");
+    if (playerBlockGain > 0) {
+      floatText(playerPanel, `+${playerBlockGain} Block`, "block-gain");
+      const pp = getPlayerAnimPos();
+      if (pp && window.AnimEngine) window.AnimEngine.onDefenseGain(pp.x, pp.y, "block", playerBlockGain);
+    }
     if (enemyBlockGain > 0) floatText(enemyPanel, `+${enemyBlockGain} Block`, "block-gain");
+    if (playerHealGain > 0) {
+      floatText(playerPanel, `+${playerHealGain} HP`, "heal");
+      const pp = getPlayerAnimPos();
+      if (pp && window.AnimEngine) window.AnimEngine.onDefenseGain(pp.x, pp.y, "heal", playerHealGain);
+    }
     if (energyDelta > 0) floatText(playerPanel, `+${energyDelta} Energy`, "energy");
     if (energyDelta < 0) floatText(playerPanel, `${energyDelta} Energy`, "energy");
-    if (cardsDrawn > 0) floatText(playerPanel, `Draw ${cardsDrawn}`, "draw-gain");
+    if (cardsDrawn > 0) {
+      floatText(playerPanel, `Draw ${cardsDrawn}`, "draw-gain");
+      const pp = getPlayerAnimPos();
+      if (pp && window.AnimEngine) window.AnimEngine.onDraw(pp.x, pp.y, cardsDrawn);
+    }
+    if (exhaustDelta > 0) {
+      const pp = getPlayerAnimPos();
+      if (pp && window.AnimEngine) window.AnimEngine.onExhaust(pp.x, pp.y, exhaustDelta);
+    }
 
     if ((nextEnemy.vulnerable || 0) > (prevEnemy.vulnerable || 0)) {
       floatText(enemyPanel, `Vulnerable +${(nextEnemy.vulnerable || 0) - (prevEnemy.vulnerable || 0)}`, "status-gain");
@@ -1313,11 +1336,20 @@
     return selectedHandCardIndex === null ? null : currentRun?.combat?.hand?.[selectedHandCardIndex] || null;
   }
 
+  let lastTargetingFxKey = null;
+
   function syncCombatSelectionState(combat = currentRun?.combat) {
     const enemyPanel = $id("enemy-panel");
     const selectedCard = getSelectedCombatCard();
     renderCardSelectionPreview(selectedCard, combat);
     const enemyTargetingActive = combat?.turn === "player" && selectedCard?.type === "attack" && combat?.state === "active";
+    const targetingKey = enemyTargetingActive ? `${combat?.enemy?.id || combat?.enemy?.name || "enemy"}:${selectedCard?.id || selectedHandCardIndex}` : null;
+
+    if (targetingKey && targetingKey !== lastTargetingFxKey) {
+      const ep = getEnemyAnimPos();
+      if (ep && window.AnimEngine) window.AnimEngine.onTargetingStart(ep.x, ep.y, selectedCard?.type || "attack");
+    }
+    lastTargetingFxKey = targetingKey;
 
     if (!enemyPanel) return;
 
@@ -2161,6 +2193,8 @@
     });
   }
 
+  let lastEnemyIntentFxKey = null;
+
   function renderCombat() {
     if (!currentRun?.combat) return;
     applySurfaceTheme({ run: currentRun, screen: "combat", nodeType: currentRun.combat?.nodeType || "combat" });
@@ -2249,6 +2283,12 @@
 
     // Intent with icon system
     renderIntent(combat.enemyIntent);
+    const enemyIntentKey = combat.enemyIntent ? `${combat.enemyIntent.type || "unknown"}:${combat.enemyIntent.value || combat.enemyIntent.label || ""}` : null;
+    if (enemyIntentKey && enemyIntentKey !== lastEnemyIntentFxKey) {
+      const ep = getEnemyAnimPos();
+      if (ep && window.AnimEngine) window.AnimEngine.onEnemyIntent(ep.x, ep.y, combat.enemyIntent.type || "attack");
+    }
+    lastEnemyIntentFxKey = enemyIntentKey;
 
     syncCombatSelectionState(combat);
 

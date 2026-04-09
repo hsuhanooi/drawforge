@@ -84,4 +84,17 @@ describe("relic system", () => {
     const phoenixAsh = RELICS.find((r) => r.id === "phoenix_ash");
     expect(phoenixAsh.rarity).toBe("rare");
   });
+
+  it("adds presentation asset metadata for relics", () => {
+    const luckyCoin = RELICS.find((r) => r.id === "lucky_coin");
+
+    expect(luckyCoin.presentation).toEqual({
+      card: { category: "card", assetRef: "cards/_placeholder", placeholderRef: "cards/_placeholder", isPlaceholder: true },
+      relic: { category: "relic", assetRef: "relics/lucky_coin", placeholderRef: "relics/_placeholder", isPlaceholder: false },
+      enemy: { category: "enemy", assetRef: "enemies/_placeholder", placeholderRef: "enemies/_placeholder", isPlaceholder: true },
+      icon: { category: "icon", assetRef: "icons/lucky_coin", placeholderRef: "icons/_placeholder", isPlaceholder: false },
+      background: { category: "background", assetRef: "backgrounds/_placeholder", placeholderRef: "backgrounds/_placeholder", isPlaceholder: true },
+      vfx: { category: "vfx", assetRef: "vfx/lucky_coin", placeholderRef: "vfx/_placeholder", isPlaceholder: false }
+    });
+  });
 });

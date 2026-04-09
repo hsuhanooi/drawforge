@@ -286,6 +286,22 @@ describe("card catalog metadata", () => {
     expect(catalog.hexburst.keywords).toEqual([{ key: "Hex", label: "Hex" }, { key: "Consume", label: "Consume" }]);
     expect(toRenderableCard("strike").keywords).toEqual([]);
   });
+
+  it("adds presentation asset metadata for renderable cards", () => {
+    const strike = toRenderableCard("strike");
+
+    expect(strike.frameVariant).toBe("attack_common");
+    expect(strike.artAssetRef).toBe("cards/strike");
+    expect(strike.iconAssetRef).toBe("icons/attack");
+    expect(strike.presentation).toEqual({
+      card: { category: "card", assetRef: "cards/strike", placeholderRef: "cards/_placeholder", isPlaceholder: false },
+      relic: { category: "relic", assetRef: "relics/_placeholder", placeholderRef: "relics/_placeholder", isPlaceholder: true },
+      enemy: { category: "enemy", assetRef: "enemies/_placeholder", placeholderRef: "enemies/_placeholder", isPlaceholder: true },
+      icon: { category: "icon", assetRef: "icons/attack", placeholderRef: "icons/_placeholder", isPlaceholder: false },
+      background: { category: "background", assetRef: "backgrounds/_placeholder", placeholderRef: "backgrounds/_placeholder", isPlaceholder: true },
+      vfx: { category: "vfx", assetRef: "vfx/attack", placeholderRef: "vfx/_placeholder", isPlaceholder: false }
+    });
+  });
 });
 
 describe("new card definitions", () => {

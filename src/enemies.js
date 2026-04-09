@@ -1,10 +1,19 @@
-const createEnemy = ({ id, name, health, damage, rewardGold = 10, intents = [], ...rest }) => ({
+const { buildPresentationAssets, makeAssetRef } = require("./assets");
+
+const createEnemy = ({ id, name, health, damage, rewardGold = 10, intents = [], assetRef = null, ...rest }) => ({
   id,
   name,
   health,
   damage,
   rewardGold,
   intents,
+  assetRef: assetRef || makeAssetRef("enemy", id),
+  presentation: buildPresentationAssets({
+    enemyId: id,
+    iconId: id,
+    backgroundId: "combat_default",
+    vfxId: id
+  }),
   ...rest
 });
 

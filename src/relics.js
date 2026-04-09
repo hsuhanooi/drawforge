@@ -3,6 +3,7 @@
 /** @typedef {import("./domain").RelicReward} RelicReward */
 
 const { RELIC_REGISTRY } = require("./relicRegistry");
+const { buildPresentationAssets } = require("./assets");
 
 /** @type {(RelicReward & { rarity: string, tier: string, effectText: string, triggerType: string, assetRef: string, status: string })[]} */
 const RELICS = RELIC_REGISTRY.map((relic) => ({
@@ -14,7 +15,12 @@ const RELICS = RELIC_REGISTRY.map((relic) => ({
   effectText: relic.effectText,
   triggerType: relic.triggerType,
   assetRef: relic.assetRef,
-  status: relic.status
+  status: relic.status,
+  presentation: buildPresentationAssets({
+    relicId: relic.id,
+    iconId: relic.id,
+    vfxId: relic.id
+  })
 }));
 
 const COMMON_RELICS = RELICS.filter((r) => r.rarity === "common");

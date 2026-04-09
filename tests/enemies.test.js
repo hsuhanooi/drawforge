@@ -26,4 +26,13 @@ describe("enemy selection", () => {
     expect(intent).toHaveProperty("label");
     expect(typeof intent.label).toBe("string");
   });
+
+  it("adds presentation asset metadata for enemies", () => {
+    const enemy = createEnemyForNode({ row: 0, col: 0, type: "combat" });
+
+    expect(enemy.assetRef).toBe(`enemies/${enemy.id}`);
+    expect(enemy.presentation.enemy.assetRef).toBe(`enemies/${enemy.id}`);
+    expect(enemy.presentation.icon.assetRef).toBe(`icons/${enemy.id}`);
+    expect(enemy.presentation.background.assetRef).toBe("backgrounds/combat_default");
+  });
 });

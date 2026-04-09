@@ -1,5 +1,6 @@
 const { CARD_REGISTRY } = require("./cardRegistry");
 const { UPGRADED_CARD_ENTRIES } = require("./cardUpgrade");
+const { makeAssetRef, buildPresentationAssets } = require("./assets");
 
 const implementedOverrides = {
   strike: { damage: 6 },
@@ -152,22 +153,48 @@ const buildCatalog = () => {
       effectText: card.effectText,
       status: card.status,
       starter: !!card.starter,
+      frameVariant: `${card.type || "skill"}_${card.rarity || "common"}`,
+      artAssetRef: makeAssetRef("card", card.id),
+      iconAssetRef: makeAssetRef("icon", card.type || card.id),
       ...(implementedOverrides[card.id] || {})
     };
     catalog[card.id].keywords = deriveKeywords(catalog[card.id]);
+    catalog[card.id].presentation = buildPresentationAssets({
+      cardId: card.id,
+      iconId: card.type || card.id,
+      vfxId: card.type || card.id
+    });
   }
   for (const card of legacyLiveCards) {
     if (!catalog[card.id]) {
       catalog[card.id] = {
         ...card,
+        frameVariant: `${card.type || "skill"}_${card.rarity || "common"}`,
+        artAssetRef: makeAssetRef("card", card.id),
+        iconAssetRef: makeAssetRef("icon", card.type || card.id),
         ...(implementedOverrides[card.id] || {})
       };
       catalog[card.id].keywords = deriveKeywords(catalog[card.id]);
+      catalog[card.id].presentation = buildPresentationAssets({
+        cardId: card.id,
+        iconId: card.type || card.id,
+        vfxId: card.type || card.id
+      });
     }
   }
   for (const card of UPGRADED_CARD_ENTRIES) {
-    catalog[card.id] = { ...card };
+    catalog[card.id] = {
+      ...card,
+      frameVariant: card.frameVariant || `${card.type || "skill"}_${card.rarity || "common"}`,
+      artAssetRef: card.artAssetRef || makeAssetRef("card", card.id),
+      iconAssetRef: card.iconAssetRef || makeAssetRef("icon", card.type || card.id)
+    };
     catalog[card.id].keywords = deriveKeywords(catalog[card.id]);
+    catalog[card.id].presentation = buildPresentationAssets({
+      cardId: card.id,
+      iconId: card.type || card.id,
+      vfxId: card.type || card.id
+    });
   }
   return catalog;
 };

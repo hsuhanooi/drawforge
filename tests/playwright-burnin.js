@@ -153,12 +153,12 @@ async function collectState(page) {
 
 async function clickCombatCard(page) {
   return clickFirst(page, [
+    '#hand-area .card-component.is-selected',
+    '#hand-area .card.is-selected',
     '#hand-area .card-component.type-attack:not(.unplayable)',
     '#hand-area .card.type-attack:not(.unplayable)',
     '#hand-area .card-component:not(.unplayable)',
-    '#hand-area .card:not(.unplayable)',
-    '#hand-area .card-component.is-selected',
-    '#hand-area .card.is-selected'
+    '#hand-area .card:not(.unplayable)'
   ]);
 }
 
@@ -215,7 +215,7 @@ async function actOnScreen(page, screen) {
       return 'start:new-run';
     case 'deck-choice': {
       const choice = await clickFirst(page, [
-        '#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn',
+        '#deck-choice-row .archetype-panel:nth-child(1) .archetype-select-btn',
         '#deck-choice-row .archetype-select-btn'
       ]);
       return choice ? `deck-choice:${choice}` : null;
@@ -232,11 +232,22 @@ async function actOnScreen(page, screen) {
       return choice ? `map:${choice}` : null;
     }
     case 'combat': {
+      const selectedAttack = await page.evaluate(() => {
+        const selected = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+        if (!selected) return false;
+        return selected.classList.contains('type-attack');
+      }).catch(() => false);
+
+      if (selectedAttack) {
+        const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
+        if (target) return `combat:target:${target}`;
+      }
+
       const played = await clickCombatCard(page);
       if (played) {
         await sleep(90);
-        await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
-        return `combat:play:${played}`;
+        const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
+        return `combat:play:${played}${target ? `:${target}` : ':no-target'}`;
       }
       const endTurn = await clickFirst(page, ['#end-turn-btn']);
       if (endTurn) return 'combat:end-turn';

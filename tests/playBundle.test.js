@@ -107,22 +107,57 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('function makeCard(card, opts = {}) {');
     expect(playJs).toContain('"card-component"');
     expect(playJs).toContain('`rarity-${card.rarity || "common"}`');
-    expect(playJs).toContain('`type-${card.type || "skill"}`');
+    expect(playJs).toContain('const cardType = card.type || "skill";');
+    expect(playJs).toContain('`type-${cardType}`');
     expect(playJs).toContain('costDiv.className = `card-cost cost-${costVal}`;');
     expect(playJs).toContain('canvas.className = "card-art-canvas"');
     expect(playJs).toContain('nameDiv.className = "card-name"');
     expect(playJs).toContain('descDiv.className = "card-desc"');
+    expect(playJs).toContain('div.tabIndex = 0;');
+    expect(playJs).toContain('div.setAttribute("role", "button");');
     expect(playJs).toContain('container.appendChild(makeCard(card, { dealDelay: -1 }));');
     expect(playJs).toContain('cardsRow.appendChild(makeCard(card, { dealDelay: -1 }));');
     expect(playJs).toContain('cards.forEach((card) => grid.appendChild(makeCard(card, { dealDelay: -1 })));');
     expect(playJs).toContain('const cardEl = makeCard(card, {');
   });
 
-  it("renders the combat HUD, hand, piles, relic bar, and end-turn control from dedicated regions", () => {
+  it("renders post-combat reward cards with the shared large card component and claim interaction", () => {
+    expect(playJs).toContain('const cardRow = $id("reward-cards-row");');
+    expect(playJs).toContain('const el = makeCard(card, {');
+    expect(playJs).toContain('large: true,');
+    expect(playJs).toContain('dealDelay: i * 80,');
+    expect(playJs).toContain('el.classList.add("card-picked");');
+    expect(playJs).toContain('currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });');
+    expect(playJs).toContain('el.classList.add("reward-item");');
+    expect(playJs).toContain('cardRow.appendChild(el);');
+  });
+
+  it("supports deck overlay filtering alongside shared card rendering", () => {
+    expect(playJs).toContain('let deckFilterMode = "all";');
+    expect(playJs).toContain('filterBar.id = "deck-filter-bar";');
+    expect(playJs).toContain('["all", "attack", "skill", "power", "curse"].forEach((type) => {');
+    expect(playJs).toContain('btn.className = "deck-filter-btn";');
+    expect(playJs).toContain('deckFilterMode = type;');
+    expect(playJs).toContain('const filteredCards = deckFilterMode === "all"');
+    expect(playJs).toContain('const sorted = [...filteredCards];');
+  });
+
+  it("supports relic inspection controls from map and combat surfaces", () => {
+    expect(playJs).toContain('$id("map-relics-btn")?.addEventListener("click", () => openRelicOverlay());');
+    expect(playJs).toContain('$id("combat-relics-btn")?.addEventListener("click", () => openRelicOverlay());');
+    expect(playJs).toContain('$id("relic-close-btn")?.addEventListener("click", () => hide("relic-overlay"));');
+    expect(playJs).toContain('hide("relic-overlay");');
+  });
+
+  it("renders the combat HUD, hand, piles, relic bar, combat log, and end-turn control from dedicated regions", () => {
     expect(playJs).toContain('renderRelicStrip("combat-relic-strip", currentRun.relics || []);');
+    expect(playJs).toContain('function makeRelicTooltip(relic, isTriggered = false) {');
+    expect(playJs).toContain('badge.addEventListener("click", () => openRelicOverlay(relic.id));');
+    expect(playJs).toContain('function openRelicOverlay(highlightRelicId = null) {');
     expect(playJs).toContain('$id("player-hp-current").textContent = combat.player.health;');
     expect(playJs).toContain('renderEnergyPips(combat.player.energy');
     expect(playJs).toContain('renderBadgesAnimated("player-badges", [');
+    expect(playJs).toContain('renderCombatLog(combat);');
     expect(playJs).toContain('pileSetup("draw-pile-btn", "draw-count", combat.drawPile || [], "Draw Pile");');
     expect(playJs).toContain('pileSetup("discard-pile-btn", "discard-count", combat.discardPile || [], "Discard Pile");');
     expect(playJs).toContain('pileSetup("exhaust-pile-btn", "exhaust-count", combat.exhaustPile || [], "Exhaust Pile");');
@@ -145,8 +180,9 @@ describe("play.js thin-client regression coverage", () => {
   it("renders relic badges with tooltip content and triggered-state feedback", () => {
     expect(playJs).toContain('function makeRelicBadge(relic) {');
     expect(playJs).toContain('badge.className = `relic-badge rarity-${relic.rarity || "common"}`;');
+    expect(playJs).toContain('function makeRelicTooltip(relic, isTriggered = false) {');
     expect(playJs).toContain('tip.className = "relic-tooltip";');
-    expect(playJs).toContain('tip.innerHTML = `<div class="relic-name">${relic.name}</div>${relic.description || ""}`;');
+    expect(playJs).toContain('modeChip.textContent = getRelicModeLabel(relic);');
     expect(playJs).toContain('setCombatStateMessage(`Relic triggered · ${triggeredNames.join(", ")}`, "relic")');
     expect(playJs).toContain('badges[idx].classList.add("relic-triggered");');
   });
@@ -171,6 +207,8 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('cardEl.addEventListener("click", async () => {');
     expect(playJs).toContain('if (suppressNextClick) {');
     expect(playJs).toContain('await activateCard();');
-    expect(playJs).toContain('if (playable[num - 1]) playable[num - 1].click();');
+    expect(playJs).toContain('div.dataset.cardType = cardType;');
+    expect(playJs).toContain('function handleCombatShortcutCard(playableIndex) {');
+    expect(playJs).toContain('handleCombatShortcutCard(num - 1);');
   });
 });

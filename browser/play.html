@@ -32,6 +32,7 @@
       <span class="stat-value" id="map-deck-count">—</span>
     </div>
     <button class="deck-btn" id="map-deck-btn">View Deck</button>
+    <button class="deck-btn" id="map-relics-btn">Relics</button>
     <div class="relic-strip" id="map-relic-strip"></div>
   </div>
   <div id="map-container">
@@ -54,6 +55,7 @@
       <span class="stat-value" id="combat-turn-label">—</span>
     </div>
     <button class="deck-btn" id="combat-deck-btn" style="margin-left:16px">Deck</button>
+    <button class="deck-btn" id="combat-relics-btn" style="margin-left:8px">Relics</button>
     <div class="relic-strip" id="combat-relic-strip"></div>
   </div>
 
@@ -107,6 +109,10 @@
 
   <!-- Bottom: piles + hand + end turn -->
   <div id="combat-bottom">
+    <div id="combat-log-panel" aria-live="polite">
+      <div id="combat-log-title">Combat Log</div>
+      <ul id="combat-log-list"></ul>
+    </div>
     <div id="pile-counters">
       <button class="pile-counter" id="draw-pile-btn" type="button" aria-label="Open draw pile">
         <span class="pile-icon">🎴</span>
@@ -211,6 +217,18 @@
       <button id="deck-close-btn">✕</button>
     </div>
     <div id="deck-panel-cards"></div>
+  </div>
+</div>
+
+<!-- ─── Relic Overlay ─────────────────────────────────────────────── -->
+<div id="relic-overlay" class="hidden">
+  <div id="relic-panel">
+    <div id="relic-panel-header">
+      <span id="relic-panel-title">Your Relics</span>
+      <button id="relic-close-btn">✕</button>
+    </div>
+    <div id="relic-panel-summary"></div>
+    <div id="relic-panel-cards"></div>
   </div>
 </div>
 

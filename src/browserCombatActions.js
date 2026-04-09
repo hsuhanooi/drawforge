@@ -7,6 +7,12 @@ const DEFAULT_PLAYER_ENERGY = 3;
 const CARD_CATALOG = createCardCatalog();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const COMBAT_LOG_LIMIT = 8;
+
+const appendCombatLog = (combat, text, tone = "system") => ({
+  ...combat,
+  combatLog: [...(combat.combatLog || []), { text, tone }].slice(-COMBAT_LOG_LIMIT)
+});
 
 const shuffleCards = (cards) => {
   const shuffled = [...cards];
@@ -68,7 +74,7 @@ const startCombatForNode = (run, node) => {
   if (hasRelic(run, "empty_throne")) drawCount += 2;
   if (hasRelic(run, "infernal_battery")) drawCount -= 1;
   const startingBlock = hasRelic(run, "rusted_buckler") ? 4 : 0;
-  return drawCards({
+  return appendCombatLog(drawCards({
     state: "active",
     turn: "player",
     nodeType: node.type,
@@ -101,6 +107,7 @@ const startCombatForNode = (run, node) => {
     drawPile: shuffleCards(run.player.deck.map(createRenderableCardFromId)),
     discardPile: [],
     exhaustPile: [],
+    combatLog: [],
     powers: [],
     exhaustedThisTurn: 0,
     enemy: {
@@ -108,7 +115,7 @@ const startCombatForNode = (run, node) => {
       vulnerable: hasRelic(run, "cracked_lens") ? 1 : 0,
       hex: hasRelic(run, "hex_crown") ? 1 : 0
     }
-  }, drawCount);
+  }, drawCount), `Combat started against ${enemy.name}.`, "system");
 };
 
 const playCombatCard = (run, handIndex) => {
@@ -401,6 +408,23 @@ const playCombatCard = (run, handIndex) => {
     next.turn = null;
   }
 
+  const enemyHealthDelta = Math.max(0, enemyHpBefore - next.enemy.health);
+  const playerBlockGain = Math.max(0, (next.player.block || 0) - (combat.player.block || 0));
+  const enemyHexGain = Math.max(0, (next.enemy.hex || 0) - (combat.enemy.hex || 0));
+  const energySpent = Math.max(0, (combat.player.energy || 0) - (next.player.energy || 0));
+  const logParts = [];
+  if (enemyHealthDelta > 0) logParts.push(`deal ${enemyHealthDelta}`);
+  if (playerBlockGain > 0) logParts.push(`gain ${playerBlockGain} block`);
+  if (enemyHexGain > 0) logParts.push(`apply ${enemyHexGain} Hex`);
+  if (energySpent > 0) logParts.push(`spend ${energySpent} energy`);
+  if (next.triggeredRelics?.length) logParts.push(`trigger ${next.triggeredRelics.length} relic`);
+  next = appendCombatLog(next, logParts.length > 0
+    ? `${card.name}: ${logParts.join(", ")}.`
+    : `${card.name} resolved.`, next.triggeredRelics?.length ? "relic" : "player");
+  if (next.state === "victory") {
+    next = appendCombatLog(next, `${next.enemy.name} was defeated.`, "system");
+  }
+
   // Stat tracking
   const hpDamageDealt = Math.max(0, enemyHpBefore - next.enemy.health);
   const prevStats = run.stats || {};
@@ -563,6 +587,19 @@ const endCombatTurn = (run) => {
 
   // Stat tracking for turn end
   const hpLostThisTurn = Math.max(0, healthBeforeIntent - next.player.health);
+  const enemyIntentLabel = combat.enemyIntent?.label || "Enemy acted";
+  if (combat.enemyIntent) {
+    const logText = hpLostThisTurn > 0
+      ? `${enemyIntentLabel}, dealing ${hpLostThisTurn} damage.`
+      : `${enemyIntentLabel}.`;
+    next = appendCombatLog(next, logText, "enemy");
+  }
+  if (next.state === "defeat") {
+    next = appendCombatLog(next, "You were defeated.", "system");
+  }
+  if (next.state === "victory") {
+    next = appendCombatLog(next, `${next.enemy.name} was defeated.`, "system");
+  }
   const prevStats = run.stats || {};
   const turnStats = {
     ...prevStats,

@@ -63,6 +63,11 @@ export interface CombatMutationState {
   exhaustFromHand?: boolean;
 }
 
+export interface CombatLogEntry {
+  text: string;
+  tone?: "player" | "enemy" | "relic" | "status" | "system";
+}
+
 export interface CombatState extends CombatMutationState {
   state: "active" | "victory" | "defeat";
   turn: "player" | "enemy" | null;
@@ -70,6 +75,7 @@ export interface CombatState extends CombatMutationState {
   drawPile: Card[];
   discardPile: Card[];
   exhaustPile?: Card[];
+  combatLog?: CombatLogEntry[];
   enemyTurnNumber?: number;
   enemyIntent?: IntentLike | null;
   enemyPhase?: string | null;

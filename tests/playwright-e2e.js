@@ -113,13 +113,18 @@ async function run() {
       bug('2. Deck Choice Options', 'Deck options rendered in #deck-choice-row', 'No deck options found');
     } else {
       info(`${deckOptions.length} deck options found ✓`);
-      const firstSelectButton = await page.$('#deck-choice-row .archetype-select-btn');
-      if (!firstSelectButton) {
+      const preferredDeckButton = await page.$('#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn');
+      const fallbackDeckButton = await page.$('#deck-choice-row .archetype-select-btn');
+      const selectedDeckButton = preferredDeckButton || fallbackDeckButton;
+      if (!selectedDeckButton) {
         bug('2. Deck Choice Select', 'Each deck option exposes a selectable button', 'No .archetype-select-btn found');
       } else {
-        await firstSelectButton.click();
+        const selectedDeckName = await selectedDeckButton.evaluate((el) =>
+          el.closest('.archetype-panel')?.querySelector('.archetype-title')?.textContent || 'unknown deck'
+        ).catch(() => 'unknown deck');
+        await selectedDeckButton.click();
         await wait(1500);
-        info('Clicked first deck option');
+        info(`Clicked deck option: ${selectedDeckName}`);
       }
     }
   } else if (mapVisibleAfterNewRun) {
@@ -324,34 +329,51 @@ async function run() {
     const discardBefore = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
 
     if (handCardsBefore.length > 0) {
-      // Find a playable (non-unplayable) card
+      // Find a playable card, preferring a non-attack so the smoke stays deterministic.
       let playableCard = null;
       for (const card of handCardsBefore) {
-        const isUnplayable = await card.evaluate(el => el.classList.contains('unplayable')).catch(() => false);
-        if (!isUnplayable) {
+        const candidate = await card.evaluate((el) => ({
+          unplayable: el.classList.contains('unplayable'),
+          type: el.dataset.cardType || ''
+        })).catch(() => ({ unplayable: true, type: '' }));
+        if (!candidate.unplayable && candidate.type !== 'attack') {
           playableCard = card;
           break;
+        }
+        if (!candidate.unplayable && !playableCard) {
+          playableCard = card;
         }
       }
 
       if (playableCard) {
-        const cardName = await playableCard.$eval('.card-name, [class*="name"]', el => el.textContent).catch(() => 'unknown');
-        info(`Playing card: "${cardName}"`);
-        // Use direct JS click to avoid animation stability issues
-        await page.evaluate(() => {
-          const card = document.querySelector('#hand-area .card-component:not(.unplayable)');
-          if (card) card.click();
-        });
-        await wait(800);
+        const cardMeta = await playableCard.evaluate((el) => ({
+          name: el.querySelector('.card-name, [class*="name"]')?.textContent || 'unknown',
+          type: el.dataset.cardType || ''
+        })).catch(() => ({ name: 'unknown', type: '' }));
+        info(`Playing card: "${cardMeta.name}"`);
+        await playableCard.click({ force: true });
+        await wait(180);
+        let discardAfter = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
+        let exhaustAfter = parseInt(await page.textContent('#exhaust-count').catch(() => '0')) || 0;
+        let handCardsAfter = await page.$$('#hand-area .card-component, #hand-area .card');
+        const firstClickResolved = handCardsAfter.length < handCardsBefore.length || discardAfter > discardBefore || exhaustAfter > 0;
+        if (!firstClickResolved) {
+          if (cardMeta.type === 'attack') {
+            await page.evaluate(() => document.getElementById('enemy-panel')?.onclick?.());
+          } else {
+            await page.evaluate(() => document.querySelector('#hand-area .card-component.is-selected')?.click());
+          }
+          await wait(800);
+          handCardsAfter = await page.$$('#hand-area .card-component, #hand-area .card');
+          discardAfter = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
+          exhaustAfter = parseInt(await page.textContent('#exhaust-count').catch(() => '0')) || 0;
+        }
         await screenshot('05-after-card-play');
-
-        const handCardsAfter = await page.$$('#hand-area .card-component, #hand-area .card');
-        const discardAfter = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
         info(`Hand before: ${handCardsBefore.length}, after: ${handCardsAfter.length}`);
         info(`Discard before: ${discardBefore}, after: ${discardAfter}`);
 
-        if (handCardsAfter.length >= handCardsBefore.length && discardAfter <= discardBefore) {
-          bug('5. Card Leaves Hand', 'Card leaves hand after being played (hand count decreases or discard increases)', `Hand count stayed ${handCardsAfter.length}, discard stayed ${discardAfter}`);
+        if (handCardsAfter.length >= handCardsBefore.length && discardAfter <= discardBefore && exhaustAfter === 0) {
+          bug('5. Card Leaves Hand', 'Card leaves hand after being played (hand count decreases or discard/exhaust increases)', `Hand count stayed ${handCardsAfter.length}, discard stayed ${discardAfter}, exhaust stayed ${exhaustAfter}`);
         } else {
           info('Card successfully played - hand changed ✓');
         }
@@ -401,20 +423,34 @@ async function run() {
     info('Testing keyboard "1" shortcut for first card');
     const handBeforeKey = await page.$$('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)');
     if (handBeforeKey.length > 0) {
+      const firstPlayableType = await handBeforeKey[0].evaluate((el) => el.dataset.cardType || '').catch(() => '');
       const discardBeforeKey = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
+      const exhaustBeforeKey = parseInt(await page.textContent('#exhaust-count').catch(() => '0')) || 0;
       await page.keyboard.press('1');
-      await wait(800);
-      const discardAfterKey = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
+      await wait(180);
+      let discardAfterKey = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
+      let exhaustAfterKey = parseInt(await page.textContent('#exhaust-count').catch(() => '0')) || 0;
+      let handAfterKey = await page.$$('#hand-area .card-component, #hand-area .card');
+      const firstKeyResolved = handAfterKey.length < handBeforeKey.length || discardAfterKey > discardBeforeKey || exhaustAfterKey > exhaustBeforeKey;
+      if (!firstKeyResolved) {
+        if (firstPlayableType === 'attack') {
+          await page.evaluate(() => document.getElementById('enemy-panel')?.onclick?.());
+        } else {
+          await page.keyboard.press('1');
+        }
+        await wait(800);
+        discardAfterKey = parseInt(await page.textContent('#discard-count').catch(() => '0')) || 0;
+        exhaustAfterKey = parseInt(await page.textContent('#exhaust-count').catch(() => '0')) || 0;
+        handAfterKey = await page.$$('#hand-area .card-component, #hand-area .card');
+      }
       info(`Discard before "1" press: ${discardBeforeKey}, after: ${discardAfterKey}`);
-      if (discardAfterKey > discardBeforeKey) {
+      if (discardAfterKey > discardBeforeKey || exhaustAfterKey > exhaustBeforeKey) {
         info('Keyboard "1" shortcut plays first card ✓');
       } else {
-        // Could be exhaust card - check exhaust count
-        const handAfterKey = await page.$$('#hand-area .card-component, #hand-area .card');
         if (handAfterKey.length < handBeforeKey.length) {
           info('Keyboard "1" shortcut plays first card (card exhausted or otherwise removed) ✓');
         } else {
-          bug('13. Keyboard "1" Shortcut', '"1" key plays first card in hand', 'Card count did not decrease after pressing "1"');
+          bug('13. Keyboard "1" Shortcut', '"1" key plays first card in hand (including attack targeting flow)', 'Card count did not decrease after pressing "1"');
         }
       }
     }
@@ -422,7 +458,7 @@ async function run() {
     // ─── 7. Win Combat ───────────────────────────────────────────────
     info('=== TEST 7: Win Combat ===');
 
-    for (let turn = 0; turn < 15; turn++) {
+    for (let turn = 0; turn < 20; turn++) {
       const stillInCombat = await isVisible('screen-combat');
       if (!stillInCombat) {
         info(`Combat ended at turn ${turn}`);
@@ -433,17 +469,42 @@ async function run() {
       const enemyHpNow = await page.textContent('#enemy-hp-current').catch(() => '?');
       const playResult = await page.evaluate(async () => {
         let played = 0;
-        for (;;) {
-          const card = document.querySelector('#hand-area .card-component:not(.unplayable)');
+        let safety = 0;
+        for (; safety < 12; safety++) {
+          const enemyHex = Number(document.getElementById('enemy-hex')?.textContent || 0);
+          const playableCards = Array.from(document.querySelectorAll('#hand-area .card-component:not(.unplayable)'));
+          const card = playableCards.find((el) => {
+            if (el.dataset.cardType !== 'attack') return false;
+            if (enemyHex > 0) return true;
+            const name = el.querySelector('.card-name')?.textContent || '';
+            return name.includes('Strike') || name.includes('Hexblade') || name.includes('Scorch') || name.includes('Arc Lash');
+          }) || playableCards.find((el) => el.dataset.cardType !== 'attack') || playableCards[0];
           if (!card) break;
+          const handBefore = document.querySelectorAll('#hand-area .card-component').length;
+          const discardBefore = Number(document.getElementById('discard-count')?.textContent || 0);
+          const exhaustBefore = Number(document.getElementById('exhaust-count')?.textContent || 0);
+          const isAttack = card.dataset.cardType === 'attack';
           card.click();
-          played++;
+          await new Promise(r => setTimeout(r, 120));
+          if (isAttack) {
+            document.getElementById('enemy-panel')?.onclick?.();
+          } else {
+            document.querySelector('#hand-area .card-component.is-selected')?.click();
+          }
           await new Promise(r => setTimeout(r, 350));
+          const handAfter = document.querySelectorAll('#hand-area .card-component').length;
+          const discardAfter = Number(document.getElementById('discard-count')?.textContent || 0);
+          const exhaustAfter = Number(document.getElementById('exhaust-count')?.textContent || 0);
+          if (handAfter < handBefore || discardAfter > discardBefore || exhaustAfter > exhaustBefore) {
+            played++;
+          } else {
+            break;
+          }
           if (document.getElementById('screen-combat')?.classList.contains('hidden')) break;
         }
-        return { played, hp: document.getElementById('enemy-hp-current')?.textContent };
+        return { played, hp: document.getElementById('enemy-hp-current')?.textContent, safety };
       });
-      info(`Turn ${turn + 1}: Played ${playResult.played} cards, enemy_hp before=${enemyHpNow} after=${playResult.hp}`);
+      info(`Turn ${turn + 1}: Played ${playResult.played} cards, enemy_hp before=${enemyHpNow} after=${playResult.hp}, safety=${playResult.safety}`);
 
       await wait(300);
       const combatAfterCards = await isVisible('screen-combat');
@@ -465,7 +526,7 @@ async function run() {
     const rewardVisible = await isVisible('screen-reward');
     if (!rewardVisible) {
       const stillCombat = await isVisible('screen-combat');
-      bug('7. Win Combat Reward', 'Reward screen shown after defeating enemy', `After 15 turns: reward=${rewardVisible}, combat=${stillCombat}`);
+      bug('7. Win Combat Reward', 'Reward screen shown after defeating enemy', `After 20 turns: reward=${rewardVisible}, combat=${stillCombat}`);
     } else {
       info('Reward screen shown after combat victory ✓');
       await screenshot('07-reward');
@@ -698,8 +759,8 @@ async function run() {
     info('Event screen not reached');
   }
 
-  // ─── 12. Deck Overlay ────────────────────────────────────────────────
-  info('=== TEST 12: Deck Overlay ===');
+  // ─── 12. Deck Overlay + Relic Overlay ──────────────────────────────
+  info('=== TEST 12: Deck Overlay + Relic Overlay ===');
 
   // Make sure we're on map
   onMap = await isVisible('screen-map');
@@ -770,6 +831,16 @@ async function run() {
         }
       }
 
+      const filterButtons = await page.$$('#deck-filter-bar .deck-filter-btn');
+      if (filterButtons.length < 2) {
+        bug('12. Deck Filter Controls', 'Deck overlay filter controls render', 'Expected multiple .deck-filter-btn controls in #deck-filter-bar');
+      } else {
+        await page.click('#deck-filter-bar .deck-filter-btn:nth-child(2)');
+        await wait(250);
+        const filteredSummary = await page.textContent('#deck-summary').catch(() => '');
+        info(`Deck filter summary: "${filteredSummary}"`);
+      }
+
       // Check deck cards rendered
       const deckCards = await page.$$('#deck-panel-cards > *');
       info(`Items in deck panel: ${deckCards.length}`);
@@ -782,6 +853,28 @@ async function run() {
         bug('13. Escape Closes Deck', 'Escape key closes deck overlay', 'Escape did not close deck overlay');
       } else {
         info('Escape closes deck overlay ✓');
+      }
+
+      const relicBtn = await page.$('#map-relics-btn');
+      if (!relicBtn) {
+        bug('12. Relic Overlay Button', 'Map HUD exposes a relic inspection button', 'No #map-relics-btn found');
+      } else {
+        await relicBtn.click();
+        await wait(350);
+        const relicOverlayHidden = await page.$eval('#relic-overlay', el => el.classList.contains('hidden')).catch(() => true);
+        if (relicOverlayHidden) {
+          bug('12. Relic Overlay Opens', 'Relic overlay opens when clicking the relic HUD button', 'Relic overlay still has .hidden class after clicking button');
+        } else {
+          const relicCards = await page.$$('#relic-panel-cards .relic-card');
+          info(`Items in relic panel: ${relicCards.length}`);
+          if (relicCards.length === 0) {
+            bug('12. Relic Cards Render', 'Relic overlay renders collected relics', 'No .relic-card entries found in relic overlay');
+          } else {
+            info('Relic overlay rendered collected relics ✓');
+          }
+        }
+        await page.keyboard.press('Escape');
+        await wait(250);
       }
     }
   } else {

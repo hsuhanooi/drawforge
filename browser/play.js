@@ -8,6 +8,7 @@
   let prevMapGold = -1;
   let prevShopGold = -1;
   let deckSortMode = "type"; // "type" | "cost"
+  let deckFilterMode = "all"; // "all" | card type
   let isCardPlaying = false;
   let selectedHandCardIndex = null;
   let dragHandState = null;
@@ -377,13 +378,16 @@
   function makeCard(card, opts = {}) {
     const { large = false, unplayable = false, onClick = null, dealDelay = 0 } = opts;
     const div = document.createElement("div");
+    const cardType = card.type || "skill";
     div.className = [
       "card-component",
       `rarity-${card.rarity || "common"}`,
-      `type-${card.type || "skill"}`,
+      `type-${cardType}`,
       large ? "large" : "",
       unplayable ? "unplayable" : ""
     ].filter(Boolean).join(" ");
+    div.dataset.cardType = cardType;
+    if (card.id) div.dataset.cardId = card.id;
 
     // Cost gem
     const costDiv = document.createElement("div");
@@ -470,14 +474,55 @@
     return icons[relic.id] || relic.name.slice(0, 2).toUpperCase();
   }
 
-  function makeRelicBadge(relic) {
-    const badge = document.createElement("div");
-    badge.className = `relic-badge rarity-${relic.rarity || "common"}`;
-    badge.textContent = relicIcon(relic);
+  function getRelicModeLabel(relic) {
+    const desc = (relic?.description || "").toLowerCase();
+    if (desc.includes("start combat") || desc.includes("start each combat") || desc.includes("on turn 1") || desc.includes("enemies start each combat")) {
+      return "Start of combat";
+    }
+    if (desc.includes("first ") || desc.includes("whenever") || desc.includes("when ") || desc.includes("after ")) {
+      return "Triggered";
+    }
+    return "Passive";
+  }
+
+  function makeRelicTooltip(relic, isTriggered = false) {
     const tip = document.createElement("div");
     tip.className = "relic-tooltip";
-    tip.innerHTML = `<div class="relic-name">${relic.name}</div>${relic.description || ""}`;
-    badge.appendChild(tip);
+    const name = document.createElement("div");
+    name.className = "relic-name";
+    name.textContent = relic.name;
+    const meta = document.createElement("div");
+    meta.className = "relic-meta";
+    const rarityChip = document.createElement("span");
+    rarityChip.className = "relic-chip";
+    rarityChip.textContent = relic.rarity || "common";
+    const modeChip = document.createElement("span");
+    modeChip.className = "relic-chip";
+    modeChip.textContent = getRelicModeLabel(relic);
+    meta.appendChild(rarityChip);
+    meta.appendChild(modeChip);
+    if (isTriggered) {
+      const triggerChip = document.createElement("span");
+      triggerChip.className = "relic-chip is-triggered";
+      triggerChip.textContent = "Triggered";
+      meta.appendChild(triggerChip);
+    }
+    const desc = document.createElement("div");
+    desc.textContent = relic.description || "";
+    tip.appendChild(name);
+    tip.appendChild(meta);
+    tip.appendChild(desc);
+    return tip;
+  }
+
+  function makeRelicBadge(relic) {
+    const badge = document.createElement("button");
+    badge.type = "button";
+    badge.className = `relic-badge rarity-${relic.rarity || "common"}`;
+    badge.textContent = relicIcon(relic);
+    badge.setAttribute("aria-label", `Inspect relic ${relic.name}`);
+    badge.appendChild(makeRelicTooltip(relic));
+    badge.addEventListener("click", () => openRelicOverlay(relic.id));
     return badge;
   }
 
@@ -490,14 +535,38 @@
     const name = document.createElement("div");
     name.className = "relic-card-name";
     name.textContent = relic.name;
+    const meta = document.createElement("div");
+    meta.className = "relic-card-desc";
+    meta.textContent = `${relic.rarity || "common"} · ${getRelicModeLabel(relic)}`;
     const desc = document.createElement("div");
     desc.className = "relic-card-desc";
     desc.textContent = relic.description || "";
     div.appendChild(icon);
     div.appendChild(name);
+    div.appendChild(meta);
     div.appendChild(desc);
     if (onClick) div.addEventListener("click", onClick);
     return div;
+  }
+
+  function openRelicOverlay(highlightRelicId = null) {
+    const relics = currentRun?.relics || [];
+    const panel = $id("relic-panel-cards");
+    const summary = $id("relic-panel-summary");
+    if (!panel || !summary) return;
+    clearEl(panel);
+    summary.textContent = relics.length
+      ? `${relics.length} relic${relics.length === 1 ? "" : "s"} collected. Hover for quick info, click strip badges to jump here.`
+      : "No relics collected yet.";
+    relics.forEach((relic) => {
+      const card = makeRelicCard(relic);
+      if (highlightRelicId && relic.id === highlightRelicId) {
+        card.style.borderColor = "var(--accent)";
+        card.style.boxShadow = "0 0 0 2px rgba(79,142,247,0.28), 0 0 28px rgba(79,142,247,0.28)";
+      }
+      panel.appendChild(card);
+    });
+    show("relic-overlay");
   }
 
   function renderRelicStrip(stripId, relics) {
@@ -524,7 +593,13 @@
         const idx = relics.findIndex((r) => r.id === relicId);
         if (idx >= 0 && badges[idx]) {
           badges[idx].classList.add("relic-triggered");
-          badges[idx].addEventListener("animationend", () => badges[idx].classList.remove("relic-triggered"), { once: true });
+          const existingTip = badges[idx].querySelector(".relic-tooltip");
+          if (existingTip) existingTip.replaceWith(makeRelicTooltip(relics[idx], true));
+          badges[idx].addEventListener("animationend", () => {
+            badges[idx].classList.remove("relic-triggered");
+            const tip = badges[idx].querySelector(".relic-tooltip");
+            if (tip) tip.replaceWith(makeRelicTooltip(relics[idx], false));
+          }, { once: true });
         }
       });
     });
@@ -1229,6 +1304,27 @@
     return parts.length ? parts.join(" · ") : describeCard(card);
   }
 
+  function renderCombatLog(combat) {
+    const logList = $id("combat-log-list");
+    if (!logList) return;
+    clearEl(logList);
+    const entries = [...(combat?.combatLog || [])].slice(-6).reverse();
+    if (!entries.length) {
+      const empty = document.createElement("li");
+      empty.className = "combat-log-entry is-empty";
+      empty.textContent = "Actions will appear here.";
+      logList.appendChild(empty);
+      return;
+    }
+    entries.forEach((entry) => {
+      const item = document.createElement("li");
+      item.className = "combat-log-entry";
+      if (entry.tone) item.dataset.tone = entry.tone;
+      item.textContent = entry.text;
+      logList.appendChild(item);
+    });
+  }
+
   function renderCardSelectionPreview(card, combat) {
     ["player-preview-chip", "enemy-preview-chip"].forEach((id) => {
       let chip = $id(id);
@@ -1465,16 +1561,35 @@
       typeCounts.power  && `${typeCounts.power}P`,
       typeCounts.curse  && `${typeCounts.curse}✗`
     ].filter(Boolean);
+    const filterBar = document.createElement("div");
+    filterBar.id = "deck-filter-bar";
+    ["all", "attack", "skill", "power", "curse"].forEach((type) => {
+      const btn = document.createElement("button");
+      btn.className = "deck-filter-btn";
+      btn.dataset.active = type === deckFilterMode ? "true" : "false";
+      btn.textContent = type === "all" ? "All" : type[0].toUpperCase() + type.slice(1);
+      btn.addEventListener("click", () => {
+        deckFilterMode = type;
+        openDeckOverlay();
+      });
+      filterBar.appendChild(btn);
+    });
+    const filteredCards = deckFilterMode === "all"
+      ? cards
+      : cards.filter((card) => card.type === deckFilterMode);
     const summary = document.createElement("span");
     summary.id = "deck-summary";
-    summary.textContent = `${cards.length} cards · ${parts.join(" ")}`;
+    summary.textContent = deckFilterMode === "all"
+      ? `${cards.length} cards · ${parts.join(" ")}`
+      : `${filteredCards.length} ${deckFilterMode} card${filteredCards.length === 1 ? "" : "s"} shown · ${cards.length} total`;
 
     controls.appendChild(sortBtn);
+    controls.appendChild(filterBar);
     controls.appendChild(summary);
 
     // Render sorted cards
     clearEl(container);
-    const sorted = [...cards];
+    const sorted = [...filteredCards];
     if (deckSortMode === "type") {
       const typeOrder = { attack: 0, skill: 1, power: 2, curse: 3 };
       sorted.sort((a, b) => (typeOrder[a.type] ?? 4) - (typeOrder[b.type] ?? 4) || a.name.localeCompare(b.name));
@@ -2063,6 +2178,8 @@
     renderIntent(combat.enemyIntent);
 
     syncCombatSelectionState(combat);
+
+    renderCombatLog(combat);
 
     // Pile counters (clickable to view contents)
     const pileSetup = (buttonId, countId, pile, label) => {
@@ -2930,7 +3047,10 @@
     // Deck overlay
     $id("map-deck-btn")?.addEventListener("click", () => openDeckOverlay());
     $id("combat-deck-btn")?.addEventListener("click", () => openDeckOverlay());
+    $id("map-relics-btn")?.addEventListener("click", () => openRelicOverlay());
+    $id("combat-relics-btn")?.addEventListener("click", () => openRelicOverlay());
     $id("deck-close-btn")?.addEventListener("click", () => hide("deck-overlay"));
+    $id("relic-close-btn")?.addEventListener("click", () => hide("relic-overlay"));
 
     // Reward skip (card selection)
     $id("reward-skip-btn")?.addEventListener("click", async () => {
@@ -2964,11 +3084,39 @@
   }
 
   // ─── Keyboard Shortcuts ───────────────────────────────────────────
+  function handleCombatShortcutCard(playableIndex) {
+    if (!currentRun?.combat) return;
+    const handArea = $id("hand-area");
+    if (!handArea) return;
+    const playable = Array.from(handArea.querySelectorAll(".card-component")).filter(
+      (cardEl) => !cardEl.classList.contains("unplayable")
+    );
+    const cardEl = playable[playableIndex];
+    if (!cardEl) return;
+
+    const handCards = Array.from(handArea.querySelectorAll(".card-component"));
+    const handIndex = handCards.indexOf(cardEl);
+    const card = currentRun.combat.hand?.[handIndex];
+    if (!card || handIndex < 0) return;
+
+    if (selectedHandCardIndex === handIndex) {
+      if (card.type === "attack") {
+        playCard(handIndex, cardEl);
+      } else {
+        cardEl.click();
+      }
+      return;
+    }
+
+    cardEl.click();
+  }
+
   function initKeyboard() {
     document.addEventListener("keydown", (e) => {
       // Escape closes overlays
       if (e.key === "Escape") {
         hide("deck-overlay");
+        hide("relic-overlay");
         hidePileModal();
         return;
       }
@@ -3002,15 +3150,11 @@
         return;
       }
 
-      // 1–5 = play hand card by index
+      // 1–5 = play/select hand card by playable order
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 5) {
-        const handArea = $id("hand-area");
-        if (!handArea) return;
-        const playable = Array.from(handArea.querySelectorAll(".card-component")).filter(
-          (c) => !c.classList.contains("unplayable")
-        );
-        if (playable[num - 1]) playable[num - 1].click();
+        e.preventDefault();
+        handleCombatShortcutCard(num - 1);
       }
     });
   }

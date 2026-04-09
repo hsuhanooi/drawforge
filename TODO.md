@@ -238,7 +238,7 @@
           "Verify the log includes card plays, damage, block, statuses, and relic triggers",
           "Verify the log is capped to a reasonable recent history length"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -251,7 +251,7 @@
           "Verify card text and keywords remain readable",
           "Select a reward and verify it is added to the deck"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -264,7 +264,7 @@
           "Verify effect text and keywords remain readable",
           "Verify optional filters or sorting work if implemented"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -277,7 +277,7 @@
           "Trigger a relic during combat and verify the relic visually responds",
           "Open a relic inspection view and verify all acquired relics are listed"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -289,7 +289,7 @@
           "Start combat and verify start-of-combat relics surface correctly",
           "Trigger an in-combat relic and verify it is visually differentiated from passive relics"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -489,7 +489,7 @@
           "Verify the layout can later support multiple enemies",
           "Document the approved layout as the baseline combat composition"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",
@@ -645,7 +645,7 @@
           "Open a relic inspection screen that lists all acquired relics",
           "Verify relics remain readable without crowding core combat UI"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "functional",

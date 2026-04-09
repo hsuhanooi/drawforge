@@ -94,7 +94,7 @@ const pickUniqueItems = (items, count) => {
   return chosen;
 };
 
-const server = http.createServer(async (req, res) => {
+const requestListener = async (req, res) => {
   const meta = getBundleMeta();
   const requestUrl = new URL(req.url, `http://localhost:${port}`);
 
@@ -398,11 +398,15 @@ const server = http.createServer(async (req, res) => {
     });
     res.end(contents);
   });
-});
+};
 
-server.listen(port, () => {
-  const meta = getBundleMeta();
-  console.log(`Drawforge browser demo running at http://localhost:${port} (${meta.shortSha})`);
-});
+const server = http.createServer(requestListener);
 
-module.exports = server;
+if (require.main === module) {
+  server.listen(port, () => {
+    const meta = getBundleMeta();
+    console.log(`Drawforge browser demo running at http://localhost:${port} (${meta.shortSha})`);
+  });
+}
+
+module.exports = requestListener;

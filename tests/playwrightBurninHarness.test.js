@@ -13,12 +13,16 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(selectedIndex).toBeLessThan(attackIndex);
   });
 
-  it('tries to resolve a selected attack against the enemy before reselecting cards', () => {
+  it('waits for combat controls and still resolves selected attacks before reselecting cards', () => {
+    expect(burninSource).toContain('async function waitForCombatControls(page) {');
+    expect(burninSource).toContain("const playableCard = document.querySelector('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)');");
     expect(burninSource).toContain("const selectedAttack = await page.evaluate(() => {");
     expect(burninSource).toContain("if (selectedAttack) {");
     expect(burninSource).toContain("const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);");
     expect(burninSource).toContain("actions.push(`target:${target}`);");
     expect(burninSource).toContain("const combatFallback = await page.evaluate(() => {");
+    expect(burninSource).toContain("return 'selected-attack-target-dom';");
+    expect(burninSource).toContain("return 'play-skill-dom';");
     expect(burninSource).toContain("return 'end-turn-dom';");
   });
 
@@ -45,7 +49,9 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("await handle.click({ force: true, timeout: CLICK_TIMEOUT_MS });");
   });
 
-  it('prefers the second archetype explicitly so burn-in runs stay deterministic and more aggressive', () => {
+  it('waits for deck-choice buttons before preferring the second archetype deterministically', () => {
+    expect(burninSource).toContain('async function waitForDeckChoiceActions(page) {');
+    expect(burninSource).toContain("document.querySelectorAll('#deck-choice-row .archetype-select-btn')");
     expect(burninSource).toContain("'#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn'");
   });
 
@@ -88,7 +94,8 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = true } = {}) {');
     expect(burninSource).toContain('if (shouldPreferContinue) {');
     expect(burninSource).toContain("const preferRewardContinue = screen === 'reward';");
-    expect(burninSource).toContain("const action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });");
+    expect(burninSource).toContain("let action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });");
+    expect(burninSource).toContain("if (!action && (screen === 'combat' || screen === 'map')) {");
     expect(burninSource).toContain("bug: screen === 'combat'");
     expect(burninSource).toContain("'Reward action loop repeated without state change'");
   });

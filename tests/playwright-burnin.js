@@ -354,14 +354,13 @@ async function actOnCombatScreen(page) {
   }
 
   const combatFallback = await page.evaluate(() => {
-    const endTurnBtn = document.querySelector('#end-turn-btn');
-    if (endTurnBtn && !endTurnBtn.disabled) {
-      endTurnBtn.click();
-      return 'end-turn-dom';
-    }
-
     const selectedCard = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+    const enemyTarget = document.querySelector('#enemy-panel, #enemy-canvas, .enemy-target, .combat-enemy');
     if (selectedCard) {
+      if (selectedCard.classList.contains('type-attack') && enemyTarget) {
+        enemyTarget.click();
+        return 'selected-attack-target-dom';
+      }
       selectedCard.click();
       return 'selected-card-dom';
     }
@@ -369,7 +368,22 @@ async function actOnCombatScreen(page) {
     const playableCard = document.querySelector('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)');
     if (playableCard) {
       playableCard.click();
+      const nowSelected = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+      if (nowSelected) {
+        if (nowSelected.classList.contains('type-attack') && enemyTarget) {
+          enemyTarget.click();
+          return 'play-attack-dom';
+        }
+        nowSelected.click();
+        return 'play-skill-dom';
+      }
       return 'play-card-dom';
+    }
+
+    const endTurnBtn = document.querySelector('#end-turn-btn');
+    if (endTurnBtn && !endTurnBtn.disabled) {
+      endTurnBtn.click();
+      return 'end-turn-dom';
     }
 
     return null;
@@ -451,12 +465,56 @@ async function clickAvailableMapNode(page) {
   return null;
 }
 
+async function waitForDeckChoiceActions(page) {
+  await page.waitForFunction(() => {
+    const buttons = Array.from(document.querySelectorAll('#deck-choice-row .archetype-select-btn'));
+    return buttons.some((button) => {
+      const style = window.getComputedStyle(button);
+      const rect = button.getBoundingClientRect();
+      return !button.disabled
+        && !button.classList.contains('hidden')
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && rect.width > 0
+        && rect.height > 0
+        && !button.closest('.hidden');
+    });
+  }, { timeout: 1200 }).catch(() => {});
+}
+
+async function waitForCombatControls(page) {
+  await page.waitForFunction(() => {
+    const isShown = (selector) => {
+      const el = document.querySelector(selector);
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+    };
+    if (!isShown('#screen-combat')) return false;
+
+    const playableCard = document.querySelector('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)');
+    const selectedCard = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+    const endTurnBtn = document.querySelector('#end-turn-btn');
+    const turnState = document.querySelector('#turn-state-chip')?.textContent || '';
+    const playerHp = Number(document.querySelector('#player-hp-current')?.textContent || 0);
+    const enemyHp = Number(document.querySelector('#enemy-hp-current')?.textContent || 0);
+
+    return Boolean(selectedCard)
+      || Boolean(playableCard)
+      || Boolean(endTurnBtn && !endTurnBtn.disabled)
+      || /victory|defeat/i.test(turnState)
+      || playerHp <= 0
+      || enemyHp <= 0;
+  }, { timeout: 1200 }).catch(() => {});
+}
+
 async function actOnScreen(page, screen, options = {}) {
   switch (screen) {
     case 'start':
       await clickFirst(page, ['#start-new-run-btn']);
       return 'start:new-run';
     case 'deck-choice': {
+      await waitForDeckChoiceActions(page);
       const choice = await clickFirst(page, [
         '#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn',
         '#deck-choice-row .archetype-select-btn'
@@ -468,6 +526,7 @@ async function actOnScreen(page, screen, options = {}) {
       return choice ? `map:${choice}` : null;
     }
     case 'combat':
+      await waitForCombatControls(page);
       return actOnCombatScreen(page);
     case 'reward':
       return actOnRewardScreen(page, options);
@@ -576,7 +635,11 @@ async function runSingle(browser, runIndex) {
       }
 
       const preferRewardContinue = screen === 'reward';
-      const action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });
+      let action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });
+      if (!action && (screen === 'combat' || screen === 'map')) {
+        await sleep(screen === 'combat' ? Math.max(COMBAT_MICRO_DELAY_MS, 80) : 180);
+        action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });
+      }
       actions.push({ step, screen, action, state: stateBeforeAction });
 
       if (!action) {

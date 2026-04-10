@@ -1058,7 +1058,7 @@
           "Add True Victory end screen state distinct from Act 2 victory",
           "Add unit tests for phase transition triggers and Act 3 enemy definitions"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "replayability",

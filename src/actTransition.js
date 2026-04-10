@@ -1,15 +1,17 @@
 const { generateMap } = require("./map");
 
 const ACT2_HEAL_AMOUNT = 10;
+const ACT3_HEAL_AMOUNT = 12;
 
-const startAct2 = (run) => {
+const startNextAct = (run, act, healAmount) => {
   const maxHealth = run.player.maxHealth || run.player.health;
-  const newHealth = Math.min(run.player.health + ACT2_HEAL_AMOUNT, maxHealth);
+  const newHealth = Math.min(run.player.health + healAmount, maxHealth);
 
   return {
     ...run,
-    act: 2,
+    act,
     state: "in_progress",
+    trueVictory: false,
     player: {
       ...run.player,
       health: newHealth
@@ -24,6 +26,11 @@ const startAct2 = (run) => {
   };
 };
 
+const startAct2 = (run) => startNextAct(run, 2, ACT2_HEAL_AMOUNT);
+
+const startAct3 = (run) => startNextAct(run, 3, ACT3_HEAL_AMOUNT);
+
 module.exports = {
-  startAct2
+  startAct2,
+  startAct3
 };

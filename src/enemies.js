@@ -17,6 +17,14 @@ const createEnemy = ({ id, name, health, damage, rewardGold = 10, intents = [], 
   ...rest
 });
 
+const createMultiPhaseBoss = ({ phaseIntents = [], phaseThresholds = [], ...enemy }) => createEnemy({
+  ...enemy,
+  phase: 1,
+  phaseIntents,
+  phaseThresholds,
+  intents: phaseIntents[0] || enemy.intents || []
+});
+
 const resolveEnemyIntent = (enemy, turnNumber = 0) => {
   const intents = enemy.intents && enemy.intents.length > 0
     ? enemy.intents
@@ -83,11 +91,90 @@ const createEnemyForNode = (node, act = 1) => {
       })
     ];
 
-    const pool = act === 2 ? act2Elites : act1Elites;
+    const act3Elites = [
+      createMultiPhaseBoss({
+        id: "hex_titan",
+        name: "Hex Titan",
+        health: 165,
+        damage: 16,
+        rewardGold: 40,
+        phaseThresholds: [110, 65],
+        phase2Strength: 2,
+        phase3Strength: 3,
+        phaseIntents: [
+          [
+            { type: "attack", value: 16, label: "Titan Crush for 16" },
+            { type: "debuff_hex", value: 3, label: "Runic Glare: apply Hex 3" },
+            { type: "block", value: 14, label: "Obsidian Guard: gain 14 block" }
+          ],
+          [
+            { type: "multi_attack", value: 9, hits: 2, label: "Runebreaker: 2x9" },
+            { type: "debuff_weak", value: 2, label: "Titan Roar: apply Weak 2" },
+            { type: "attack", value: 20, label: "World Hammer for 20" }
+          ],
+          [
+            { type: "multi_attack", value: 8, hits: 3, label: "Shatterfall: 3x8" },
+            { type: "debuff_hex", value: 4, label: "Final Edict: apply Hex 4" },
+            { type: "attack", value: 24, label: "Cataclysm Fist for 24" }
+          ]
+        ]
+      }),
+      createEnemy({
+        id: "cinder_colossus",
+        name: "Cinder Colossus",
+        health: 150,
+        damage: 17,
+        rewardGold: 40,
+        burnImmune: true,
+        intents: [
+          { type: "attack", value: 17, label: "Lava Fist for 17" },
+          { type: "debuff_burn", value: 3, label: "Ash Storm: apply Burn 3" },
+          { type: "multi_attack", value: 10, hits: 2, label: "Magma Barrage: 2x10" }
+        ]
+      })
+    ];
+
+    const pool = act >= 3 ? act3Elites : act === 2 ? act2Elites : act1Elites;
     return pool[(node.row + node.col) % pool.length];
   }
 
   if (node.type === "boss") {
+    if (act >= 3) {
+      return createMultiPhaseBoss({
+        id: "the_undying",
+        name: "The Undying",
+        health: 180,
+        damage: 18,
+        rewardGold: 100,
+        phaseThresholds: [150, 100, 50],
+        phase2Strength: 2,
+        phase3Strength: 3,
+        phase4Strength: 4,
+        phaseIntents: [
+          [
+            { type: "attack", value: 18, label: "Final Slash for 18" },
+            { type: "debuff_hex", value: 2, label: "Death Mark: apply Hex 2" },
+            { type: "block", value: 14, label: "Unending Guard: gain 14 block" }
+          ],
+          [
+            { type: "multi_attack", value: 10, hits: 2, label: "Soul Rend: 2x10" },
+            { type: "debuff_weak", value: 2, label: "Withering Cry: apply Weak 2" },
+            { type: "attack", value: 22, label: "Grave Crash for 22" }
+          ],
+          [
+            { type: "debuff_burn", value: 3, label: "Ashen Wake: apply Burn 3" },
+            { type: "multi_attack", value: 8, hits: 3, label: "Eternal Barrage: 3x8" },
+            { type: "attack", value: 24, label: "Oblivion for 24" }
+          ],
+          [
+            { type: "debuff_poison", value: 4, label: "Rot Bloom: apply Poison 4" },
+            { type: "multi_attack", value: 11, hits: 3, label: "Death Spiral: 3x11" },
+            { type: "attack", value: 30, label: "Undying End for 30" }
+          ]
+        ]
+      });
+    }
+
     if (act === 2) {
       return createEnemy({
         id: "void_sovereign",
@@ -385,7 +472,83 @@ const createEnemyForNode = (node, act = 1) => {
     })
   ];
 
-  const pool = act === 2 ? act2Enemies : act1Enemies;
+  const act3Enemies = [
+    ...act2Enemies,
+    createEnemy({
+      id: "nightmare_husk",
+      name: "Nightmare Husk",
+      health: 58,
+      damage: 12,
+      rewardGold: 18,
+      intents: [
+        { type: "attack", value: 12, label: "Night Rend for 12" },
+        { type: "debuff_weak", value: 2, label: "Dread Breath: apply Weak 2" },
+        { type: "multi_attack", value: 7, hits: 2, label: "Shadow Flurry: 2x7" }
+      ]
+    }),
+    createEnemy({
+      id: "hex_revenant",
+      name: "Hex Revenant",
+      health: 54,
+      damage: 11,
+      rewardGold: 18,
+      intents: [
+        { type: "debuff_hex", value: 3, label: "Coffin Whisper: apply Hex 3" },
+        { type: "attack", value: 13, label: "Ruin Swipe for 13" },
+        { type: "debuff_curse", curseId: "wound", label: "Brand of Grief: add Wound to deck" }
+      ]
+    }),
+    createEnemy({
+      id: "stone_eater",
+      name: "Stone Eater",
+      health: 70,
+      damage: 12,
+      rewardGold: 18,
+      intents: [
+        { type: "block", value: 14, label: "Granite Feed: gain 14 block" },
+        { type: "attack", value: 15, label: "Quarry Bite for 15" },
+        { type: "multi_attack", value: 8, hits: 2, label: "Shard Spray: 2x8" }
+      ]
+    }),
+    createEnemy({
+      id: "soul_collector",
+      name: "Soul Collector",
+      health: 56,
+      damage: 12,
+      rewardGold: 18,
+      intents: [
+        { type: "buff", value: 3, label: "Harvest: gain +3 damage" },
+        { type: "attack", value: 14, label: "Soul Cleave for 14" },
+        { type: "debuff_poison", value: 2, label: "Siphon Rot: apply Poison 2" }
+      ]
+    }),
+    createEnemy({
+      id: "void_crawler",
+      name: "Void Crawler",
+      health: 52,
+      damage: 11,
+      rewardGold: 18,
+      intents: [
+        { type: "multi_attack", value: 6, hits: 3, label: "Skitter Storm: 3x6" },
+        { type: "debuff_hex", value: 2, label: "Warp Venom: apply Hex 2" },
+        { type: "attack", value: 15, label: "Void Fang for 15" }
+      ]
+    }),
+    createEnemy({
+      id: "ashwalker",
+      name: "Ashwalker",
+      health: 60,
+      damage: 12,
+      rewardGold: 18,
+      intents: [
+        { type: "debuff_burn", value: 3, label: "Cinder Step: apply Burn 3" },
+        { type: "attack", value: 14, label: "Ashen Spear for 14" },
+        { type: "block", value: 10, label: "Smoke Veil: gain 10 block" }
+      ]
+    })
+  ];
+
+  const pool = act >= 3 ? act3Enemies : act === 2 ? act2Enemies : act1Enemies;
   const index = (node.row + node.col) % pool.length;
   return pool[index];
 };

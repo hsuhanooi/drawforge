@@ -49,7 +49,8 @@ describe("Act 2 enemy routing", () => {
   it("act 1 combat still returns act 1 enemies only", () => {
     const act1Ids = [
       "slime", "fangling", "mossling", "hexbat",
-      "thornling", "phantom_thief", "brute", "hex_cultist", "shield_crawler"
+      "thornling", "phantom_thief", "brute", "hex_cultist", "shield_crawler",
+      "plague_rat", "cinder_shade", "venomfang"
     ];
     for (let i = 0; i < 18; i += 1) {
       const enemy = createEnemyForNode(combatNode(i % 5, i % 3), 1);

@@ -2,7 +2,7 @@ const { createVictoryRewards } = require("./rewards");
 const { addRelicToRun } = require("./relics");
 const { toRenderableCards } = require("./cardCatalog");
 const { upgradeCardInDeck } = require("./cardUpgrade");
-const { startAct2 } = require("./actTransition");
+const { startAct2, startAct3 } = require("./actTransition");
 const { MAX_POTIONS } = require("./potions");
 
 const hasRelic = (run, id) => (run.relics || []).some((relic) => relic.id === id);
@@ -15,12 +15,17 @@ const finishNode = (run) => {
     return startAct2(run);
   }
 
+  if (isBossNode && (run.act || 1) === 2) {
+    return startAct3(run);
+  }
+
   return {
     ...run,
     combat: null,
     pendingRewards: null,
     event: null,
-    state: isBossNode ? "won" : "in_progress"
+    state: isBossNode ? "won" : "in_progress",
+    trueVictory: Boolean(isBossNode && (run.act || 1) >= 3)
   };
 };
 

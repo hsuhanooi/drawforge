@@ -2550,11 +2550,18 @@
       syncAnimBattleState();
       // Phase 2 transition visual
       if (updated.combat.phaseTransition) {
-        showKillTextOverlay("⚡ PHASE 2", "#cc44cc");
+        showKillTextOverlay(`⚡ ${updated.combat.phaseTransitionLabel || "PHASE 2"}`, "#cc44cc");
         screenShake();
         await waitForPresentationBeat(700);
         // Clear the flag so it doesn't re-trigger on next render
-        currentRun = { ...currentRun, combat: { ...currentRun.combat, phaseTransition: false } };
+        currentRun = {
+          ...currentRun,
+          combat: {
+            ...currentRun.combat,
+            phaseTransition: false,
+            phaseTransitionLabel: null
+          }
+        };
       }
     }
 
@@ -3095,6 +3102,7 @@
     applySurfaceTheme({ run: currentRun, screen: "end", nodeType: currentRun.state === "won" ? "boss" : "combat" });
     lastScreen = "end";
     const win = currentRun.state === "won";
+    const trueVictory = win && !!currentRun.trueVictory;
     const screen = $id("screen-end");
     showOnly("screen-end");
     if (screen) {
@@ -3102,7 +3110,7 @@
       screen.classList.add(win ? "win" : "loss");
     }
     $id("end-icon").textContent = win ? "🏆" : "💀";
-    $id("end-title").textContent = win ? "VICTORY" : "DEFEAT";
+    $id("end-title").textContent = win ? (trueVictory ? "TRUE VICTORY" : "VICTORY") : "DEFEAT";
 
     const currentNode = currentRun.map?.nodes?.find((n) => n.id === currentRun.map.currentNodeId);
     const floorReached = currentNode ? currentNode.row + 1 : "?";
@@ -3125,7 +3133,9 @@
     const arch = ARCHETYPES.find((a) => a.id === currentRun.archetype);
     if (flavorEl) {
       const flavors = win
-        ? [`${arch?.icon || ""} ${arch?.name || "Unknown"} run complete`, "The spire falls silent", "Power unleashed"]
+        ? trueVictory
+          ? [`${arch?.icon || ""} ${arch?.name || "Unknown"} conquered the final act`, "The Undying is broken", "True victory achieved"]
+          : [`${arch?.icon || ""} ${arch?.name || "Unknown"} run complete`, "The spire falls silent", "Power unleashed"]
         : [`${arch?.icon || ""} ${arch?.name || "Unknown"} run ended`, "The dungeon claims another", "Try a different approach"];
       flavorEl.textContent = flavors[Math.floor(Math.random() * flavors.length)];
     }
@@ -3141,6 +3151,7 @@
       stats.innerHTML = [
         `Floor reached: <strong>${floorReached}</strong>`,
         `Act: <strong>${currentRun.act || 1}</strong>`,
+        `Outcome: <strong>${trueVictory ? "True Victory" : win ? "Victory" : "Defeat"}</strong>`,
         `Gold: <strong>${currentRun.player?.gold || 0}</strong>`,
         `Deck size: <strong>${deckSize}</strong>`,
         `Relics: <strong>${relicCount}</strong>`,

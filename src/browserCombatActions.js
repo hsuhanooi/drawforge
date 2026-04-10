@@ -110,14 +110,26 @@ const createRenderableCardFromId = (cardId) => {
 
 const checkPhaseShift = (combat) => {
   const e = combat.enemy;
-  if (!e.phaseThreshold || e.phase !== 1 || e.health > e.phaseThreshold) return combat;
+  const thresholds = Array.isArray(e.phaseThresholds) && e.phaseThresholds.length > 0
+    ? e.phaseThresholds
+    : e.phaseThreshold != null
+      ? [e.phaseThreshold]
+      : [];
+  const currentPhase = e.phase || 1;
+
+  if (!thresholds.length || currentPhase > thresholds.length || e.health > thresholds[currentPhase - 1]) return combat;
+
   const next = clone(combat);
-  next.enemy.phase = 2;
-  next.enemy.intents = next.enemy.phase2Intents || next.enemy.intents;
-  next.enemy.strength = (next.enemy.strength || 0) + (next.enemy.phase2Strength || 0);
+  const nextPhase = currentPhase + 1;
+  const phaseIntents = next.enemy.phaseIntents?.[nextPhase - 1];
+
+  next.enemy.phase = nextPhase;
+  next.enemy.intents = phaseIntents || next.enemy[`phase${nextPhase}Intents`] || next.enemy.intents;
+  next.enemy.strength = (next.enemy.strength || 0) + (next.enemy[`phase${nextPhase}Strength`] || 0);
   next.enemyTurnNumber = 0;
   next.enemyIntent = resolveEnemyIntent(next.enemy, 0);
-  next.phaseTransition = true; // signals browser to show phase 2 overlay
+  next.phaseTransition = true;
+  next.phaseTransitionLabel = `PHASE ${nextPhase}`;
   return next;
 };
 

@@ -565,6 +565,20 @@ async function runSingle(browser, runIndex) {
         repeatedCount = 1;
       }
 
+      if (repeatedCount >= 6 && screen === 'map') {
+        return {
+          runIndex,
+          ok: false,
+          ended: false,
+          steps: step,
+          actions,
+          consoleErrors,
+          pageErrors,
+          bug: 'Map action loop repeated without state change',
+          state: stateBeforeAction
+        };
+      }
+
       if (repeatedCount >= 12 && (screen === 'combat' || screen === 'reward')) {
         return {
           runIndex,
@@ -640,7 +654,10 @@ async function runSingle(browser, runIndex) {
   function onResult(result) {
     results.push(result);
     const status = result.ok && result.ended ? 'OK' : 'BUG';
-    console.log(`[${status}] run ${result.runIndex} ended=${result.ended} steps=${result.steps ?? 'n/a'}${result.bug ? ` bug=${result.bug}` : ''}`);
+    const s = result.state?.runStats || {};
+    const summary = result.state?.runSummary || {};
+    const statsLine = `killed=${s.enemiesKilled ?? '?'} goldEarned=${s.goldEarned ?? '?'} rewardScreens=${s.rewardCardChoiceScreens ?? '?'} deck=${summary.deckSize ?? '?'} act=${summary.act ?? '?'} state=${summary.state ?? '?'}`;
+    console.log(`[${status}] run ${result.runIndex} ended=${result.ended} steps=${result.steps ?? 'n/a'}${result.bug ? ` bug=${result.bug}` : ''} | ${statsLine}`);
     if (result.consoleErrors.length) console.log(`  consoleErrors=${result.consoleErrors.length}`);
     if (result.pageErrors.length) console.log(`  pageErrors=${result.pageErrors.length}`);
     if (result.bug) console.log(`  state=${JSON.stringify(result.state)}`);
@@ -666,34 +683,50 @@ async function runSingle(browser, runIndex) {
     const stats = result.state.runStats || {};
     const summary = result.state.runSummary || {};
     acc.deckSize += summary.deckSize || 0;
+    acc.goldEarned += stats.goldEarned || 0;
     acc.goldSpent += stats.goldSpent || 0;
     acc.shopVisits += stats.shopVisits || 0;
     acc.rewardChoiceScreens += stats.rewardCardChoiceScreens || 0;
     acc.rewardCardsClaimed += stats.rewardCardsClaimed || 0;
+    acc.enemiesKilled += stats.enemiesKilled || 0;
+    acc.turnsPlayed += stats.turnsPlayed || 0;
     acc.trueVictories += summary.trueVictory ? 1 : 0;
+    acc.defeats += (summary.state === 'lost') ? 1 : 0;
+    acc.actReached += summary.act || 1;
     return acc;
   }, {
     deckSize: 0,
+    goldEarned: 0,
     goldSpent: 0,
     shopVisits: 0,
     rewardChoiceScreens: 0,
     rewardCardsClaimed: 0,
-    trueVictories: 0
+    enemiesKilled: 0,
+    turnsPlayed: 0,
+    trueVictories: 0,
+    defeats: 0,
+    actReached: 0
   });
   const divisor = completed.length || 1;
   console.log(JSON.stringify({
     base: BASE,
     runs: RUNS,
     concurrency: CONCURRENCY,
+    completedRuns: completed.length,
     failures: failed.length,
     averages: completed.length ? {
       finalDeckSize: Number((totals.deckSize / divisor).toFixed(2)),
+      goldEarned: Number((totals.goldEarned / divisor).toFixed(2)),
       goldSpent: Number((totals.goldSpent / divisor).toFixed(2)),
       shopVisits: Number((totals.shopVisits / divisor).toFixed(2)),
       rewardChoiceScreens: Number((totals.rewardChoiceScreens / divisor).toFixed(2)),
       rewardCardsClaimed: Number((totals.rewardCardsClaimed / divisor).toFixed(2)),
       rewardPickRatePerScreen: Number((totals.rewardCardsClaimed / Math.max(1, totals.rewardChoiceScreens)).toFixed(2)),
-      trueVictoryRate: Number((totals.trueVictories / divisor).toFixed(2))
+      enemiesKilled: Number((totals.enemiesKilled / divisor).toFixed(2)),
+      turnsPlayed: Number((totals.turnsPlayed / divisor).toFixed(2)),
+      avgActReached: Number((totals.actReached / divisor).toFixed(2)),
+      trueVictoryRate: Number((totals.trueVictories / divisor).toFixed(2)),
+      defeatRate: Number((totals.defeats / divisor).toFixed(2))
     } : null,
     failedRuns: failed
   }, null, 2));

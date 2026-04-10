@@ -91,7 +91,7 @@
           "Log findings in progress.txt and use them to tighten any remaining weak spots",
           "Run the full test suite and lint before marking the milestone stable"
         ],
-        "passes": false
+        "passes": true
       }
     ]
   }

@@ -69,6 +69,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('runStats: savedRun?.stats || null,');
     expect(burninSource).toContain('rewardPickRatePerScreen');
     expect(burninSource).toContain('trueVictoryRate');
+    // extended economy telemetry
+    expect(burninSource).toContain('goldEarned');
+    expect(burninSource).toContain('enemiesKilled');
+    expect(burninSource).toContain('turnsPlayed');
+    expect(burninSource).toContain('avgActReached');
+    expect(burninSource).toContain('defeatRate');
+    expect(burninSource).toContain('completedRuns');
   });
 
   it('prefers continue or skip controls on reward screens before slower choice clicks', () => {

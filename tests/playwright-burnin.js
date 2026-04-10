@@ -3,8 +3,11 @@
 const { chromium } = require('playwright');
 
 const RUNS = Number(process.env.BURNIN_RUNS || 50);
-const BASE = process.env.PLAYWRIGHT_BASE || 'http://localhost:3000/play.html';
+const BASE = process.env.PLAYWRIGHT_BASE || 'http://localhost:3000/play.html?fx=off';
 const MAX_STEPS_PER_RUN = Number(process.env.BURNIN_MAX_STEPS || 220);
+const CLICK_TIMEOUT_MS = Number(process.env.BURNIN_CLICK_TIMEOUT_MS || 250);
+const COMBAT_MICRO_DELAY_MS = Number(process.env.BURNIN_COMBAT_MICRO_DELAY_MS || 35);
+const REWARD_SETTLE_DELAY_MS = Number(process.env.BURNIN_REWARD_SETTLE_DELAY_MS || 220);
 const DEFAULT_RUN_IDLE_TIMEOUT_MS = Math.max(12000, (MAX_STEPS_PER_RUN * 180) + 4000);
 const DEFAULT_RUN_HARD_TIMEOUT_MS = Math.max(300000, (MAX_STEPS_PER_RUN * 2000) + 60000);
 const RUN_IDLE_TIMEOUT_MS = Number(process.env.BURNIN_RUN_IDLE_TIMEOUT_MS || DEFAULT_RUN_IDLE_TIMEOUT_MS);
@@ -74,7 +77,7 @@ async function clickFirst(page, selectors) {
             && !el.closest('.hidden');
         });
         if (!actionable) continue;
-        await handle.click({ force: true, timeout: 800 });
+        await handle.click({ force: true, timeout: CLICK_TIMEOUT_MS });
         return selector;
       } catch {
         // keep trying visible candidates/selectors
@@ -217,6 +220,23 @@ async function actOnCombatScreen(page) {
       return actions.length ? `combat:${actions.join('|')}` : null;
     }
 
+    const combatResolved = /victory|defeat/i.test(combatState.combatTurnState || '')
+      || (Number(combatState.combatSummary?.enemyHp) || 0) <= 0
+      || (Number(combatState.combatSummary?.playerHp) || 0) <= 0;
+    if (combatResolved) {
+      await page.waitForFunction(() => {
+        const isShown = (selector) => {
+          const el = document.querySelector(selector);
+          if (!el) return false;
+          const style = window.getComputedStyle(el);
+          return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+        };
+        return isShown('#screen-reward') || isShown('#screen-map') || isShown('#screen-end') || !isShown('#screen-combat');
+      }, { timeout: 1500 }).catch(() => {});
+      actions.push('await-resolution');
+      return `combat:${actions.join('|')}`;
+    }
+
     const selectedAttack = await page.evaluate(() => {
       const selected = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
       if (!selected) return false;
@@ -227,7 +247,7 @@ async function actOnCombatScreen(page) {
       const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
       if (target) {
         actions.push(`target:${target}`);
-        await sleep(90);
+        await sleep(COMBAT_MICRO_DELAY_MS);
         continue;
       }
     }
@@ -237,14 +257,22 @@ async function actOnCombatScreen(page) {
     const played = await clickCombatCard(page);
     if (!played) break;
 
-    await sleep(90);
+    await sleep(COMBAT_MICRO_DELAY_MS);
     const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
     actions.push(`play:${played}${target ? `:${target}` : ':no-target'}`);
-    await sleep(90);
+    await sleep(COMBAT_MICRO_DELAY_MS);
   }
 
   if (await visibleScreen(page).catch(() => 'combat') !== 'combat') {
     return actions.length ? `combat:${actions.join('|')}` : null;
+  }
+
+  const resolvedBeforeEndTurn = await collectState(page).catch(() => null);
+  if (resolvedBeforeEndTurn && (/victory|defeat/i.test(resolvedBeforeEndTurn.combatTurnState || '')
+    || (Number(resolvedBeforeEndTurn.combatSummary?.enemyHp) || 0) <= 0
+    || (Number(resolvedBeforeEndTurn.combatSummary?.playerHp) || 0) <= 0)) {
+    actions.push('await-resolution');
+    return `combat:${actions.join('|')}`;
   }
 
   const endTurn = await clickFirst(page, ['#end-turn-btn']);
@@ -268,7 +296,7 @@ async function actOnScreen(page, screen) {
       return 'start:new-run';
     case 'deck-choice': {
       const choice = await clickFirst(page, [
-        '#deck-choice-row .archetype-panel:nth-child(1) .archetype-select-btn',
+        '#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn',
         '#deck-choice-row .archetype-select-btn'
       ]);
       return choice ? `deck-choice:${choice}` : null;
@@ -433,10 +461,10 @@ async function runSingle(browser, runIndex) {
       }
 
       const postActionDelay = screen === 'reward'
-        ? 450
+        ? REWARD_SETTLE_DELAY_MS
         : screen === 'combat'
-          ? 90
-          : 120;
+          ? COMBAT_MICRO_DELAY_MS
+          : 80;
       await sleep(postActionDelay);
 
       const stateAfterAction = await collectState(page).catch(() => null);

@@ -24,10 +24,19 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('async function actOnCombatScreen(page) {');
     expect(burninSource).toContain('for (let microStep = 0; microStep < 8; microStep += 1) {');
     expect(burninSource).toContain("actions.push(`play:${played}${target ? `:${target}` : ':no-target'}`);");
+    expect(burninSource).toContain("actions.push('await-resolution');");
     expect(burninSource).toContain("actions.push('end-turn');");
   });
 
-  it('prefers the first archetype explicitly so burn-in runs stay deterministic', () => {
-    expect(burninSource).toContain("'#deck-choice-row .archetype-panel:nth-child(1) .archetype-select-btn'");
+  it('defaults burn-in to presentation-safe fast mode', () => {
+    expect(burninSource).toContain("const BASE = process.env.PLAYWRIGHT_BASE || 'http://localhost:3000/play.html?fx=off';");
+    expect(burninSource).toContain("const CLICK_TIMEOUT_MS = Number(process.env.BURNIN_CLICK_TIMEOUT_MS || 250);");
+    expect(burninSource).toContain("const COMBAT_MICRO_DELAY_MS = Number(process.env.BURNIN_COMBAT_MICRO_DELAY_MS || 35);");
+    expect(burninSource).toContain("const REWARD_SETTLE_DELAY_MS = Number(process.env.BURNIN_REWARD_SETTLE_DELAY_MS || 220);");
+    expect(burninSource).toContain("await handle.click({ force: true, timeout: CLICK_TIMEOUT_MS });");
+  });
+
+  it('prefers the second archetype explicitly so burn-in runs stay deterministic and more aggressive', () => {
+    expect(burninSource).toContain("'#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn'");
   });
 });

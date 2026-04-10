@@ -891,6 +891,28 @@
           "Re-test the main run loop on mobile dimensions"
         ],
         "passes": false
+      },
+      {
+        "category": "bug",
+        "description": "Teach the burn-in harness to treat post-lethal combat UI as a transition state instead of a live combat target-selection state",
+        "steps": [
+          "Reproduce the post-lethal combat hang where the burn-in remains on screen-combat during victory handoff",
+          "Update the harness to detect lethal/victory transition state before sending more combat inputs",
+          "Add regression coverage for the transition-state handling",
+          "Verify the focused burn-in no longer loops on stale target selection after lethal damage"
+        ],
+        "passes": false
+      },
+      {
+        "category": "validation",
+        "description": "Run a longer multi-run Drawforge burn-in from the latest harness checkpoint and catalog any remaining end-state failures",
+        "steps": [
+          "Run a medium multi-run burn-in sample from the latest committed harness state",
+          "Record whether runs reach victory, defeat, or other valid end-state transitions without stalling",
+          "Log any remaining reproducible failure signatures to TODO.md and progress.txt",
+          "Only then escalate back to the full 50-run validation loop"
+        ],
+        "passes": false
       }
     ]
   }

@@ -1,5 +1,5 @@
 /* eslint-env node */
-/* global window, document, localStorage */
+/* global window, document, localStorage, MouseEvent */
 const { chromium } = require('playwright');
 
 const RUNS = Number(process.env.BURNIN_RUNS || 50);
@@ -81,6 +81,16 @@ async function clickFirst(page, selectors) {
         await handle.click({ force: true, timeout: CLICK_TIMEOUT_MS });
         return selector;
       } catch {
+        const dispatched = await handle.evaluate((el) => {
+          if (!el || el.disabled) return false;
+          el.scrollIntoView({ block: 'center', inline: 'center' });
+          ['mousedown', 'mouseup', 'click'].forEach((type) => {
+            el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+          });
+          el.click();
+          return true;
+        }).catch(() => false);
+        if (dispatched) return selector;
         // keep trying visible candidates/selectors
       }
     }
@@ -149,7 +159,11 @@ async function collectState(page) {
       mapStats: {
         hp: document.querySelector('#map-hp')?.textContent || null,
         gold: document.querySelector('#map-gold')?.textContent || null,
-        deck: document.querySelector('#map-deck-count')?.textContent || null
+        deck: document.querySelector('#map-deck-count')?.textContent || null,
+        currentNodeId: savedRun?.map?.currentNodeId || null,
+        totalNodes: document.querySelectorAll('.map-node').length,
+        availableNodes: document.querySelectorAll('.map-node.available').length,
+        availableBossNodes: document.querySelectorAll('.map-node.available.type-boss').length
       },
       runStats: savedRun?.stats || null,
       runSummary: {
@@ -338,6 +352,33 @@ async function actOnCombatScreen(page) {
     actions.push('end-turn');
     return `combat:${actions.join('|')}`;
   }
+
+  const combatFallback = await page.evaluate(() => {
+    const endTurnBtn = document.querySelector('#end-turn-btn');
+    if (endTurnBtn && !endTurnBtn.disabled) {
+      endTurnBtn.click();
+      return 'end-turn-dom';
+    }
+
+    const selectedCard = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+    if (selectedCard) {
+      selectedCard.click();
+      return 'selected-card-dom';
+    }
+
+    const playableCard = document.querySelector('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)');
+    if (playableCard) {
+      playableCard.click();
+      return 'play-card-dom';
+    }
+
+    return null;
+  }).catch(() => null);
+  if (combatFallback) {
+    actions.push(combatFallback);
+    return `combat:${actions.join('|')}`;
+  }
+
   try {
     await page.keyboard.press('e');
     actions.push('key-end-turn');
@@ -348,65 +389,66 @@ async function actOnCombatScreen(page) {
 }
 
 async function clickAvailableMapNode(page) {
-  const selectors = [
-    '.map-node.available.type-combat',
-    '.map-node.available.type-elite',
-    '.map-node.available.type-event',
-    '.map-node.available.type-shop',
-    '.map-node.available.type-rest',
-    '.map-node.available.type-boss',
-    '.map-node.available'
-  ];
-
-  await page.waitForFunction(() => {
-    const nodes = Array.from(document.querySelectorAll('.map-node.available'));
-    return nodes.some((el) => {
-      const style = window.getComputedStyle(el);
-      const rect = el.getBoundingClientRect();
-      return !el.classList.contains('hidden')
-        && style.display !== 'none'
-        && style.visibility !== 'hidden'
-        && rect.width > 0
-        && rect.height > 0
-        && !el.closest('.hidden');
-    });
-  }, { timeout: 1800 }).catch(() => {});
-
-  const choice = await clickFirst(page, selectors);
-  if (choice) return choice;
-
-  await sleep(250);
-  const retry = await clickFirst(page, selectors);
-  if (retry) return retry;
-
-  const forceChoice = await page.evaluate(() => {
-    const selectorsInPriority = [
-      '.map-node.available.type-combat',
-      '.map-node.available.type-elite',
-      '.map-node.available.type-event',
-      '.map-node.available.type-shop',
-      '.map-node.available.type-rest',
-      '.map-node.available.type-boss',
-      '.map-node.available'
-    ];
-    for (const selector of selectorsInPriority) {
-      const nodes = Array.from(document.querySelectorAll(selector));
-      const target = nodes.find((el) => {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.waitForFunction(() => {
+      const nodes = Array.from(document.querySelectorAll('.map-node.available'));
+      return nodes.some((el) => {
         const style = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
         return !el.classList.contains('hidden')
           && style.display !== 'none'
           && style.visibility !== 'hidden'
+          && rect.width > 0
+          && rect.height > 0
           && !el.closest('.hidden');
       });
-      if (target) {
-        target.click();
-        return selector;
-      }
-    }
-    return null;
-  }).catch(() => null);
+    }, { timeout: 1200 }).catch(() => {});
 
-  return forceChoice;
+    const nodeChoice = await page.evaluate((attemptIndex) => {
+      const selectorsInPriority = [
+        '.map-node.available.type-combat',
+        '.map-node.available.type-elite',
+        '.map-node.available.type-event',
+        '.map-node.available.type-shop',
+        '.map-node.available.type-rest',
+        '.map-node.available.type-boss',
+        '.map-node.available'
+      ];
+      for (const selector of selectorsInPriority) {
+        const nodes = Array.from(document.querySelectorAll(selector)).filter((el) => {
+          const style = window.getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return !el.classList.contains('hidden')
+            && style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && rect.width > 0
+            && rect.height > 0
+            && !el.closest('.hidden');
+        });
+        if (!nodes.length) continue;
+        const target = nodes[attemptIndex % nodes.length];
+        target.scrollIntoView({ block: 'center', inline: 'center' });
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        target.click();
+        return `${selector}:${target.dataset.nodeId || attemptIndex}`;
+      }
+      return null;
+    }, attempt).catch(() => null);
+    if (nodeChoice) return nodeChoice;
+
+    const mapSnapshot = await page.evaluate(() => ({
+      available: document.querySelectorAll('.map-node.available').length,
+      total: document.querySelectorAll('.map-node').length,
+      screenMapVisible: !document.querySelector('#screen-map')?.classList.contains('hidden')
+    })).catch(() => null);
+    if (mapSnapshot?.available || mapSnapshot?.total) {
+      await sleep(350);
+    } else {
+      await sleep(500);
+    }
+  }
+
+  return null;
 }
 
 async function actOnScreen(page, screen, options = {}) {
@@ -567,7 +609,7 @@ async function runSingle(browser, runIndex) {
         repeatedCount = 1;
       }
 
-      if (repeatedCount >= 6 && screen === 'map') {
+      if (repeatedCount >= 10 && screen === 'map') {
         return {
           runIndex,
           ok: false,
@@ -601,8 +643,40 @@ async function runSingle(browser, runIndex) {
         ? REWARD_SETTLE_DELAY_MS
         : screen === 'combat'
           ? COMBAT_MICRO_DELAY_MS
-          : 80;
+          : screen === 'map'
+            ? 220
+            : 80;
       await sleep(postActionDelay);
+
+      if (screen === 'map') {
+        const beforeMapKey = JSON.stringify({
+          currentNodeId: stateBeforeAction?.mapStats?.currentNodeId,
+          availableNodes: stateBeforeAction?.mapStats?.availableNodes,
+          availableBossNodes: stateBeforeAction?.mapStats?.availableBossNodes,
+          visibleScreens: stateBeforeAction?.visibleScreens
+        });
+        await page.waitForFunction((expected) => {
+          const readVisibleScreens = () => Array.from(document.querySelectorAll('[id^="screen-"]'))
+            .filter((el) => {
+              const style = window.getComputedStyle(el);
+              return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+            })
+            .map((el) => el.id);
+          let savedRun = null;
+          try {
+            savedRun = JSON.parse(localStorage.getItem('drawforge.v1') || 'null');
+          } catch {
+            savedRun = null;
+          }
+          const currentKey = JSON.stringify({
+            currentNodeId: savedRun?.map?.currentNodeId || null,
+            availableNodes: document.querySelectorAll('.map-node.available').length,
+            availableBossNodes: document.querySelectorAll('.map-node.available.type-boss').length,
+            visibleScreens: readVisibleScreens()
+          });
+          return currentKey !== expected;
+        }, beforeMapKey, { timeout: 1200 }).catch(() => {});
+      }
 
       const stateAfterAction = await collectState(page).catch(() => null);
       const postActionKey = JSON.stringify({

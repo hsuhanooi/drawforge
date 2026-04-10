@@ -18,6 +18,8 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("if (selectedAttack) {");
     expect(burninSource).toContain("const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);");
     expect(burninSource).toContain("actions.push(`target:${target}`);");
+    expect(burninSource).toContain("const combatFallback = await page.evaluate(() => {");
+    expect(burninSource).toContain("return 'end-turn-dom';");
   });
 
   it('confirms selected non-attack cards by clicking the selected hand card again', () => {
@@ -51,10 +53,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('async function clickAvailableMapNode(page) {');
     expect(burninSource).toContain("await page.waitForFunction(() => {");
     expect(burninSource).toContain("document.querySelectorAll('.map-node.available')");
-    expect(burninSource).toContain('const selectors = [');
     expect(burninSource).toContain("'.map-node.available.type-boss'");
-    expect(burninSource).toContain('await sleep(250);');
-    expect(burninSource).toContain('const forceChoice = await page.evaluate(() => {');
+    expect(burninSource).toContain('for (let attempt = 0; attempt < 4; attempt += 1) {');
+    expect(burninSource).toContain('const nodeChoice = await page.evaluate((attemptIndex) => {');
+    expect(burninSource).toContain("return `${selector}:${target.dataset.nodeId || attemptIndex}`;");
+    expect(burninSource).toContain("const mapSnapshot = await page.evaluate(() => ({");
+    expect(burninSource).toContain("currentNodeId: savedRun?.map?.currentNodeId || null,");
+    expect(burninSource).toContain("await page.waitForFunction((expected) => {");
     expect(burninSource).toContain("const choice = await clickAvailableMapNode(page);");
   });
 

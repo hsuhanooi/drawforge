@@ -79,7 +79,7 @@
           "Verify map generation stays deterministic by seed and compatible with traversal logic",
           "Add or update map-generation tests for the new routing expectations"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "verification",

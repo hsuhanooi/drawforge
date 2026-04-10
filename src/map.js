@@ -8,7 +8,7 @@ const MAP_TEMPLATES = {
     columns: 3,
     eventsPerMap: 2,
     shopsPerMap: 2,
-    restsPerMap: 1,
+    restsPerMap: 2,
     extraEliteRows: []
   },
   sparse: {
@@ -16,7 +16,7 @@ const MAP_TEMPLATES = {
     name: "Sparse",
     rows: 4,
     columns: 4,
-    eventsPerMap: 3,
+    eventsPerMap: 2,
     shopsPerMap: 1,
     restsPerMap: 1,
     extraEliteRows: []
@@ -26,9 +26,9 @@ const MAP_TEMPLATES = {
     name: "Gauntlet",
     rows: 7,
     columns: 2,
-    eventsPerMap: 0,
-    shopsPerMap: 1,
-    restsPerMap: 1,
+    eventsPerMap: 1,
+    shopsPerMap: 2,
+    restsPerMap: 2,
     extraEliteRows: [2]
   }
 };

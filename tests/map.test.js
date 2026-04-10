@@ -87,6 +87,7 @@ describe("map generation", () => {
     expect(map.columns).toBe(3);
     expect(map.nodes.filter((node) => node.type === "shop")).toHaveLength(2);
     expect(map.nodes.filter((node) => node.type === "event")).toHaveLength(2);
+    expect(map.nodes.filter((node) => node.type === "rest")).toHaveLength(2);
   });
 
   it("supports the Sparse template distribution", () => {
@@ -96,7 +97,8 @@ describe("map generation", () => {
     expect(map.rows).toBe(4);
     expect(map.columns).toBe(4);
     expect(map.nodes.filter((node) => node.type === "rest")).toHaveLength(1);
-    expect(map.nodes.filter((node) => node.type === "event")).toHaveLength(3);
+    expect(map.nodes.filter((node) => node.type === "event")).toHaveLength(2);
+    expect(map.nodes.filter((node) => node.type === "shop")).toHaveLength(1);
   });
 
   it("supports the Gauntlet template distribution", () => {
@@ -107,8 +109,9 @@ describe("map generation", () => {
     expect(map.template).toBe("gauntlet");
     expect(map.rows).toBe(7);
     expect(map.columns).toBe(2);
-    expect(eventCount).toBe(0);
+    expect(eventCount).toBe(1);
     expect(eliteRows.has(2)).toBe(true);
-    expect(map.nodes.filter((node) => node.type === "shop")).toHaveLength(1);
+    expect(map.nodes.filter((node) => node.type === "shop")).toHaveLength(2);
+    expect(map.nodes.filter((node) => node.type === "rest")).toHaveLength(2);
   });
 });

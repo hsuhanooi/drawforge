@@ -17,6 +17,7 @@ describe("browser post-node actions", () => {
     combat: null,
     event: null,
     pendingRewards: null,
+    stats: { goldSpent: 0, rewardCardsClaimed: 0, rewardCardChoiceScreens: 0 },
     map: {
       currentNodeId: "r1c1",
       nodes: [{ id: "r1c1", row: 1, col: 1, type: "event", next: [] }]
@@ -32,6 +33,7 @@ describe("browser post-node actions", () => {
     expect(run.player.health).toBe(72);
     expect(run.pendingRewards.cards.length).toBeGreaterThan(0);
     expect(run.pendingRewards.gold).toBe(16);
+    expect(run.stats.rewardCardChoiceScreens).toBe(1);
   });
 
   it("claims a reward card and adds it to the deck", () => {
@@ -41,6 +43,7 @@ describe("browser post-node actions", () => {
     }, "bash");
 
     expect(run.player.deck).toContain("bash");
+    expect(run.stats.rewardCardsClaimed).toBe(1);
   });
 
   it("claims an event add-card option by option id", () => {
@@ -153,6 +156,7 @@ describe("browser post-node actions", () => {
     const healed = buyShopItem(run, "service", "heal", 30);
     expect(healed.player.gold).toBe(69);
     expect(healed.player.health).toBe(60);
+    expect(healed.stats.goldSpent).toBe(30);
   });
 
   it("uses enemy-specific gold rewards instead of the old flat combat gold", () => {

@@ -39,6 +39,12 @@ describe("Run stats initialization", () => {
     expect(run.stats.cardsPlayed).toBe(0);
     expect(run.stats.turnsPlayed).toBe(0);
     expect(run.stats.goldEarned).toBe(0);
+    expect(run.stats.goldSpent).toBe(0);
+    expect(run.stats.shopVisits).toBe(0);
+    expect(run.stats.restVisits).toBe(0);
+    expect(run.stats.eventVisits).toBe(0);
+    expect(run.stats.rewardCardChoiceScreens).toBe(0);
+    expect(run.stats.rewardCardsClaimed).toBe(0);
     expect(run.stats.highestSingleHit).toBe(0);
     expect(run.stats.cardPlayCounts).toEqual({});
   });
@@ -147,6 +153,13 @@ describe("Stats: victory tracking", () => {
     const fakeCombat = { nodeType: "combat", player: { health: 70 }, pendingCurses: [] };
     const result = applyVictoryToRun(run, fakeCombat);
     expect(result.stats.goldEarned).toBeGreaterThan(0);
+  });
+
+  it("tracks reward-card choice screens on victory rewards", () => {
+    const run = makeRun();
+    const fakeCombat = { nodeType: "combat", player: { health: 70 }, pendingCurses: [] };
+    const result = applyVictoryToRun(run, fakeCombat);
+    expect(result.stats.rewardCardChoiceScreens).toBe(1);
   });
 
   it("goldEarned accumulates across victories", () => {

@@ -108,7 +108,8 @@ const applyVictoryToRun = (run, combat) => {
   const newStats = {
     ...prevStats,
     enemiesKilled: (prevStats.enemiesKilled || 0) + 1,
-    goldEarned: (prevStats.goldEarned || 0) + goldGained
+    goldEarned: (prevStats.goldEarned || 0) + goldGained,
+    rewardCardChoiceScreens: (prevStats.rewardCardChoiceScreens || 0) + ((rewards.cards || []).length > 0 ? 1 : 0)
   };
 
   return {
@@ -130,6 +131,10 @@ const applyVictoryToRun = (run, combat) => {
 
 const claimCardReward = (run, cardId) => afterCardSelection({
   ...run,
+  stats: {
+    ...(run.stats || {}),
+    rewardCardsClaimed: ((run.stats || {}).rewardCardsClaimed || 0) + 1
+  },
   player: {
     ...run.player,
     deck: [...run.player.deck, cardId]
@@ -214,6 +219,10 @@ const claimEventOption = (run, optionId) => {
   else if (option.effect === "reward_cards") {
     nextRun = {
       ...nextRun,
+      stats: {
+        ...(nextRun.stats || {}),
+        rewardCardChoiceScreens: ((nextRun.stats || {}).rewardCardChoiceScreens || 0) + 1
+      },
       pendingRewards: { cards: toRenderableCards(option.cards || []), gold: 0, relic: null, relics: [], removeCard: false }
     };
   }
@@ -255,9 +264,13 @@ const buyShopItem = (run, type, itemId, price) => {
     throw new Error("Not enough gold");
   }
   const nextPlayer = { ...run.player, gold: run.player.gold - price };
+  const nextStats = {
+    ...(run.stats || {}),
+    goldSpent: ((run.stats || {}).goldSpent || 0) + price
+  };
 
   if (type === "card") {
-    return { ...run, player: { ...nextPlayer, deck: [...nextPlayer.deck, itemId] } };
+    return { ...run, stats: nextStats, player: { ...nextPlayer, deck: [...nextPlayer.deck, itemId] } };
   }
 
   if (type === "relic") {
@@ -265,7 +278,7 @@ const buyShopItem = (run, type, itemId, price) => {
     if (!relic) {
       throw new Error("Relic not found in shop");
     }
-    return addRelicToRun({ ...run, player: nextPlayer }, relic);
+    return addRelicToRun({ ...run, stats: nextStats, player: nextPlayer }, relic);
   }
 
   if (type === "service") {
@@ -273,11 +286,12 @@ const buyShopItem = (run, type, itemId, price) => {
     if (itemId === "heal") {
       const maxH = nextPlayer.maxHealth || nextPlayer.health;
       const healAmount = service?.amount || 15;
-      return { ...run, player: { ...nextPlayer, health: Math.min(nextPlayer.health + healAmount, maxH) } };
+      return { ...run, stats: nextStats, player: { ...nextPlayer, health: Math.min(nextPlayer.health + healAmount, maxH) } };
     }
     if (itemId === "remove") {
       return {
         ...run,
+        stats: nextStats,
         player: nextPlayer,
         pendingRewards: { cards: [], gold: 0, relic: null, relics: [], removeCard: true }
       };

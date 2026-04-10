@@ -19,7 +19,8 @@ describe("play.js thin-client regression coverage", () => {
   });
 
   it("uses shared/server-backed run and combat action endpoints", () => {
-    expect(playJs).toContain('fetchJson("/run/new.json")');
+    expect(playJs).toContain('"/run/new.json"');
+    expect(playJs).toContain('JSON.stringify({ ascensionLevel: getStoredAscensionLevel() })');
     expect(playJs).toContain('"/run/enter-node.json"');
     expect(playJs).toContain('"/run/play-card.json"');
     expect(playJs).toContain('"/run/end-turn.json"');
@@ -154,6 +155,19 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "combat", nodeType: currentRun.combat?.nodeType || "combat" });');
     expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "shop", nodeType: "shop" });');
     expect(playJs).toContain('applySurfaceTheme({ run: currentRun, screen: "rest", nodeType: "rest" });');
+  });
+
+  it("persists ascension progression and shows it in the run UI", () => {
+    expect(playJs).toContain('const ASCENSION_KEY = "drawforge_ascension";');
+    expect(playJs).toContain('const WINS_KEY = "drawforge_wins";');
+    expect(playJs).toContain('function getStoredAscensionLevel() {');
+    expect(playJs).toContain('function recordAscensionVictory(run) {');
+    expect(playJs).toContain('`Choose Your Starting Deck · Ascension ${currentRun?.ascensionLevel || 0}`');
+    expect(playJs).toContain('ascensionBadge.textContent = `Ascension ${currentRun?.ascensionLevel || 0}`;');
+    expect(playJs).toContain('`Ascension ${getStoredAscensionLevel()} selected · highest unlocked ${unlockedAscension} · total wins ${getStoredWins()}`');
+    expect(playJs).toContain('`Ascension: <strong>${currentRun.ascensionLevel || 0}</strong>`');
+    expect(playJs).toContain('`Best ascension: <strong>${ascensionResult.unlockedAscension}</strong>`');
+    expect(playJs).toContain('`Total wins: <strong>${ascensionResult.totalWins}</strong>`');
   });
 
   it("renders post-combat reward cards with the shared large card component and claim interaction", () => {

@@ -1,4 +1,5 @@
 const { buildPresentationAssets, makeAssetRef } = require("./assets");
+const { scaleEnemyForAscension } = require("./ascension");
 
 const createEnemy = ({ id, name, health, damage, rewardGold = 10, intents = [], assetRef = null, ...rest }) => ({
   id,
@@ -33,7 +34,7 @@ const resolveEnemyIntent = (enemy, turnNumber = 0) => {
   return intents[turnNumber % intents.length];
 };
 
-const createEnemyForNode = (node, act = 1) => {
+const createEnemyForNode = (node, act = 1, ascensionLevel = 0) => {
   if (node.type === "elite") {
     const act1Elites = [
       createEnemy({
@@ -135,12 +136,12 @@ const createEnemyForNode = (node, act = 1) => {
     ];
 
     const pool = act >= 3 ? act3Elites : act === 2 ? act2Elites : act1Elites;
-    return pool[(node.row + node.col) % pool.length];
+    return scaleEnemyForAscension(pool[(node.row + node.col) % pool.length], ascensionLevel, node.type);
   }
 
   if (node.type === "boss") {
     if (act >= 3) {
-      return createMultiPhaseBoss({
+      return scaleEnemyForAscension(createMultiPhaseBoss({
         id: "the_undying",
         name: "The Undying",
         health: 180,
@@ -172,11 +173,11 @@ const createEnemyForNode = (node, act = 1) => {
             { type: "attack", value: 30, label: "Undying End for 30" }
           ]
         ]
-      });
+      }), ascensionLevel, node.type);
     }
 
     if (act === 2) {
-      return createEnemy({
+      return scaleEnemyForAscension(createEnemy({
         id: "void_sovereign",
         name: "Void Sovereign",
         health: 95,
@@ -195,10 +196,10 @@ const createEnemyForNode = (node, act = 1) => {
           { type: "debuff_curse", curseId: "wound", label: "Void Brand: add Wound to deck" },
           { type: "attack", value: 18, label: "Annihilate for 18" }
         ]
-      });
+      }), ascensionLevel, node.type);
     }
 
-    return createEnemy({
+    return scaleEnemyForAscension(createEnemy({
       id: "spire_guardian",
       name: "Spire Guardian",
       health: 70,
@@ -209,7 +210,7 @@ const createEnemyForNode = (node, act = 1) => {
         { type: "block", value: 10, label: "Fortify: gain 10 block" },
         { type: "multi_attack", value: 4, hits: 3, label: "Barrage: 3x4" }
       ]
-    });
+    }), ascensionLevel, node.type);
   }
 
   const act1Enemies = [
@@ -550,7 +551,7 @@ const createEnemyForNode = (node, act = 1) => {
 
   const pool = act >= 3 ? act3Enemies : act === 2 ? act2Enemies : act1Enemies;
   const index = (node.row + node.col) % pool.length;
-  return pool[index];
+  return scaleEnemyForAscension(pool[index], ascensionLevel, node.type);
 };
 
 module.exports = {

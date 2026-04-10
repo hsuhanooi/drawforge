@@ -134,7 +134,7 @@ const checkPhaseShift = (combat) => {
 };
 
 const startCombatForNode = (run, node) => {
-  const enemy = { ...createEnemyForNode(node, run.act || 1) };
+  const enemy = { ...createEnemyForNode(node, run.act || 1, run.ascensionLevel || 0) };
   enemy.maxHp = enemy.health;
   const energyBonus = getCombatEnergyBonus(run, node.type);
   const ashenBonus = hasRelic(run, "ashen_idol") ? 1 : 0;

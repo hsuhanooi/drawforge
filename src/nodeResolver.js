@@ -3,11 +3,11 @@ const { createCombatEncounter } = require("./combat");
 const { createEnemyForNode } = require("./enemies");
 const { createEventForNode, createCampfireEvent } = require("./events");
 
-const resolveNode = ({ node, player, balanceOverrides = {}, act = 1 }) => {
+const resolveNode = ({ node, player, balanceOverrides = {}, act = 1, ascensionLevel = 0 }) => {
   const balance = createBalanceConfig(balanceOverrides);
 
   if (["combat", "elite", "boss"].includes(node.type)) {
-    const enemy = createEnemyForNode({ row: node.row ?? 0, col: node.col ?? 0, type: node.type }, act);
+    const enemy = createEnemyForNode({ row: node.row ?? 0, col: node.col ?? 0, type: node.type }, act, ascensionLevel);
     const health = node.type === "combat"
       ? balance.enemy.basicEnemyHealth
       : enemy.health || balance.enemy.basicEnemyHealth;

@@ -3,6 +3,7 @@ const { generateMap } = require("./map");
 const { createEventForNode } = require("./events");
 const { selectStartingNode, moveToNode } = require("./traversal");
 const { RELICS } = require("./relics");
+const { clampAscensionLevel, applyAscensionToDeck } = require("./ascension");
 
 const ARCHETYPE_RELICS = {
   hex_witch: "hex_crown",
@@ -31,10 +32,12 @@ const ARCHETYPES = {
   }
 };
 
-const createBrowserRun = (balanceOverrides = {}) => {
+const createBrowserRun = (balanceOverrides = {}, options = {}) => {
   const base = startNewRun(balanceOverrides);
+  const ascensionLevel = clampAscensionLevel(options.ascensionLevel || 0);
   return {
     ...base,
+    ascensionLevel,
     relics: [],
     phoenix_used: false,
     pendingRewards: null,
@@ -58,7 +61,7 @@ const chooseArchetype = (run, archetypeId) => {
     archetype: archetypeId,
     archetypeName: arch.name,
     pendingDeckChoice: false,
-    player: { ...run.player, deck: [...arch.deck] },
+    player: { ...run.player, deck: applyAscensionToDeck(arch.deck, run.ascensionLevel) },
     relics: starterRelic ? [starterRelic] : (run.relics || [])
   };
 };

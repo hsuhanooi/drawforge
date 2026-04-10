@@ -2,6 +2,8 @@
 (() => {
   // ─── Globals ──────────────────────────────────────────────────────
   const SAVE_KEY = "drawforge.v1";
+  const ASCENSION_KEY = "drawforge_ascension";
+  const WINS_KEY = "drawforge_wins";
   const QUERY_PARAMS = new URLSearchParams(window.location.search);
   let cardCatalog = null;
   let currentRun = null;
@@ -121,6 +123,39 @@
     if (score >= 1200) return "B";
     if (score >= 600)  return "C";
     return "D";
+  }
+
+  function clampAscensionLevel(level) {
+    const value = Number.isFinite(Number(level)) ? Number(level) : 0;
+    return Math.max(0, Math.min(5, Math.floor(value)));
+  }
+
+  function getStoredWins() {
+    return Math.max(0, Math.floor(Number(localStorage.getItem(WINS_KEY)) || 0));
+  }
+
+  function getStoredAscensionLevel() {
+    const unlocked = Math.min(5, getStoredWins());
+    return Math.min(clampAscensionLevel(localStorage.getItem(ASCENSION_KEY) || 0), unlocked);
+  }
+
+  function setStoredAscensionLevel(level) {
+    localStorage.setItem(ASCENSION_KEY, String(clampAscensionLevel(level)));
+  }
+
+  function getNextAscensionTarget(level) {
+    return Math.min(5, clampAscensionLevel(level) + 1);
+  }
+
+  function recordAscensionVictory(run) {
+    if (!run?.trueVictory) return { totalWins: getStoredWins(), unlockedAscension: Math.min(5, getStoredWins()) };
+    const nextWins = Math.max(getStoredWins(), clampAscensionLevel(run.ascensionLevel || 0) + 1);
+    localStorage.setItem(WINS_KEY, String(nextWins));
+    setStoredAscensionLevel(Math.min(5, nextWins));
+    return {
+      totalWins: nextWins,
+      unlockedAscension: Math.min(5, nextWins)
+    };
   }
 
   // ─── Network ──────────────────────────────────────────────────────
@@ -1787,6 +1822,11 @@
     lastScreen = "deck-choice";
     showOnly("screen-deck-choice");
 
+    const titleEl = $id("deck-choice-title");
+    const subtitleEl = $id("deck-choice-subtitle");
+    if (titleEl) titleEl.textContent = `Choose Your Starting Deck · Ascension ${currentRun?.ascensionLevel || 0}`;
+    if (subtitleEl) subtitleEl.textContent = `Your first choice shapes the whole run. Highest unlocked: ${Math.min(5, getStoredWins())}`;
+
     const row = $id("deck-choice-row");
     if (!row) return;
     clearEl(row);
@@ -1822,6 +1862,10 @@
         if (card) cardsRow.appendChild(makeCard(card, { dealDelay: -1 }));
       });
 
+      const ascensionBadge = document.createElement("div");
+      ascensionBadge.className = "archetype-cards-label";
+      ascensionBadge.textContent = `Ascension ${currentRun?.ascensionLevel || 0}`;
+
       const selectBtn = document.createElement("button");
       selectBtn.className = "btn archetype-select-btn";
       selectBtn.textContent = `Play as ${arch.name}`;
@@ -1836,6 +1880,7 @@
       panel.appendChild(desc);
       panel.appendChild(cardsLabel);
       panel.appendChild(cardsRow);
+      panel.appendChild(ascensionBadge);
       panel.appendChild(selectBtn);
       row.appendChild(panel);
     });
@@ -1850,8 +1895,47 @@
       show("start-load-run-btn");
     }
 
-    // Run history panel
     const startScreen = $id("screen-start");
+    const unlockedAscension = Math.min(5, getStoredWins());
+    let ascensionSummaryEl = $id("ascension-summary");
+    if (startScreen) {
+      if (!ascensionSummaryEl) {
+        ascensionSummaryEl = document.createElement("div");
+        ascensionSummaryEl.id = "ascension-summary";
+        startScreen.appendChild(ascensionSummaryEl);
+      }
+      ascensionSummaryEl.className = "last-run-label";
+      clearEl(ascensionSummaryEl);
+      const summaryText = document.createElement("div");
+      summaryText.textContent = `Ascension ${getStoredAscensionLevel()} selected · highest unlocked ${unlockedAscension} · total wins ${getStoredWins()}`;
+      const controls = document.createElement("div");
+      controls.style.display = "flex";
+      controls.style.justifyContent = "center";
+      controls.style.gap = "8px";
+      controls.style.marginTop = "8px";
+      const downBtn = document.createElement("button");
+      downBtn.className = "btn";
+      downBtn.textContent = "Ascension -";
+      downBtn.disabled = getStoredAscensionLevel() <= 0;
+      downBtn.addEventListener("click", () => {
+        setStoredAscensionLevel(Math.max(0, getStoredAscensionLevel() - 1));
+        renderStart();
+      });
+      const upBtn = document.createElement("button");
+      upBtn.className = "btn";
+      upBtn.textContent = "Ascension +";
+      upBtn.disabled = getStoredAscensionLevel() >= unlockedAscension;
+      upBtn.addEventListener("click", () => {
+        setStoredAscensionLevel(Math.min(unlockedAscension, getStoredAscensionLevel() + 1));
+        renderStart();
+      });
+      controls.appendChild(downBtn);
+      controls.appendChild(upBtn);
+      ascensionSummaryEl.appendChild(summaryText);
+      ascensionSummaryEl.appendChild(controls);
+    }
+
+    // Run history panel
     let summaryEl = $id("last-run-summary");
     const rawHistory = localStorage.getItem("drawforge.runHistory");
     const rawLast = localStorage.getItem("drawforge.lastRun");
@@ -1877,7 +1961,7 @@
         row.innerHTML = `
           <span class="run-history-outcome ${lr.state === "won" ? "win" : "loss"}">${outcome}</span>
           <span class="run-history-arch">${arch ? arch.icon : "?"}</span>
-          <span class="run-history-info">Act ${lr.act || 1} · F${lr.floorReached || "?"}</span>
+          <span class="run-history-info">A${lr.ascensionLevel || 0} · Act ${lr.act || 1} · F${lr.floorReached || "?"}</span>
           <span class="run-history-score">${(lr.score || 0).toLocaleString()} <span class="run-grade grade-${grade}">${grade}</span></span>`;
         summaryEl.appendChild(row);
       });
@@ -3103,6 +3187,7 @@
     lastScreen = "end";
     const win = currentRun.state === "won";
     const trueVictory = win && !!currentRun.trueVictory;
+    const ascensionResult = recordAscensionVictory(currentRun);
     const screen = $id("screen-end");
     showOnly("screen-end");
     if (screen) {
@@ -3151,6 +3236,9 @@
       stats.innerHTML = [
         `Floor reached: <strong>${floorReached}</strong>`,
         `Act: <strong>${currentRun.act || 1}</strong>`,
+        `Ascension: <strong>${currentRun.ascensionLevel || 0}</strong>`,
+        `Best ascension: <strong>${ascensionResult.unlockedAscension}</strong>`,
+        `Total wins: <strong>${ascensionResult.totalWins}</strong>`,
         `Outcome: <strong>${trueVictory ? "True Victory" : win ? "Victory" : "Defeat"}</strong>`,
         `Gold: <strong>${currentRun.player?.gold || 0}</strong>`,
         `Deck size: <strong>${deckSize}</strong>`,
@@ -3163,7 +3251,10 @@
         `Cards played: <strong>${s.cardsPlayed || 0}</strong>`,
         `Turns played: <strong>${s.turnsPlayed || 0}</strong>`,
         `Gold earned: <strong>${s.goldEarned || 0}</strong>`,
-        `Most played: <strong>${mostPlayedName}</strong>`
+        `Most played: <strong>${mostPlayedName}</strong>`,
+        win && currentRun.ascensionLevel < 5
+          ? `Next challenge: <strong>${trueVictory ? `Ascension ${getNextAscensionTarget(currentRun.ascensionLevel || 0)} unlocked` : `Beat Ascension ${currentRun.ascensionLevel || 0} for the next unlock`}</strong>`
+          : `Next challenge: <strong>${win ? "Ascension mastered" : `Retry Ascension ${currentRun.ascensionLevel || 0}`}</strong>`
       ].join("<br />");
     }
 
@@ -3171,6 +3262,7 @@
     const runEntry = {
       state: currentRun.state,
       act: currentRun.act || 1,
+      ascensionLevel: currentRun.ascensionLevel || 0,
       archetype: currentRun.archetype,
       archetypeName: currentRun.archetypeName,
       floorReached,
@@ -3219,7 +3311,11 @@
   function initListeners() {
     // Start screen
     $id("start-new-run-btn")?.addEventListener("click", async () => {
-      currentRun = await fetchJson("/run/new.json");
+      currentRun = await fetchJson("/run/new.json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ascensionLevel: getStoredAscensionLevel() })
+      });
       saveRun(currentRun);
       render();
     });

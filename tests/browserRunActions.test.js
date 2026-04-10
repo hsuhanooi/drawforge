@@ -5,6 +5,7 @@ describe("browser run actions", () => {
     const run = createBrowserRun();
 
     expect(run.state).toBe("in_progress");
+    expect(run.ascensionLevel).toBe(0);
     expect(run.pendingDeckChoice).toBe(true);
     expect(run.player.deck.length).toBe(0);
     expect(run.map.currentNodeId).toBeNull();
@@ -19,6 +20,13 @@ describe("browser run actions", () => {
     expect(chosen.archetypeName).toBe("Hex Witch");
     expect(chosen.player.deck.length).toBeGreaterThan(8);
     expect(chosen.player.deck).toContain("mark_of_ruin");
+  });
+
+  it("adds the ascension curse card to the starter deck at ascension 3", () => {
+    const run = createBrowserRun({}, { ascensionLevel: 3 });
+    const chosen = chooseArchetype(run, "ashen_knight");
+
+    expect(chosen.player.deck).toContain("wound");
   });
 
   it("chooseArchetype throws on unknown archetype", () => {

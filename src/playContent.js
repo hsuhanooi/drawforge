@@ -2,6 +2,7 @@ const { createRewardOptions } = require("./rewards");
 const { RELICS } = require("./relics");
 const { toRenderableCards } = require("./cardCatalog");
 const { createCampfireEvent } = require("./events");
+const { scaleShopPrice } = require("./ascension");
 
 const pickUniqueItems = (items, count) => {
   const pool = [...items];
@@ -36,16 +37,23 @@ const createPlayEventState = async (node) => {
 };
 
 const createPlayShopState = async (run) => {
-  const cards = createPlayRewardCardOptions(3).map((card) => ({ ...card, price: card.rarity === "rare" ? 90 : card.rarity === "uncommon" ? 65 : 50 }));
+  const ascensionLevel = run?.ascensionLevel || 0;
+  const cards = createPlayRewardCardOptions(3).map((card) => ({
+    ...card,
+    price: scaleShopPrice(card.rarity === "rare" ? 90 : card.rarity === "uncommon" ? 65 : 50, ascensionLevel)
+  }));
   const ownedIds = new Set((run.relics || []).map((relic) => relic.id));
   const relicPool = RELICS.filter((relic) => (relic.rarity === "common" || relic.rarity === "uncommon") && !ownedIds.has(relic.id));
-  const relics = pickUniqueItems(relicPool, 3).map((relic) => ({ ...relic, price: relic.rarity === "uncommon" ? 110 : 80 }));
+  const relics = pickUniqueItems(relicPool, 3).map((relic) => ({
+    ...relic,
+    price: scaleShopPrice(relic.rarity === "uncommon" ? 110 : 80, ascensionLevel)
+  }));
   return {
     cards,
     relics,
     services: [
-      { id: "heal", label: "Restore 15 HP", price: 40 },
-      { id: "remove", label: "Remove a card", price: 75 }
+      { id: "heal", label: "Restore 15 HP", price: scaleShopPrice(40, ascensionLevel) },
+      { id: "remove", label: "Remove a card", price: scaleShopPrice(75, ascensionLevel) }
     ]
   };
 };

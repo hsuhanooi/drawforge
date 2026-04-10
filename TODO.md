@@ -975,7 +975,7 @@
       },
       {
         "category": "feel",
-        "description": "Wire enemy attack animation: lunge toward player, hit-freeze frame, player recoil, and enemy-hit flash — using existing CSS classes and animEngine infrastructure",
+        "description": "Wire enemy attack animation: lunge toward player, hit-freeze frame, player recoil, and enemy-hit flash \u2014 using existing CSS classes and animEngine infrastructure",
         "steps": [
           "Add animEngine.onEnemyAttack() callback that sequences: enemy canvas translateX(+60px) lunge over 120ms then spring-back over 200ms",
           "Add animEngine.frozen state: set true for 80ms on player damage to create impact freeze-frame",
@@ -1072,7 +1072,7 @@
           "Show current ascension, best ascension, total wins, and next challenge CTA on victory screen",
           "Add unit tests for ascension enemy scaling and unlock logic"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "replayability",

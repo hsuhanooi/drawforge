@@ -183,6 +183,15 @@ const requestListener = async (req, res) => {
   }
 
   if (requestUrl.pathname === "/run/new.json") {
+    if (req.method === "POST") {
+      try {
+        const { ascensionLevel } = await readJsonBody(req);
+        sendJson(res, 200, createBrowserRun({}, { ascensionLevel }));
+      } catch (error) {
+        sendJson(res, 400, { error: error.message || "Unable to start run" });
+      }
+      return;
+    }
     sendJson(res, 200, createBrowserRun());
     return;
   }

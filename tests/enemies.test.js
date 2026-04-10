@@ -48,4 +48,13 @@ describe("enemy selection", () => {
     expect(seen.has("cinder_shade")).toBe(true);
     expect(seen.has("venomfang")).toBe(true);
   });
+
+  it("scales boss enemies for higher ascension levels", () => {
+    const baseBoss = createEnemyForNode({ row: 4, col: 1, type: "boss" }, 3, 0);
+    const ascBoss = createEnemyForNode({ row: 4, col: 1, type: "boss" }, 3, 5);
+
+    expect(ascBoss.health).toBeGreaterThan(baseBoss.health);
+    expect(ascBoss.damage).toBeGreaterThan(baseBoss.damage);
+    expect(ascBoss.phase).toBe(2);
+  });
 });

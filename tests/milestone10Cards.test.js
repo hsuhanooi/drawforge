@@ -1,5 +1,5 @@
 const { startCombatForNode, playCombatCard, endCombatTurn } = require("../src/browserCombatActions");
-const { IMPLEMENTED_CARD_IDS, MISSING_CARD_IDS } = require("../src/cardRegistry");
+const { CARD_REGISTRY, IMPLEMENTED_CARD_IDS, MISSING_CARD_IDS } = require("../src/cardRegistry");
 
 const makeRun = (deck) => ({
   player: { health: 80, maxHealth: 80, gold: 0, deck },
@@ -390,7 +390,8 @@ describe("card registry completeness after Milestone 10", () => {
     }
   });
 
-  it("total implemented card count is 74 (71 designed + 3 curse cards)", () => {
-    expect(IMPLEMENTED_CARD_IDS.length).toBe(74);
+  it("keeps the post-Milestone-10 registry fully implemented after later card-set expansions", () => {
+    expect(IMPLEMENTED_CARD_IDS.length).toBe(84);
+    expect(IMPLEMENTED_CARD_IDS.length).toBe(CARD_REGISTRY.length);
   });
 });

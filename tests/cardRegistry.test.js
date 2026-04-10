@@ -8,10 +8,10 @@ const {
 } = require("../src/cardRegistry");
 
 describe("card registry", () => {
-  it("contains the canonical designed set plus 2 starter cards", () => {
-    expect(DESIGNED_CARD_SET).toHaveLength(72);
+  it("contains the current canonical designed set plus 2 starter cards", () => {
+    expect(DESIGNED_CARD_SET).toHaveLength(82);
     expect(STARTER_CARD_IDS).toEqual(["strike", "defend"]);
-    expect(CARD_REGISTRY).toHaveLength(74);
+    expect(CARD_REGISTRY).toHaveLength(84);
   });
 
   it("tracks implemented vs missing cards explicitly", () => {

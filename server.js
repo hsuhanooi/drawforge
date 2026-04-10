@@ -409,4 +409,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = requestListener;
+module.exports = server;

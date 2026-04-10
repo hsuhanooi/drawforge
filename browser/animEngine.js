@@ -25,8 +25,9 @@
   let H = 0;
 
   // ── Loop ──────────────────────────────────────────────────────────
-  let running  = false;
-  let lastTime = 0;
+  let running   = false;
+  let lastTime  = 0;
+  let frozenUntil = 0; // hitstop: skip ticking until this timestamp (ms)
 
   // ── Easing ───────────────────────────────────────────────────────
   const Ease = {
@@ -858,6 +859,12 @@
       requestAnimationFrame(tick);
       return;
     }
+    // Hitstop: freeze animation for impact feel
+    if (now < frozenUntil) {
+      lastTime = now;
+      requestAnimationFrame(tick);
+      return;
+    }
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
 
@@ -1022,6 +1029,11 @@
         triggerFlash("rgba(255,60,40,0.22)", 0.22);
         spawnFloat(ex, ey - 30, `-${damage}`, damage >= 12 ? "#ff2222" : "#ff5544", damage >= 12);
       }
+    },
+
+    // ── Hitstop freeze ──────────────────────────────────────────────
+    freeze(durationMs) {
+      frozenUntil = performance.now() + durationMs;
     },
 
     onPlayerHit(px, py, damage) {

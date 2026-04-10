@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 
 const playJs = fs.readFileSync(path.join(__dirname, "..", "browser", "play.js"), "utf8");
+const playCss = fs.readFileSync(path.join(__dirname, "..", "browser", "play.css"), "utf8");
+const soundEngineJs = fs.readFileSync(path.join(__dirname, "..", "browser", "soundEngine.js"), "utf8");
 
 describe("play.js thin-client regression coverage", () => {
   it("loads shared card and relic catalogs instead of keeping local catalogs", () => {
@@ -312,5 +314,140 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('let lastEnemyIntentFxKey = null;');
     expect(playJs).toContain('const enemyIntentKey = combat.enemyIntent ? `${combat.enemyIntent.type || "unknown"}:${combat.enemyIntent.value || combat.enemyIntent.label || ""}` : null;');
     expect(playJs).toContain('window.AnimEngine.onEnemyIntent(ep.x, ep.y, combat.enemyIntent.type || "attack");');
+  });
+
+  it("staggers reward card reveals with dealDelay and animates relic reveals with relic-cascade-in", () => {
+    // Cards: staggered dealDelay
+    expect(playJs).toContain("dealDelay: i * 80");
+    // Relics: cascade-in class applied via setTimeout
+    expect(playJs).toContain("relic-cascade-in");
+    // Reward reveal fires sound
+    expect(playJs).toContain("window.SoundEngine?.onRewardReveal()");
+    // CSS: relic-cascade keyframe defined
+    expect(playCss).toContain("relic-cascade");
+    expect(playCss).toContain("relic-cascade-in");
+    // CSS: reward-actions-row fades in with delay
+    expect(playCss).toContain("animation-delay: 0.38s");
+  });
+
+  it("wires AnimEngine.freeze() hitstop on enemy hit and player damage for impact feel", () => {
+    expect(playJs).toContain("window.AnimEngine?.freeze(");
+    // Both paths: player attacking enemy (on dmg > 0) and enemy attacking player (on dmgTaken)
+    const freezeCount = (playJs.match(/AnimEngine[?.]*.freeze\(/g) || []).length;
+    expect(freezeCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("wires SoundEngine hooks at card play, enemy hit, player hit, defense gain, victory, defeat, relic trigger, turn start, and map move", () => {
+    expect(playJs).toContain("window.SoundEngine?.onCardPlay(");
+    expect(playJs).toContain("window.SoundEngine?.onEnemyHit(");
+    expect(playJs).toContain("window.SoundEngine?.onPlayerHit(");
+    expect(playJs).toContain("window.SoundEngine?.onDefenseGain(");
+    expect(playJs).toContain("window.SoundEngine?.onVictory()");
+    expect(playJs).toContain("window.SoundEngine?.onDefeat()");
+    expect(playJs).toContain("window.SoundEngine?.onRelicTrigger()");
+    expect(playJs).toContain("window.SoundEngine?.onPlayerTurnStart()");
+    expect(playJs).toContain("window.SoundEngine?.onRewardReveal()");
+    expect(playJs).toContain("window.SoundEngine?.onMapMove()");
+  });
+
+  it("re-enables end-turn button on API failure so combat cannot dead-end", () => {
+    expect(playJs).toContain("currentRun = await api(\"/run/end-turn.json\", { run: currentRun });");
+    // try/finally wrapping the end-turn API call
+    const endTurnIndex = playJs.indexOf('currentRun = await api("/run/end-turn.json"');
+    const tryIndex = playJs.lastIndexOf('try {', endTurnIndex);
+    const catchIndex = playJs.indexOf('} catch {', endTurnIndex);
+    expect(tryIndex).toBeGreaterThan(-1);
+    expect(catchIndex).toBeGreaterThan(endTurnIndex);
+    expect(playJs).toContain("recoveryBtn.disabled = false;");
+    expect(playJs).toContain('recoveryBtn.textContent = "End Turn";');
+  });
+});
+
+describe("play.css mobile viewport coverage", () => {
+  it("includes a max-width 480px media query for phone-sized screens", () => {
+    expect(playCss).toContain("@media (max-width: 480px)");
+  });
+
+  it("hides the combat log panel on mobile to reclaim space", () => {
+    const mobileBlock = playCss.slice(playCss.indexOf("@media (max-width: 480px)"));
+    expect(mobileBlock).toContain("#combat-log-panel");
+    expect(mobileBlock).toContain("display: none");
+  });
+
+  it("hides the relic strip in topbars on mobile", () => {
+    const mobileBlock = playCss.slice(playCss.indexOf("@media (max-width: 480px)"));
+    expect(mobileBlock).toContain("#combat-topbar .relic-strip");
+    expect(mobileBlock).toContain("#map-header .relic-strip");
+  });
+
+  it("reduces card dimensions on mobile via CSS variables", () => {
+    const mobileBlock = playCss.slice(playCss.indexOf("@media (max-width: 480px)"));
+    expect(mobileBlock).toContain("--card-w:");
+    expect(mobileBlock).toContain("--card-h:");
+    expect(mobileBlock).toContain("--card-lg-w:");
+    expect(mobileBlock).toContain("--card-lg-h:");
+  });
+
+  it("makes archetype panels full-width on mobile", () => {
+    const mobileBlock = playCss.slice(playCss.indexOf("@media (max-width: 480px)"));
+    expect(mobileBlock).toContain(".archetype-panel");
+    expect(mobileBlock).toContain("width: 100%");
+  });
+
+  it("slides deck and relic overlays in from the bottom on mobile", () => {
+    const mobileBlock = playCss.slice(playCss.indexOf("@media (max-width: 480px)"));
+    expect(mobileBlock).toContain("border-radius: 18px 18px 0 0");
+  });
+});
+
+describe("soundEngine.js SFX synthesizer", () => {
+  it("exposes SoundEngine as a window global", () => {
+    expect(soundEngineJs).toContain("window.SoundEngine = SoundEngine");
+  });
+
+  it("respects fx=off query param via isEnabled()", () => {
+    expect(soundEngineJs).toContain('QUERY_PARAMS.get("fx") === "off"');
+  });
+
+  it("persists volume in localStorage", () => {
+    expect(soundEngineJs).toContain('localStorage.setItem("drawforge_sfx_volume"');
+    expect(soundEngineJs).toContain('localStorage.getItem("drawforge_sfx_volume"');
+  });
+
+  it("exposes all 15 required sound event hook methods", () => {
+    const requiredHooks = [
+      "onCardPlay", "onCardExhaust", "onEnemyHit", "onPlayerHit",
+      "onDefenseGain", "onVictory", "onDefeat", "onRelicTrigger",
+      "onPlayerTurnStart", "onDraw", "onShuffle", "onStatusProc",
+      "onEnemyDeath", "onRewardReveal", "onMapMove"
+    ];
+    requiredHooks.forEach((hook) => {
+      expect(soundEngineJs).toContain(`${hook}(`);
+    });
+  });
+
+  it("synthesizes all 15 sounds using Web Audio API primitives without audio files", () => {
+    const soundNames = [
+      "card_play", "card_exhaust", "hit_light", "hit_heavy", "block",
+      "death_enemy", "death_player", "heal", "relic_trigger", "energy_restore",
+      "draw_card", "shuffle", "reward_reveal", "map_move", "ui_click"
+    ];
+    soundNames.forEach((name) => {
+      expect(soundEngineJs).toContain(`${name}(`);
+    });
+    // Uses Web Audio API — no audio file references
+    expect(soundEngineJs).not.toContain(".mp3");
+    expect(soundEngineJs).not.toContain(".ogg");
+    expect(soundEngineJs).not.toContain(".wav");
+    expect(soundEngineJs).toContain("AudioContext");
+    expect(soundEngineJs).toContain("createOscillator");
+  });
+
+  it("lazily creates AudioContext to respect browser autoplay policy", () => {
+    expect(soundEngineJs).toContain("function ensureCtx()");
+    // AudioContext only created inside ensureCtx, not at module init
+    const initSection = soundEngineJs.slice(0, soundEngineJs.indexOf("function ensureCtx()"));
+    expect(initSection).not.toContain("new AudioContext");
+    expect(initSection).not.toContain("new window.AudioContext");
   });
 });

@@ -55,6 +55,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("const choice = await clickAvailableMapNode(page);");
   });
 
+  it('supports parallel run concurrency via BURNIN_CONCURRENCY', () => {
+    expect(burninSource).toContain("const CONCURRENCY = Number(process.env.BURNIN_CONCURRENCY || 4);");
+    expect(burninSource).toContain('async function worker() {');
+    expect(burninSource).toContain('const workers = Array.from({ length: Math.min(CONCURRENCY, RUNS) }, () => worker());');
+    expect(burninSource).toContain('await Promise.all(workers);');
+  });
+
   it('prefers continue or skip controls on reward screens before slower choice clicks', () => {
     expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = true } = {}) {');
     expect(burninSource).toContain('if (shouldPreferContinue) {');

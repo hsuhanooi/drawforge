@@ -865,7 +865,7 @@
           "Add regression coverage for the affected reward subflow",
           "Re-run DOM playtesting to verify the run no longer stalls on the reward screen"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "bug",
@@ -877,7 +877,7 @@
           "Add regression coverage for the affected combat dead-end path",
           "Re-run DOM playtesting to verify combat no longer stalls in the broken state"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "responsive",
@@ -890,7 +890,7 @@
           "Add regression coverage for at least one mobile viewport",
           "Re-test the main run loop on mobile dimensions"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "bug",
@@ -913,6 +913,177 @@
           "Only then escalate back to the full 50-run validation loop"
         ],
         "passes": true
+      }
+    ]
+  }
+}
+{
+  "milestone": {
+    "name": "The Living Spire",
+    "goal": "Close the gap to Slay the Spire 2 quality on feel, content depth, and replayability. The game should sound alive, cards should feel physical to hold, combat should feel dangerous, and winning should mean something.",
+    "outcomes": [
+      "Combat has sound: every hit, card play, relic trigger, and reward has audio feedback",
+      "Cards fan in an arc like a real hand of cards",
+      "Enemy attacks have a wind-up, lunge, freeze-frame, and recoil sequence",
+      "Reward screens cascade cards in with ceremony",
+      "Poison and Burn status effects open two new viable archetypes",
+      "Cataclysm Sigil no longer trivializes Act 2 boss; multiple archetypes have similar TTK",
+      "40+ cards are upgradeable (up from 11); campfire is a meaningful decision",
+      "Act 3 with 8 new enemies, 2 new elites, and a 3-phase final boss",
+      "Ascension 1-5 unlockable; winning a run unlocks the next challenge",
+      "Map templates vary between runs (Dense/Sparse/Gauntlet)"
+    ],
+    "in_scope": [
+      "Web Audio SFX synthesizer (no audio files)",
+      "Card hand arc/fan layout",
+      "Enemy attack lunge + hit-freeze + player recoil animation wiring",
+      "Reward screen card cascade animation",
+      "Poison and Burn status effects with 10 new cards and 3 new enemies",
+      "Card balance pass: hex cap, exhaust energy cap, block buffs, enemy damage scaling",
+      "Card upgrade expansion to 40+ cards",
+      "Act 3 enemy pool + 3-phase final boss (The Undying)",
+      "Ascension system (5 levels) with localStorage persistence",
+      "Map template variety (3 templates per act)"
+    ],
+    "tasks": [
+      {
+        "category": "feel",
+        "description": "Add a Web Audio API SFX synthesizer that produces 15 procedurally generated sounds covering all major game events",
+        "steps": [
+          "Create browser/soundEngine.js with an AudioContext-based synthesizer using OscillatorNode, GainNode, and BiquadFilterNode",
+          "Implement 15 sounds: card_play, card_exhaust, hit_light, hit_heavy, block, death_enemy, death_player, heal, relic_trigger, energy_restore, draw_card, shuffle, reward_reveal, map_move, ui_click",
+          "Respect the existing fx=off query parameter gate already used by visual effects",
+          "Persist master volume in localStorage",
+          "Hook sounds into animEngine callbacks: onEnemyHit, onPlayerCardPlay, onRelicTrigger, onDefenseGain, onVictory, onDefeat",
+          "Add source-level assertions in tests/playBundle.test.js confirming soundEngine event hook surface"
+        ],
+        "passes": true
+      },
+      {
+        "category": "feel",
+        "description": "Replace the flat card hand row with an arc/fan layout where cards rotate on a shared radius and hover rises to vertical",
+        "steps": [
+          "Compute per-card rotation and Y-offset based on arc radius ~900px and spread angle capped at 60 degrees for up to 8 cards",
+          "Apply transform: rotate(Xdeg) translateY(Ypx) to each card via inline style or CSS custom properties",
+          "On hover, raise the hovered card to vertical and fan neighboring cards away with 120ms CSS transition",
+          "Selected card rises fully vertical and stays raised",
+          "Degrade gracefully for 0 and 1 card hands",
+          "Preserve existing is-selected, is-dragging, unplayable class behavior",
+          "Add regression assertions in tests/playBundle.test.js for arc class/transform structure"
+        ],
+        "passes": true
+      },
+      {
+        "category": "feel",
+        "description": "Wire enemy attack animation: lunge toward player, hit-freeze frame, player recoil, and enemy-hit flash — using existing CSS classes and animEngine infrastructure",
+        "steps": [
+          "Add animEngine.onEnemyAttack() callback that sequences: enemy canvas translateX(+60px) lunge over 120ms then spring-back over 200ms",
+          "Add animEngine.frozen state: set true for 80ms on player damage to create impact freeze-frame",
+          "Apply existing player-recoil CSS class on player HP loss, remove after 500ms",
+          "Apply existing enemy-hit-flash CSS class on enemy HP loss, remove after 200ms",
+          "Wire the sequence into enemy turn resolution in browser/play.js",
+          "Verify fx=off disables all animation timing (instant resolution)"
+        ],
+        "passes": true
+      },
+      {
+        "category": "feel",
+        "description": "Animate reward screen card reveals with a staggered cascade, relic scale-in, and gold count-up",
+        "steps": [
+          "Stagger card appearance on reward reveal: each card animates in with card-deal at 80ms intervals using data-index attribute",
+          "Animate relic reveals with scale-in combined with badge-pop for 600ms",
+          "Count-up gold display from 0 to actual value over 800ms",
+          "Delay reward cards 600ms after animEngine.onVictory() fires to let the victory particle burst play first",
+          "Fade in skip/continue button last after all cards are visible",
+          "Add assertions in tests/playBundle.test.js confirming stagger data-index attributes are set"
+        ],
+        "passes": true
+      },
+      {
+        "category": "gameplay",
+        "description": "Add Poison and Burn status effects with correct per-turn resolution, 10 new cards, and 3 new enemies",
+        "steps": [
+          "Add enemy.status.poison and enemy.status.burn fields tracked in src/combat.js",
+          "Resolve Poison at end of player turn: deal poison damage then decrement stacks by 1",
+          "Resolve Burn at start of enemy turn: deal burn damage, stacks do not decrement",
+          "Cap both at MAX_POISON_STACKS = MAX_BURN_STACKS = 10 in src/constants.js",
+          "Add 5 Poison cards: Venom Strike, Toxic Cloud, Creeping Blight, Septic Touch, Infectious Wound",
+          "Add 5 Burn cards: Ember Throw, Kindle, Scorch, Funeral Pyre, Smoldering Brand",
+          "Add 3 new enemies: Plague Rat (applies 2 poison/turn), Cinder Shade (applies 2 burn/turn), Venomfang (attack + 1 poison)",
+          "Add poison and burn badge icons to renderBadgesAnimated in browser/play.js",
+          "Add unit tests in tests/combat.test.js covering poison/burn resolution, stack cap, and both new status paths"
+        ],
+        "passes": false
+      },
+      {
+        "category": "balance",
+        "description": "Balance pass: cap hex stacking, cap exhaust energy generation, buff block cards, and scale Act 2 enemy damage to close the gap with player scaling",
+        "steps": [
+          "Add MAX_HEX_STACKS = 10 to src/constants.js and clamp enemy hex status at this value in src/combat.js",
+          "Add consumesHex: true to No Mercy card so it clears hex stacks on use",
+          "Cap total energy gained per turn from exhaust effects at 2 in src/energy.js",
+          "Raise Grave Fuel cost from 1 to 2 energy",
+          "Raise base Defend block from 5 to 6 and Barrier from 8 to 10",
+          "Add dexterity scaling to Fortify card",
+          "Raise Act 2 common enemy damage by 2 and Act 2 elite enemy damage by 2 in src/enemies.js",
+          "Add unit tests asserting hex cap clamping and exhaust energy cap enforcement"
+        ],
+        "passes": false
+      },
+      {
+        "category": "gameplay",
+        "description": "Expand card upgrade coverage from 11 to 40+ cards with meaningful upgrade effects for all core archetype cards",
+        "steps": [
+          "Add upgrades for Hex Witch core cards: Deep Hex+, Hexburst+, Detonate Sigil+, Cataclysm Sigil+, No Mercy+, Feast on Weakness+",
+          "Add upgrades for Ashen Knight core cards: Fire Sale+, Cremate+, Grave Fuel+, Cinder Rush+, Ritual Collapse+, Overclock+",
+          "Add upgrades for Charged Duelist core cards: Charge Up+, Arc Lash+, Release+, Static Guard+, Capacitor+",
+          "Add upgrades for new Poison/Burn cards: Venom Strike+, Ember Throw+, Scorch+",
+          "Add upgrades for neutral cards: Bash+, Heavy Swing+, Pommel+, Recover+, Insight+",
+          "Ensure each upgrade is meaningful: cost reduction, +30% or more damage, or adds a secondary effect",
+          "Update campfire UI to show count of upgradeable cards in current deck",
+          "Add unit tests covering each new upgrade mapping"
+        ],
+        "passes": false
+      },
+      {
+        "category": "content",
+        "description": "Add Act 3 with 8 new enemies, 2 new elites, a 3-phase final boss (The Undying), and a True Victory end screen",
+        "steps": [
+          "Add 6 Act 3 common enemies: Nightmare Husk, Hex Revenant, Stone Eater, Soul Collector, Void Crawler, Ashwalker",
+          "Add 2 Act 3 elite enemies: Hex Titan (3 phases) and Cinder Colossus (burn immune)",
+          "Add Act 3 boss The Undying with 3 phase transitions at 150 HP, 100 HP, and 50 HP thresholds",
+          "Wire phase transitions in src/combat.js checkPhaseShift() with matching UI signal in browser/play.js",
+          "Add Act 3 routing to src/actTransition.js",
+          "Add Act 3 enemy pool to src/nodeResolver.js",
+          "Add True Victory end screen state distinct from Act 2 victory",
+          "Add unit tests for phase transition triggers and Act 3 enemy definitions"
+        ],
+        "passes": false
+      },
+      {
+        "category": "replayability",
+        "description": "Add Ascension system with 5 difficulty levels persisted in localStorage; winning unlocks the next level",
+        "steps": [
+          "Add run.ascensionLevel field to src/run.js and propagate through createBrowserRun()",
+          "Apply ascension scaling at enemy creation time in src/enemies.js: level 1 +10% HP, level 2 +1 damage, level 3 add Wound to starting deck, level 4 +20% HP and shop +25% prices, level 5 boss Phase 2 starts immediately",
+          "Persist current ascension in localStorage[drawforge_ascension] and track wins in localStorage[drawforge_wins]",
+          "Unlock next ascension level on True Victory",
+          "Show ascension badge on deck choice screen",
+          "Show current ascension, best ascension, total wins, and next challenge CTA on victory screen",
+          "Add unit tests for ascension enemy scaling and unlock logic"
+        ],
+        "passes": false
+      },
+      {
+        "category": "replayability",
+        "description": "Add map template variety with 3 templates per act (Dense, Sparse, Gauntlet) selected deterministically from run seed",
+        "steps": [
+          "Define 3 map templates: Dense (6x3, 2 shops, 2 events), Sparse (4x4, guaranteed rest, 3 events), Gauntlet (7x2, no events, extra elite row)",
+          "Add template selection to src/map.js createMap() using run.seed for deterministic but varied selection",
+          "Verify existing map renderer adapts to variable grid dimensions without UI changes",
+          "Add unit tests asserting each template produces the correct node type distribution"
+        ],
+        "passes": false
       }
     ]
   }

@@ -21,14 +21,17 @@ describe("browser/server event sync", () => {
   let server;
 
   beforeAll(async () => {
-    process.env.PORT = "3101";
     // eslint-disable-next-line global-require
     server = require("../server");
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve, reject) => {
+      server.listen(3101, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
   });
 
   afterAll(async () => {
-    delete process.env.PORT;
     if (server) {
       await new Promise((resolve, reject) => {
         server.close((error) => {

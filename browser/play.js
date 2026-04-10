@@ -673,6 +673,7 @@
       if (playerPos && window.AnimEngine) {
         window.AnimEngine.onRelicTrigger(playerPos.x, playerPos.y, triggeredNames[0]);
       }
+      window.SoundEngine?.onRelicTrigger();
     }
     ["combat-relic-strip", "map-relic-strip"].forEach((stripId) => {
       const strip = $id(stripId);
@@ -1257,12 +1258,14 @@
       floatText(playerPanel, `+${playerBlockGain} Block`, "block-gain");
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onDefenseGain(pp.x, pp.y, "block", playerBlockGain);
+      window.SoundEngine?.onDefenseGain("block");
     }
     if (enemyBlockGain > 0) floatText(enemyPanel, `+${enemyBlockGain} Block`, "block-gain");
     if (playerHealGain > 0) {
       floatText(playerPanel, `+${playerHealGain} HP`, "heal");
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onDefenseGain(pp.x, pp.y, "heal", playerHealGain);
+      window.SoundEngine?.onDefenseGain("heal");
     }
     if (energyDelta > 0) floatText(playerPanel, `+${energyDelta} Energy`, "energy");
     if (energyDelta < 0) floatText(playerPanel, `${energyDelta} Energy`, "energy");
@@ -1270,6 +1273,7 @@
       floatText(playerPanel, `Draw ${cardsDrawn}`, "draw-gain");
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onDraw(pp.x, pp.y, cardsDrawn);
+      window.SoundEngine?.onDraw();
     }
     if (discardDelta > 0) {
       floatText(playerPanel, `Discard ${discardDelta}`, "block-gain");
@@ -1279,11 +1283,13 @@
     if (exhaustDelta > 0) {
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onExhaust(pp.x, pp.y, exhaustDelta);
+      window.SoundEngine?.onCardExhaust();
     }
     if (nextCombat.reshuffled) {
       floatText(playerPanel, "Reshuffle", "draw-gain");
       const pp = getPlayerAnimPos();
       if (pp && window.AnimEngine) window.AnimEngine.onShuffle(pp.x, pp.y);
+      window.SoundEngine?.onShuffle();
     }
 
     if ((nextEnemy.vulnerable || 0) > (prevEnemy.vulnerable || 0)) {
@@ -2071,6 +2077,7 @@
   }
 
   async function enterNode(node) {
+    window.SoundEngine?.onMapMove();
     flashTransition(node.type === "boss" ? "flash-slow" : "flash");
     const result = await api("/run/enter-node.json", { run: currentRun, nodeId: node.id });
     currentRun = result.run;
@@ -2296,6 +2303,7 @@
           window.AnimEngine.setPlayer(pp.x, pp.y, currentRun.archetypeId || "static_duelist");
           window.AnimEngine.onPlayerTurnStart(pp.x, pp.y);
         }
+        window.SoundEngine?.onPlayerTurnStart();
         if (ep && window.AnimEngine) window.AnimEngine.setEnemyPos(ep.x, ep.y);
         syncAnimBattleState();
       });
@@ -2467,6 +2475,7 @@
         window.AnimEngine.onCardPlay(card.type || "skill", pp.x, pp.y, ep.x, ep.y);
       }
     }
+    window.SoundEngine?.onCardPlay(card?.type || "skill");
 
     const prevCombat = currentRun.combat;
     const prevEnemyHp    = prevCombat?.enemy?.health    || 0;
@@ -2487,13 +2496,16 @@
         const ep = getEnemyAnimPos();
         if (ep && window.AnimEngine) {
           window.AnimEngine.onEnemyHit(ep.x, ep.y, dmg > 0 ? dmg : blockGained, dmg === 0 && blockGained > 0);
-        } else {
+        }
+        window.SoundEngine?.onEnemyHit(dmg, dmg === 0 && blockGained > 0);
+        if (!ep) {
           // DOM fallback
           if (dmg > 0) floatNum($id("enemy-panel"), dmg, dmg >= 8 ? "damage big" : "damage");
           if (blockGained > 0) floatText($id("enemy-panel"), `+${blockGained} Block`, "block-gain");
         }
         if (dmg > 0) {
           flashEnemyHit();
+          window.AnimEngine?.freeze(dmg >= 12 ? 90 : 55);
           const enemyCanvas = $id("enemy-canvas");
           if (enemyCanvas) {
             enemyCanvas.classList.add("shake");
@@ -2549,6 +2561,7 @@
       stopAmbientParticles();
       const epVic = getEnemyAnimPos();
       if (epVic && window.AnimEngine) window.AnimEngine.onVictory(epVic.x, epVic.y);
+      window.SoundEngine?.onVictory();
       // Brief pause for fanfare before reward
       await waitForPresentationBeat(nodeType === "boss" ? 900 : 500);
       currentRun = await api("/run/apply-victory.json", { run: currentRun, combat: updated.combat });
@@ -2599,6 +2612,7 @@
     const enteringReward = lastScreen !== "reward";
     showOnly("screen-reward");
     lastScreen = "reward";
+    if (enteringReward) window.SoundEngine?.onRewardReveal();
 
     const rewards = currentRun.pendingRewards;
     const cardRow = $id("reward-cards-row");
@@ -2692,13 +2706,15 @@
       clearEl(removalCards);
       if (relicRow) {
         clearEl(relicRow);
-        rewards.relics.forEach((relic) => {
+        rewards.relics.forEach((relic, i) => {
           const el = makeRelicCard(relic, async () => withRewardClaim(async () => {
             currentRun = await api("/run/claim-choice-relic.json", { run: currentRun, relicId: relic.id });
             saveRun(currentRun);
             render();
           }));
+          el.style.opacity = "0";
           relicRow.appendChild(el);
+          setTimeout(() => { el.style.opacity = ""; el.classList.add("relic-cascade-in"); }, 120 + i * 100);
         });
       }
       hide("reward-skip-btn");
@@ -2720,7 +2736,9 @@
           saveRun(currentRun);
           render();
         }));
+        el.style.opacity = "0";
         relicRow.appendChild(el);
+        setTimeout(() => { el.style.opacity = ""; el.classList.add("relic-cascade-in"); }, 200);
       }
       hide("reward-skip-btn");
       return;
@@ -3196,6 +3214,7 @@
       const prevPlayerHp = prevCombatTurn.player.health;
       const prevPlayerBlock = prevCombatTurn.player.block || 0;
       const prevHandEndTurn = prevCombatTurn?.hand || [];
+      try {
       currentRun = await api("/run/end-turn.json", { run: currentRun });
       flashTriggeredRelics(currentRun.combat?.triggeredRelics);
 
@@ -3206,9 +3225,11 @@
         const pp = getPlayerAnimPos();
         if (pp && window.AnimEngine) {
           window.AnimEngine.onPlayerHit(pp.x, pp.y, dmgTaken);
+          window.AnimEngine.freeze(dmgTaken >= 10 ? 80 : 50);
         } else {
           floatNum($id("player-panel"), dmgTaken, dmgTaken >= 8 ? "damage big" : "damage");
         }
+        window.SoundEngine?.onPlayerHit(dmgTaken);
         const enemyPanel = $id("enemy-panel");
         const playerPanel = $id("player-panel");
         if (enemyPanel) {
@@ -3252,6 +3273,7 @@
         stopEnemyIdle();
         stopAmbientParticles();
         window.AnimEngine?.onDefeat();
+        window.SoundEngine?.onDefeat();
         flashTransition("flash-red");
         saveRun(currentRun);
         render();
@@ -3262,8 +3284,18 @@
       showTurnBanner("YOUR TURN", false);
       const ppTurn = getPlayerAnimPos();
       if (ppTurn && window.AnimEngine) window.AnimEngine.onPlayerTurnStart(ppTurn.x, ppTurn.y);
+      window.SoundEngine?.onPlayerTurnStart();
       saveRun(currentRun);
       render();
+      } catch {
+        // Re-enable end-turn on API failure so the player is never permanently locked out
+        const recoveryBtn = $id("end-turn-btn");
+        if (recoveryBtn) {
+          recoveryBtn.disabled = false;
+          recoveryBtn.textContent = "End Turn";
+          recoveryBtn.setAttribute("aria-label", "End Turn");
+        }
+      }
     });
 
     // Deck overlay

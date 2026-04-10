@@ -3,6 +3,7 @@
 const { chromium } = require('playwright');
 
 const RUNS = Number(process.env.BURNIN_RUNS || 50);
+const CONCURRENCY = Number(process.env.BURNIN_CONCURRENCY || 4);
 const BASE = process.env.PLAYWRIGHT_BASE || 'http://localhost:3000/play.html?fx=off';
 const MAX_STEPS_PER_RUN = Number(process.env.BURNIN_MAX_STEPS || 220);
 const CLICK_TIMEOUT_MS = Number(process.env.BURNIN_CLICK_TIMEOUT_MS || 250);
@@ -198,7 +199,22 @@ async function actOnRewardScreen(page, { preferContinue = true } = {}) {
   }, preferContinue);
 
   if (!rewardTarget) return null;
-  const clicked = await clickFirst(page, [rewardTarget]);
+  let clicked = await clickFirst(page, [rewardTarget]);
+  if (!clicked) {
+    // Target exists in DOM but may not have finished layout — wait for settle then retry
+    await sleep(REWARD_SETTLE_DELAY_MS);
+    clicked = await clickFirst(page, [rewardTarget]);
+    if (!clicked) {
+      // getBoundingClientRect may still return zero despite offsetHeight > 0 — force-click via evaluate
+      const baseSelector = rewardTarget.split(' > ')[0];
+      const didForceClick = await page.$eval(baseSelector, (el) => {
+        if (!el || el.disabled) return false;
+        el.click();
+        return true;
+      }).catch(() => false);
+      if (didForceClick) clicked = baseSelector;
+    }
+  }
   if (clicked && /reward-cards-row|removal-cards/.test(rewardTarget)) {
     await page.waitForFunction(() => {
       const isShown = (selector) => {
@@ -259,7 +275,12 @@ async function actOnCombatScreen(page) {
 
     if ((combatState.combatSummary?.playableCards || 0) <= 0) break;
 
-    const played = await clickCombatCard(page);
+    let played = await clickCombatCard(page);
+    if (!played) {
+      // Cards exist in DOM but may not have finished layout — retry once after a brief settle
+      await sleep(COMBAT_MICRO_DELAY_MS * 3);
+      played = await clickCombatCard(page);
+    }
     if (!played) break;
 
     await sleep(COMBAT_MICRO_DELAY_MS);
@@ -450,6 +471,13 @@ async function runSingle(browser, runIndex) {
         return { runIndex, ok: consoleErrors.length === 0 && pageErrors.length === 0, ended: true, steps: step, actions, consoleErrors, pageErrors, state };
       }
 
+      if (screen === 'unknown') {
+        // Mid-transition: no recognized screen is visible yet — wait briefly and retry
+        await sleep(REWARD_SETTLE_DELAY_MS);
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
       const stateBeforeAction = await collectState(page).catch(() => null);
       const progressKey = JSON.stringify({
         screen,
@@ -568,16 +596,28 @@ async function runSingle(browser, runIndex) {
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const results = [];
+  const queue = Array.from({ length: RUNS }, (_, i) => i + 1);
 
-  for (let runIndex = 1; runIndex <= RUNS; runIndex += 1) {
-    const result = await runSingle(browser, runIndex);
+  function onResult(result) {
     results.push(result);
     const status = result.ok && result.ended ? 'OK' : 'BUG';
-    console.log(`[${status}] run ${runIndex} ended=${result.ended} steps=${result.steps ?? 'n/a'}${result.bug ? ` bug=${result.bug}` : ''}`);
+    console.log(`[${status}] run ${result.runIndex} ended=${result.ended} steps=${result.steps ?? 'n/a'}${result.bug ? ` bug=${result.bug}` : ''}`);
     if (result.consoleErrors.length) console.log(`  consoleErrors=${result.consoleErrors.length}`);
     if (result.pageErrors.length) console.log(`  pageErrors=${result.pageErrors.length}`);
     if (result.bug) console.log(`  state=${JSON.stringify(result.state)}`);
   }
+
+  async function worker() {
+    while (queue.length > 0) {
+      const runIndex = queue.shift();
+      if (runIndex === undefined) break;
+      const result = await runSingle(browser, runIndex);
+      onResult(result);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(CONCURRENCY, RUNS) }, () => worker());
+  await Promise.all(workers);
 
   await safeClose(browser);
 
@@ -585,6 +625,7 @@ async function runSingle(browser, runIndex) {
   console.log(JSON.stringify({
     base: BASE,
     runs: RUNS,
+    concurrency: CONCURRENCY,
     failures: failed.length,
     failedRuns: failed
   }, null, 2));

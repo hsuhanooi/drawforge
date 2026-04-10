@@ -43,7 +43,7 @@
           "Verify reward flow remains stable and does not regress the burn-in harness",
           "Add or update tests covering reward-option generation and deck-growth assumptions"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "balance",

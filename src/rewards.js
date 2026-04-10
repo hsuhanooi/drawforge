@@ -9,6 +9,12 @@ const { createBalanceConfig } = require("./balance");
 const { createRelicReward, createRelicChoices: createTieredRelicChoices } = require("./relics");
 const { createRandomPotion, POTION_DROP_CHANCE, MAX_POTIONS } = require("./potions");
 
+const RARITY_SCORE = {
+  common: 1,
+  uncommon: 2,
+  rare: 3
+};
+
 /** @type {Record<string, number>} */
 const RARITY_WEIGHTS = {
   common: 3,
@@ -98,6 +104,22 @@ const addRewardCardToDeck = (deck, card) => [...deck, card.id];
 
 const hasRunRelic = (run, id) => run && (run.relics || []).some((r) => r.id === id);
 
+const scoreRewardCard = (card) => (RARITY_SCORE[card.rarity] || 0) * 100 + ((card.cost === 0 ? 5 : 0) + (card.keywords?.length || 0));
+
+const createVictoryCardRewards = (nodeType = "combat", run = null, balanceOverrides = {}, rng = Math.random) => {
+  const act = run?.act || 1;
+  const extraCards = (hasRunRelic(run, "merchant_ledger") || hasRunRelic(run, "golden_brand")) ? 1 : 0;
+  const baseCount = createBalanceConfig(balanceOverrides).rewards.cardOptionCount;
+  const optionCount = baseCount + extraCards + (act >= 2 && nodeType === "combat" ? 1 : 0);
+  const candidateCount = Math.min(rewardPool.length, Math.max(optionCount + 3, optionCount * 2));
+  const candidates = createRewardOptions(candidateCount, balanceOverrides, rng);
+  const rarityFloor = nodeType === "boss" ? 2 : nodeType === "elite" || act >= 3 ? 1.5 : 1;
+  const filtered = candidates.filter((card) => (RARITY_SCORE[card.rarity] || 0) >= rarityFloor || card.rarity === "rare");
+  const pool = (filtered.length >= optionCount ? filtered : candidates)
+    .sort((left, right) => scoreRewardCard(right) - scoreRewardCard(left));
+  return pool.slice(0, optionCount);
+};
+
 /**
  * @param {"combat" | "elite" | "boss"} [nodeType]
  * @param {object} [run]
@@ -106,8 +128,7 @@ const hasRunRelic = (run, id) => run && (run.relics || []).some((r) => r.id === 
  * @returns {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean, potion: object | null }}
  */
 const createVictoryRewards = (nodeType = "combat", run = null, balanceOverrides = {}, rng = Math.random) => {
-  const extraCards = (hasRunRelic(run, "merchant_ledger") || hasRunRelic(run, "golden_brand")) ? 1 : 0;
-  const cards = createRewardOptions((createBalanceConfig(balanceOverrides).rewards.cardOptionCount) + extraCards, balanceOverrides);
+  const cards = createVictoryCardRewards(nodeType, run, balanceOverrides, rng);
   const currentPotions = run ? (run.potions || []) : [];
   const canReceivePotion = currentPotions.length < MAX_POTIONS;
   const potionDrops = nodeType === "elite" ? POTION_DROP_CHANCE : 0;
@@ -141,5 +162,6 @@ module.exports = {
   createRewardOptions,
   createRelicChoices,
   addRewardCardToDeck,
+  createVictoryCardRewards,
   createVictoryRewards
 };

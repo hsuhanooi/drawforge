@@ -1,4 +1,4 @@
-const { createRewardOptions, addRewardCardToDeck, createVictoryRewards } = require("../src/rewards");
+const { createRewardOptions, addRewardCardToDeck, createVictoryCardRewards, createVictoryRewards } = require("../src/rewards");
 
 const createBaseCombat = () => ({
   state: "victory",
@@ -115,5 +115,20 @@ describe("combat rewards", () => {
       if (card.rarity === "rare") rareCount += 1;
     }
     expect(commonCount).toBeGreaterThan(rareCount);
+  });
+
+  it("offers an extra combat reward card from act 2 onward to help deck growth", () => {
+    const act1Rewards = createVictoryRewards("combat", { act: 1, relics: [] });
+    const act2Rewards = createVictoryRewards("combat", { act: 2, relics: [] });
+
+    expect(act1Rewards.cards).toHaveLength(3);
+    expect(act2Rewards.cards).toHaveLength(4);
+  });
+
+  it("biases later-act victory rewards toward stronger rarity mixes", () => {
+    const cards = createVictoryCardRewards("combat", { act: 3, relics: [] }, {}, createSequenceRng(0.1, 0.4, 0.7, 0.2, 0.5, 0.8));
+
+    expect(cards).toHaveLength(4);
+    expect(cards.some((card) => ["uncommon", "rare"].includes(card.rarity))).toBe(true);
   });
 });

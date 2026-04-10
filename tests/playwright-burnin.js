@@ -116,6 +116,14 @@ async function collectState(page) {
             ? 'cards'
             : 'none';
 
+    const saveKey = 'drawforge.v1';
+    let savedRun = null;
+    try {
+      savedRun = JSON.parse(localStorage.getItem(saveKey) || 'null');
+    } catch {
+      savedRun = null;
+    }
+
     return {
       location: window.location.href,
       title: document.title,
@@ -142,6 +150,14 @@ async function collectState(page) {
         hp: document.querySelector('#map-hp')?.textContent || null,
         gold: document.querySelector('#map-gold')?.textContent || null,
         deck: document.querySelector('#map-deck-count')?.textContent || null
+      },
+      runStats: savedRun?.stats || null,
+      runSummary: {
+        deckSize: savedRun?.player?.deck?.length || 0,
+        gold: savedRun?.player?.gold || 0,
+        act: savedRun?.act || 1,
+        state: savedRun?.state || null,
+        trueVictory: Boolean(savedRun?.trueVictory)
       },
       combatSummary: {
         playerHp: document.querySelector('#player-hp-current')?.textContent || null,
@@ -622,11 +638,40 @@ async function runSingle(browser, runIndex) {
   await safeClose(browser);
 
   const failed = results.filter((result) => !result.ok || !result.ended || result.consoleErrors.length || result.pageErrors.length);
+  const completed = results.filter((result) => result.ok && result.ended && result.state?.runStats);
+  const totals = completed.reduce((acc, result) => {
+    const stats = result.state.runStats || {};
+    const summary = result.state.runSummary || {};
+    acc.deckSize += summary.deckSize || 0;
+    acc.goldSpent += stats.goldSpent || 0;
+    acc.shopVisits += stats.shopVisits || 0;
+    acc.rewardChoiceScreens += stats.rewardCardChoiceScreens || 0;
+    acc.rewardCardsClaimed += stats.rewardCardsClaimed || 0;
+    acc.trueVictories += summary.trueVictory ? 1 : 0;
+    return acc;
+  }, {
+    deckSize: 0,
+    goldSpent: 0,
+    shopVisits: 0,
+    rewardChoiceScreens: 0,
+    rewardCardsClaimed: 0,
+    trueVictories: 0
+  });
+  const divisor = completed.length || 1;
   console.log(JSON.stringify({
     base: BASE,
     runs: RUNS,
     concurrency: CONCURRENCY,
     failures: failed.length,
+    averages: completed.length ? {
+      finalDeckSize: Number((totals.deckSize / divisor).toFixed(2)),
+      goldSpent: Number((totals.goldSpent / divisor).toFixed(2)),
+      shopVisits: Number((totals.shopVisits / divisor).toFixed(2)),
+      rewardChoiceScreens: Number((totals.rewardChoiceScreens / divisor).toFixed(2)),
+      rewardCardsClaimed: Number((totals.rewardCardsClaimed / divisor).toFixed(2)),
+      rewardPickRatePerScreen: Number((totals.rewardCardsClaimed / Math.max(1, totals.rewardChoiceScreens)).toFixed(2)),
+      trueVictoryRate: Number((totals.trueVictories / divisor).toFixed(2))
+    } : null,
     failedRuns: failed
   }, null, 2));
 })();

@@ -62,6 +62,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('await Promise.all(workers);');
   });
 
+  it('reports aggregate run-depth telemetry from saved run stats', () => {
+    expect(burninSource).toContain("const saveKey = 'drawforge.v1';");
+    expect(burninSource).toContain('runStats: savedRun?.stats || null,');
+    expect(burninSource).toContain('rewardPickRatePerScreen');
+    expect(burninSource).toContain('trueVictoryRate');
+  });
+
   it('prefers continue or skip controls on reward screens before slower choice clicks', () => {
     expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = true } = {}) {');
     expect(burninSource).toContain('if (shouldPreferContinue) {');

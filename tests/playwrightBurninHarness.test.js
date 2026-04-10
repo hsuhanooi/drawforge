@@ -51,7 +51,9 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('async function clickAvailableMapNode(page) {');
     expect(burninSource).toContain("await page.waitForFunction(() => {");
     expect(burninSource).toContain("document.querySelectorAll('.map-node.available')");
-    expect(burninSource).toContain('await sleep(120);');
+    expect(burninSource).toContain('const selectors = [');
+    expect(burninSource).toContain('await sleep(250);');
+    expect(burninSource).toContain('const forceChoice = await page.evaluate(() => {');
     expect(burninSource).toContain("const choice = await clickAvailableMapNode(page);");
   });
 

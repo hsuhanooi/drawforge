@@ -348,6 +348,15 @@ async function actOnCombatScreen(page) {
 }
 
 async function clickAvailableMapNode(page) {
+  const selectors = [
+    '.map-node.available.type-combat',
+    '.map-node.available.type-elite',
+    '.map-node.available.type-event',
+    '.map-node.available.type-shop',
+    '.map-node.available.type-rest',
+    '.map-node.available'
+  ];
+
   await page.waitForFunction(() => {
     const nodes = Array.from(document.querySelectorAll('.map-node.available'));
     return nodes.some((el) => {
@@ -360,28 +369,42 @@ async function clickAvailableMapNode(page) {
         && rect.height > 0
         && !el.closest('.hidden');
     });
-  }, { timeout: 1000 }).catch(() => {});
+  }, { timeout: 1800 }).catch(() => {});
 
-  const choice = await clickFirst(page, [
-    '.map-node.available.type-combat',
-    '.map-node.available.type-elite',
-    '.map-node.available.type-event',
-    '.map-node.available.type-shop',
-    '.map-node.available.type-rest',
-    '.map-node.available'
-  ]);
-
+  const choice = await clickFirst(page, selectors);
   if (choice) return choice;
 
-  await sleep(120);
-  return clickFirst(page, [
-    '.map-node.available.type-combat',
-    '.map-node.available.type-elite',
-    '.map-node.available.type-event',
-    '.map-node.available.type-shop',
-    '.map-node.available.type-rest',
-    '.map-node.available'
-  ]);
+  await sleep(250);
+  const retry = await clickFirst(page, selectors);
+  if (retry) return retry;
+
+  const forceChoice = await page.evaluate(() => {
+    const selectorsInPriority = [
+      '.map-node.available.type-combat',
+      '.map-node.available.type-elite',
+      '.map-node.available.type-event',
+      '.map-node.available.type-shop',
+      '.map-node.available.type-rest',
+      '.map-node.available'
+    ];
+    for (const selector of selectorsInPriority) {
+      const nodes = Array.from(document.querySelectorAll(selector));
+      const target = nodes.find((el) => {
+        const style = window.getComputedStyle(el);
+        return !el.classList.contains('hidden')
+          && style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && !el.closest('.hidden');
+      });
+      if (target) {
+        target.click();
+        return selector;
+      }
+    }
+    return null;
+  }).catch(() => null);
+
+  return forceChoice;
 }
 
 async function actOnScreen(page, screen, options = {}) {

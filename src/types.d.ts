@@ -15,7 +15,17 @@ export type CardId =
   | "wither"
   | "siphon_ward"
   | "detonate_sigil"
-  | "lingering_curse";
+  | "lingering_curse"
+  | "venom_strike"
+  | "toxic_cloud"
+  | "creeping_blight"
+  | "septic_touch"
+  | "infectious_wound"
+  | "ember_throw"
+  | "kindle"
+  | "scorch"
+  | "funeral_pyre"
+  | "smoldering_brand";
 
 export type CardType = "attack" | "skill";
 

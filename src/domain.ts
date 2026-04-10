@@ -27,7 +27,17 @@ export const CARD_IDS = [
   "charge_up",
   "arc_lash",
   "blood_pact",
-  "spite_shield"
+  "spite_shield",
+  "venom_strike",
+  "toxic_cloud",
+  "creeping_blight",
+  "septic_touch",
+  "infectious_wound",
+  "ember_throw",
+  "kindle",
+  "scorch",
+  "funeral_pyre",
+  "smoldering_brand"
 ] as const;
 
 export type CardId = (typeof CARD_IDS)[number];

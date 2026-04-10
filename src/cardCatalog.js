@@ -88,6 +88,16 @@ const implementedOverrides = {
   hexburst: { damage: 6, consumeHexBonus: 4 },
   // Hex / Exhaust hybrids
   soul_rend: { damage: 9, ifHexedExhaustFromHand: true, ifHexedEnergyGain: 1 },
+  venom_strike: { damage: 5, applyPoison: 2 },
+  toxic_cloud: { applyPoison: 3 },
+  creeping_blight: { damage: 7, applyPoison: 3 },
+  septic_touch: { applyPoison: 2, applyWeak: 1 },
+  infectious_wound: { damage: 4, applyPoison: 2, draw: 1 },
+  ember_throw: { damage: 5, applyBurn: 2 },
+  kindle: { applyBurn: 3 },
+  scorch: { damage: 8, applyBurn: 2 },
+  funeral_pyre: { applyBurn: 4, exhaust: true },
+  smoldering_brand: { applyBurn: 2, applyWeak: 1 },
   doom_engine: { activateDoomEngine: true },
   unseal: { damage: 5, bonusVsHex: 5, exhaust: true },
   ritual_collapse: { exhaustFromHandCount: 2, hexPerExhausted: true },
@@ -132,6 +142,8 @@ const deriveKeywords = (card) => {
 
   const keys = [];
   if (card.hex || card.bonusVsHex || card.costReduceIfHexed || card.ifHexedExhaustFromHand || card.ifHexedEnergyGain || card.consumeHexBonus) keys.push("Hex");
+  if (card.poison || card.applyPoison) keys.push("Poison");
+  if (card.burn || card.applyBurn) keys.push("Burn");
   if (card.setCharged || card.drawIfCharged || card.energyIfCharged || card.costReduceIfCharged || card.bonusBlockIfCharged) keys.push("Charged");
   if (card.exhaust || card.exhaustFromHand || card.exhaustHand || card.exhaustSkillsFromHand || card.exhaustFromHandCount || card.energyPerExhausted || card.bonusVsExhaust || card.bonusDmgPerExhausted) keys.push("Exhaust");
   if (card.draw || card.drawIfCharged) keys.push("Draw");

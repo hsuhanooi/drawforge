@@ -14,12 +14,16 @@ const createCombatEncounter = ({ player, enemy }) => ({
   player: {
     health: player.health,
     block: 0,
-    energy: 0
+    energy: 0,
+    poison: 0,
+    burn: 0
   },
   hand: [],
   drawPile: [],
   discardPile: [],
   enemy: {
+    poison: 0,
+    burn: 0,
     ...enemy
   }
 });

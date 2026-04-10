@@ -35,4 +35,17 @@ describe("enemy selection", () => {
     expect(enemy.presentation.icon.assetRef).toBe(`icons/${enemy.id}`);
     expect(enemy.presentation.background.assetRef).toBe("backgrounds/combat_default");
   });
+
+  it("includes poison and burn enemy intents in the combat pool", () => {
+    const seen = new Set();
+    for (let row = 0; row < 5; row += 1) {
+      for (let col = 0; col < 5; col += 1) {
+        seen.add(createEnemyForNode({ row, col, type: "combat" }).id);
+      }
+    }
+
+    expect(seen.has("plague_rat")).toBe(true);
+    expect(seen.has("cinder_shade")).toBe(true);
+    expect(seen.has("venomfang")).toBe(true);
+  });
 });

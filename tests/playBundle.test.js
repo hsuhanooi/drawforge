@@ -89,6 +89,8 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('if (totalDamage > 0) parts.push(`Deal ${totalDamage}`);');
     expect(playJs).toContain('parts.push(`Gain ${blockGain} block`);');
     expect(playJs).toContain('if (card.hex) parts.push(`Apply ${card.hex} Hex`);');
+    expect(playJs).toContain('if (card.applyPoison) parts.push(`Apply ${card.applyPoison} Poison`);');
+    expect(playJs).toContain('if (card.applyBurn) parts.push(`Apply ${card.applyBurn} Burn`);');
     expect(playJs).toContain('function renderCardSelectionPreview(card, combat) {');
     expect(playJs).toContain('chip.className = "combat-preview-chip hidden";');
     expect(playJs).toContain('renderCardSelectionPreview(selectedCard, combat);');
@@ -228,6 +230,8 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('const icon = ICONS[intent.type] || "❓";');
     expect(playJs).toContain('$id("enemy-hp-current").textContent = Math.max(0, combat.enemy.health);');
     expect(playJs).toContain('renderBadgesAnimated("enemy-badges", [');
+    expect(playJs).toContain('value: combat.enemy.poison || 0');
+    expect(playJs).toContain('value: combat.enemy.burn || 0');
     expect(playJs).toContain('renderIntent(combat.enemyIntent);');
   });
 

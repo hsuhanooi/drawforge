@@ -95,6 +95,16 @@ const FACTORY_EXPORT_NAMES = {
   black_seal: "blackSealCardDefinition",
   feast_on_weakness: "feastOnWeaknessCardDefinition",
   malediction: "maledictionCardDefinition",
+  venom_strike: "venomStrikeCardDefinition",
+  toxic_cloud: "toxicCloudCardDefinition",
+  creeping_blight: "creepingBlightCardDefinition",
+  septic_touch: "septicTouchCardDefinition",
+  infectious_wound: "infectiousWoundCardDefinition",
+  ember_throw: "emberThrowCardDefinition",
+  kindle: "kindleCardDefinition",
+  scorch: "scorchCardDefinition",
+  funeral_pyre: "funeralPyreCardDefinition",
+  smoldering_brand: "smolderingBrandCardDefinition",
   iron_will: "ironWillCardDefinition",
   burning_aura: "burningAuraCardDefinition",
   hex_resonance: "hexResonanceCardDefinition",
@@ -142,6 +152,8 @@ const computeDamage = (card, state, next) => {
   if (card.bonusPerStrength) damage += playerStrength * card.bonusPerStrength;
   if (card.bonusVsVulnerable && enemyVulnerable > 0) damage += card.bonusVsVulnerable;
   if (card.bonusDmgPerHex) damage += enemyHex * card.bonusDmgPerHex;
+  if (card.bonusDmgPerPoison) damage += (next.enemy?.poison || 0) * card.bonusDmgPerPoison;
+  if (card.bonusDmgPerBurn) damage += (next.enemy?.burn || 0) * card.bonusDmgPerBurn;
   if (card.bonusDmgPerExhausted) damage += exhaustedThisTurn * card.bonusDmgPerExhausted;
   if (card.bonusIfLastCard && (state.hand || []).length <= 1) damage += card.bonusIfLastCard;
   if (card.consumeHexBonus && enemyHex > 0) {
@@ -202,8 +214,12 @@ const buildRuntimeEffect = (card) => {
     if (card.ifHexedEnergyGain && (next.enemy?.hex || 0) > 0) next.player.energy = (next.player.energy || 0) + card.ifHexedEnergyGain;
 
     if (card.hex) next.enemy.hex = (next.enemy.hex || 0) + card.hex;
+    if (card.applyPoison) next.enemy.poison = (next.enemy.poison || 0) + card.applyPoison;
+    if (card.applyBurn) next.enemy.burn = (next.enemy.burn || 0) + card.applyBurn;
     if (card.applyWeak) next.enemy.weak = (next.enemy.weak || 0) + card.applyWeak;
     if (card.applyVulnerable) next.enemy.vulnerable = (next.enemy.vulnerable || 0) + card.applyVulnerable;
+    if (card.applyPoison) next.enemy.poison = (next.enemy.poison || 0) + card.applyPoison;
+    if (card.applyBurn) next.enemy.burn = (next.enemy.burn || 0) + card.applyBurn;
     if (card.applyStrength) next.player.strength = (next.player.strength || 0) + card.applyStrength;
     if (card.applyDexterity) next.player.dexterity = (next.player.dexterity || 0) + card.applyDexterity;
 

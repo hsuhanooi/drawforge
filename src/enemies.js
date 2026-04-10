@@ -183,6 +183,39 @@ const createEnemyForNode = (node, act = 1) => {
       ]
     }),
     createEnemy({
+      id: "plague_rat",
+      name: "Plague Rat",
+      health: 27,
+      damage: 5,
+      rewardGold: 13,
+      intents: [
+        { type: "debuff_poison", value: 2, label: "Toxic Spit: apply Poison 2" },
+        { type: "attack", value: 7, label: "Bite for 7" }
+      ]
+    }),
+    createEnemy({
+      id: "cinder_shade",
+      name: "Cinder Shade",
+      health: 29,
+      damage: 6,
+      rewardGold: 13,
+      intents: [
+        { type: "debuff_burn", value: 2, label: "Scorching Whisper: apply Burn 2" },
+        { type: "attack", value: 8, label: "Ash Swipe for 8" }
+      ]
+    }),
+    createEnemy({
+      id: "venomfang",
+      name: "Venomfang",
+      health: 31,
+      damage: 7,
+      rewardGold: 14,
+      intents: [
+        { type: "attack_poison", value: 6, poison: 1, label: "Venom Bite for 6 + Poison 1" },
+        { type: "multi_attack", value: 3, hits: 2, label: "Rake: 2x3" }
+      ]
+    }),
+    createEnemy({
       id: "phantom_thief",
       name: "Phantom Thief",
       health: 24,
@@ -227,6 +260,39 @@ const createEnemyForNode = (node, act = 1) => {
         { type: "block", value: 8, label: "Curl Up: gain 8 block" },
         { type: "block", value: 6, label: "Harden: gain 6 block" },
         { type: "attack", value: 10, label: "Crush for 10" }
+      ]
+    }),
+    createEnemy({
+      id: "plague_rat",
+      name: "Plague Rat",
+      health: 32,
+      damage: 5,
+      rewardGold: 14,
+      intents: [
+        { type: "debuff_poison", value: 2, label: "Plague Bite: apply Poison 2" },
+        { type: "attack", value: 7, label: "Gnaw for 7" }
+      ]
+    }),
+    createEnemy({
+      id: "cinder_shade",
+      name: "Cinder Shade",
+      health: 34,
+      damage: 6,
+      rewardGold: 14,
+      intents: [
+        { type: "debuff_burn", value: 2, label: "Ashen Touch: apply Burn 2" },
+        { type: "attack", value: 8, label: "Ember Lash for 8" }
+      ]
+    }),
+    createEnemy({
+      id: "venomfang",
+      name: "Venomfang",
+      health: 36,
+      damage: 7,
+      rewardGold: 15,
+      intents: [
+        { type: "attack_poison", value: 7, poison: 1, label: "Venom Strike for 7 + Poison 1" },
+        { type: "attack", value: 9, label: "Rend for 9" }
       ]
     })
   ];

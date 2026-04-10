@@ -2,12 +2,68 @@ const { createEnemyForNode, resolveEnemyIntent } = require("./enemies");
 const { createCardCatalog } = require("./cardCatalog");
 const { getCombatEnergyBonus } = require("./relics");
 const { applyPotion } = require("./potions");
-
-const DEFAULT_PLAYER_ENERGY = 3;
+const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS } = require("./constants");
 const CARD_CATALOG = createCardCatalog();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const COMBAT_LOG_LIMIT = 8;
+
+const clampStacks = (value, max) => Math.max(0, Math.min(max, value || 0));
+
+const normalizeStatusStacks = (combat) => {
+  if (!combat) return combat;
+  return {
+    ...combat,
+    player: {
+      ...(combat.player || {}),
+      poison: clampStacks(combat.player?.poison, MAX_POISON_STACKS),
+      burn: clampStacks(combat.player?.burn, MAX_BURN_STACKS)
+    },
+    enemy: {
+      ...(combat.enemy || {}),
+      poison: clampStacks(combat.enemy?.poison, MAX_POISON_STACKS),
+      burn: clampStacks(combat.enemy?.burn, MAX_BURN_STACKS)
+    }
+  };
+};
+
+const applyDotDamage = (target, amount) => {
+  if (!amount) return 0;
+  const blocked = Math.min(target.block || 0, amount);
+  target.block = (target.block || 0) - blocked;
+  const damage = amount - blocked;
+  target.health = Math.max(0, target.health - damage);
+  return damage;
+};
+
+const applyStatusTicks = (combat, targetKey, phase = "end") => {
+  const next = clone(combat);
+  const target = next[targetKey];
+  if (!target) return next;
+
+  const logTone = targetKey === "enemy" ? "status" : "enemy";
+  const label = targetKey === "enemy" ? (next.enemy?.name || "Enemy") : "You";
+
+  if (phase === "end" && (target.poison || 0) > 0) {
+    const poisonStacks = clampStacks(target.poison, MAX_POISON_STACKS);
+    const poisonDamage = applyDotDamage(target, poisonStacks);
+    target.poison = Math.max(0, poisonStacks - 1);
+    if (poisonDamage > 0) {
+      return appendCombatLog(next, `${label} suffers ${poisonDamage} poison damage.`, logTone);
+    }
+  }
+
+  if (phase === "start" && (target.burn || 0) > 0) {
+    const burnStacks = clampStacks(target.burn, MAX_BURN_STACKS);
+    const burnDamage = applyDotDamage(target, burnStacks);
+    target.burn = burnStacks;
+    if (burnDamage > 0) {
+      return appendCombatLog(next, `${label} burns for ${burnDamage} damage.`, logTone);
+    }
+  }
+
+  return next;
+};
 
 const appendCombatLog = (combat, text, tone = "system") => ({
   ...combat,
@@ -74,7 +130,7 @@ const startCombatForNode = (run, node) => {
   if (hasRelic(run, "empty_throne")) drawCount += 2;
   if (hasRelic(run, "infernal_battery")) drawCount -= 1;
   const startingBlock = hasRelic(run, "rusted_buckler") ? 4 : 0;
-  return appendCombatLog(drawCards({
+  const combatState = appendCombatLog(drawCards({
     state: "active",
     turn: "player",
     nodeType: node.type,
@@ -101,7 +157,9 @@ const startCombatForNode = (run, node) => {
       charged: hasRelic(run, "storm_diadem"),
       strength: hasRelic(run, "iron_boots") ? 1 : 0,
       dexterity: hasRelic(run, "nimble_cloak") ? 1 : 0,
-      weak: 0
+      weak: 0,
+      poison: 0,
+      burn: 0
     },
     hand: [],
     drawPile: shuffleCards(run.player.deck.map(createRenderableCardFromId)),
@@ -113,9 +171,12 @@ const startCombatForNode = (run, node) => {
     enemy: {
       ...enemy,
       vulnerable: hasRelic(run, "cracked_lens") ? 1 : 0,
-      hex: hasRelic(run, "hex_crown") ? 1 : 0
+      hex: hasRelic(run, "hex_crown") ? 1 : 0,
+      poison: 0,
+      burn: 0
     }
   }, drawCount), `Combat started against ${enemy.name}.`, "system");
+  return normalizeStatusStacks(combatState);
 };
 
 const playCombatCard = (run, handIndex) => {
@@ -141,7 +202,7 @@ const playCombatCard = (run, handIndex) => {
   }
   if (combat.player.energy < effectiveCost) throw new Error("Not enough energy");
 
-  let next = clone(combat);
+  let next = normalizeStatusStacks(clone(combat));
   next.triggeredRelics = [];
   if (hasRelic(run, "time_locked_seal") && !next.seal_used_this_turn && card.cost <= 1) {
     next.seal_used_this_turn = true;
@@ -205,13 +266,15 @@ const playCombatCard = (run, handIndex) => {
     const strengthScaling = (next.player.strength || 0) * (card.bonusPerStrength || 0);
     // New scaling bonuses (Milestone 10)
     const hexPerStackBonus = card.bonusDmgPerHex ? (next.enemy.hex || 0) * card.bonusDmgPerHex : 0;
+    const poisonStackBonus = card.bonusDmgPerPoison ? (next.enemy.poison || 0) * card.bonusDmgPerPoison : 0;
+    const burnStackBonus = card.bonusDmgPerBurn ? (next.enemy.burn || 0) * card.bonusDmgPerBurn : 0;
     const exhaustedStackBonus = card.bonusDmgPerExhausted ? (next.exhaustedThisTurn || 0) * card.bonusDmgPerExhausted : 0;
     const lastCardBonus = card.bonusIfLastCard && next.hand.length === 0 ? card.bonusIfLastCard : 0;
     // consumeHexBonus: consume all hex stacks, deal bonus per stack consumed
     const hexStacks = next.enemy.hex || 0;
     const hexConsumedBonus = card.consumeHexBonus ? hexStacks * card.consumeHexBonus : 0;
     if (card.consumeHexBonus) next.enemy.hex = 0;
-    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus;
+    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus;
     // Weak on player reduces outgoing attack damage by 25%
     if (card.type === "attack" && (next.player.weak || 0) > 0) totalDamage = Math.floor(totalDamage * 0.75);
     // Vulnerable on enemy amplifies incoming damage by 50%
@@ -265,6 +328,8 @@ const playCombatCard = (run, handIndex) => {
       next.sigil_fired = true;
     }
   }
+  if (card.applyPoison) next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoison, MAX_POISON_STACKS);
+  if (card.applyBurn) next.enemy.burn = clampStacks((next.enemy.burn || 0) + card.applyBurn, MAX_BURN_STACKS);
   if (card.applyStrength) {
     const bonus = hasRelic(run, "warlords_brand") ? card.applyStrength + 1 : card.applyStrength;
     next.player.strength = (next.player.strength || 0) + bonus;
@@ -411,11 +476,15 @@ const playCombatCard = (run, handIndex) => {
   const enemyHealthDelta = Math.max(0, enemyHpBefore - next.enemy.health);
   const playerBlockGain = Math.max(0, (next.player.block || 0) - (combat.player.block || 0));
   const enemyHexGain = Math.max(0, (next.enemy.hex || 0) - (combat.enemy.hex || 0));
+  const enemyPoisonGain = Math.max(0, (next.enemy.poison || 0) - (combat.enemy.poison || 0));
+  const enemyBurnGain = Math.max(0, (next.enemy.burn || 0) - (combat.enemy.burn || 0));
   const energySpent = Math.max(0, (combat.player.energy || 0) - (next.player.energy || 0));
   const logParts = [];
   if (enemyHealthDelta > 0) logParts.push(`deal ${enemyHealthDelta}`);
   if (playerBlockGain > 0) logParts.push(`gain ${playerBlockGain} block`);
   if (enemyHexGain > 0) logParts.push(`apply ${enemyHexGain} Hex`);
+  if (enemyPoisonGain > 0) logParts.push(`apply ${enemyPoisonGain} Poison`);
+  if (enemyBurnGain > 0) logParts.push(`apply ${enemyBurnGain} Burn`);
   if (energySpent > 0) logParts.push(`spend ${energySpent} energy`);
   if (next.triggeredRelics?.length) logParts.push(`trigger ${next.triggeredRelics.length} relic`);
   next = appendCombatLog(next, logParts.length > 0
@@ -443,7 +512,7 @@ const playCombatCard = (run, handIndex) => {
   return {
     ...run,
     stats: newStats,
-    combat: next,
+    combat: normalizeStatusStacks(next),
     player: { ...run.player, health: next.player.health },
     phoenix_used: run.phoenix_used || false
   };
@@ -485,6 +554,24 @@ const applyEnemyIntent = (combat, intent) => {
     next.player.weak = (next.player.weak || 0) + (intent.value || 1);
     return next;
   }
+  if (intent.type === "debuff_poison") {
+    next.player.poison = clampStacks((next.player.poison || 0) + (intent.value || 1), MAX_POISON_STACKS);
+    return next;
+  }
+  if (intent.type === "debuff_burn") {
+    next.player.burn = clampStacks((next.player.burn || 0) + (intent.value || 1), MAX_BURN_STACKS);
+    return next;
+  }
+  if (intent.type === "attack_poison") {
+    let hitDamage = (intent.value || 0) + (next.enemy.strength || 0);
+    if ((next.enemy.weak || 0) > 0) hitDamage = Math.floor(hitDamage * 0.75);
+    const blocked = Math.min(next.player.block, hitDamage);
+    const remainingDamage = hitDamage - blocked;
+    next.player.block -= blocked;
+    next.player.health = Math.max(0, next.player.health - remainingDamage);
+    next.player.poison = clampStacks((next.player.poison || 0) + (intent.poison || 1), MAX_POISON_STACKS);
+    return next;
+  }
   if (intent.type === "debuff_hex") {
     next.enemy.hex = (next.enemy.hex || 0) + (intent.value || 1);
     return next;
@@ -498,10 +585,20 @@ const applyEnemyIntent = (combat, intent) => {
 };
 
 const endCombatTurn = (run) => {
-  const combat = run.combat;
+  const combat = normalizeStatusStacks(run.combat);
   if (combat.state !== "active") return run;
-  const healthBeforeIntent = combat.player.health;
-  let next = applyEnemyIntent(combat, combat.enemyIntent);
+  let next = applyStatusTicks(combat, "enemy", "end");
+  next = applyStatusTicks(next, "enemy", "start");
+  if (next.enemy.health <= 0) {
+    next.enemy.health = 0;
+    next.state = "victory";
+    next.turn = null;
+    next.enemyIntent = null;
+    next = appendCombatLog(next, `${next.enemy.name} collapsed from status damage.`, "status");
+    return { ...run, combat: normalizeStatusStacks(next), player: { ...run.player, health: next.player.health } };
+  }
+  const healthBeforeIntent = next.player.health;
+  next = applyEnemyIntent(next, next.enemyIntent);
   next.triggeredRelics = [];
   if (hasRelic(run, "thorn_crest") && next.player.health < healthBeforeIntent) {
     const thornBlocked = Math.min(next.enemy.block || 0, 3);
@@ -546,6 +643,8 @@ const endCombatTurn = (run) => {
   next.turn = "player";
   next.enemyTurnNumber = (combat.enemyTurnNumber || 0) + 1;
   next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemyTurnNumber);
+  next = applyStatusTicks(next, "player", "end");
+  next = applyStatusTicks(next, "player", "start");
   // empty_throne: draw 1 fewer on turn 2 (enemyTurnNumber was just incremented to 1 after first enemy turn)
   const drawCount = (hasRelic(run, "empty_throne") && next.enemyTurnNumber === 1) ? 4 : 5;
   next = drawCards(next, drawCount);
@@ -554,6 +653,10 @@ const endCombatTurn = (run) => {
   for (const power of (next.powers || [])) {
     if (power.id === "iron_will") {
       next.player.dexterity = (next.player.dexterity || 0) + 1;
+    } else if (power.id === "creeping_blight") {
+      next.enemy.poison = clampStacks((next.enemy.poison || 0) + 1, MAX_POISON_STACKS);
+    } else if (power.id === "kindle") {
+      next.enemy.burn = clampStacks((next.enemy.burn || 0) + 1, MAX_BURN_STACKS);
     } else if (power.id === "burning_aura") {
       const thornBlocked = Math.min(next.enemy.block || 0, 3);
       next.enemy.block = (next.enemy.block || 0) - thornBlocked;
@@ -577,6 +680,11 @@ const endCombatTurn = (run) => {
       next.player.health = Math.max(1, next.player.health - 2);
       next.player.energy += 1;
     }
+  }
+  if (next.player.health <= 0) {
+    next.state = "defeat";
+    next.turn = null;
+    next.enemyIntent = null;
   }
   next = checkPhaseShift(next);
   if (next.enemy.health <= 0) {
@@ -607,7 +715,7 @@ const endCombatTurn = (run) => {
     turnsPlayed: (prevStats.turnsPlayed || 0) + 1
   };
 
-  return { ...nextRun, stats: turnStats, combat: next, player: { ...run.player, health: next.player.health } };
+  return { ...nextRun, stats: turnStats, combat: normalizeStatusStacks(next), player: { ...run.player, health: next.player.health } };
 };
 
 const usePotionInCombat = (run, potionId) => {

@@ -1013,7 +1013,7 @@
           "Add poison and burn badge icons to renderBadgesAnimated in browser/play.js",
           "Add unit tests in tests/combat.test.js covering poison/burn resolution, stack cap, and both new status paths"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "balance",
@@ -1028,7 +1028,7 @@
           "Raise Act 2 common enemy damage by 2 and Act 2 elite enemy damage by 2 in src/enemies.js",
           "Add unit tests asserting hex cap clamping and exhaust energy cap enforcement"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "gameplay",

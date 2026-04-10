@@ -345,6 +345,8 @@
     Draw: "Take cards from your draw pile into your hand.",
     Block: "Prevents incoming damage until the end of the turn unless a rule says otherwise.",
     Weak: "Reduces attack damage dealt while it lasts.",
+    Poison: "Deals damage at turn end, then loses 1 stack.",
+    Burn: "Deals damage at turn start and does not decay on its own.",
     Vulnerable: "Makes the target take increased damage while it lasts.",
     Strength: "Increases outgoing attack damage.",
     Dexterity: "Increases block gained from defensive cards and effects.",
@@ -354,7 +356,7 @@
 
   function buildKeywordNodes(text) {
     const fragment = document.createDocumentFragment();
-    const keywordPattern = /\b(Hex|Hexed|Charged|Exhaust|Draw|Block|Weak|Vulnerable|Strength|Dexterity|energy|Cost)\b/g;
+    const keywordPattern = /\b(Hex|Hexed|Charged|Exhaust|Draw|Block|Weak|Poison|Burn|Vulnerable|Strength|Dexterity|energy|Cost)\b/g;
     let lastIndex = 0;
     let match;
 
@@ -1172,6 +1174,9 @@
       block:        "🛡️",
       buff:         "💪",
       debuff_weak:  "💀",
+      debuff_poison: "🐍",
+      debuff_burn:  "🔥",
+      attack_poison: "🐍⚔️",
       debuff_hex:   "☠️",
       debuff_curse: "👁️",
       unknown:      "❓"
@@ -1433,8 +1438,10 @@
     if (card.draw) parts.push(`Draw ${card.draw}`);
     if (card.energyGain) parts.push(`Gain ${card.energyGain} energy`);
     if (card.hex) parts.push(`Apply ${card.hex} Hex`);
-    if (card.vulnerable) parts.push(`Apply ${card.vulnerable} Vulnerable`);
-    if (card.weak) parts.push(`Apply ${card.weak} Weak`);
+    if (card.applyPoison) parts.push(`Apply ${card.applyPoison} Poison`);
+    if (card.applyBurn) parts.push(`Apply ${card.applyBurn} Burn`);
+    if (card.applyVulnerable) parts.push(`Apply ${card.applyVulnerable} Vulnerable`);
+    if (card.applyWeak) parts.push(`Apply ${card.applyWeak} Weak`);
     return parts.length ? parts.join(" · ") : describeCard(card);
   }
 
@@ -1648,6 +1655,8 @@
     strength:   "Strength: +1 damage on every attack",
     dexterity:  "Dexterity: +1 block from every block-granting card",
     weak:       "Weak: deal 25% less damage on attacks",
+    poison:     "Poison: takes damage at turn end, then loses 1 stack",
+    burn:       "Burn: takes damage at turn start, stacks do not decay on their own",
     hex:        "Hex: empowers hex-scaling cards; some cards consume it for bonus damage",
     vulnerable: "Vulnerable: take 50% more damage from all attacks"
   };
@@ -2238,7 +2247,7 @@
   function getPowerIcon(id) {
     const icons = {
       iron_will: "🛡️", burning_aura: "🔥", hex_resonance: "☠️",
-      storm_call: "⛈️", exhaust_engine: "⚙️", weak_field: "😵",
+      creeping_blight: "🐍", kindle: "🔥", storm_call: "⛈️", exhaust_engine: "⚙️", weak_field: "😵",
       dark_pact: "🩸", vampiric_aura: "🧛"
     };
     return icons[id] || "✨";
@@ -2319,7 +2328,9 @@
       { label: "⚡",  cls: "charged",   value: combat.player.charged ? 1 : 0,    key: "charged" },
       { label: "💪",  cls: "strength",  value: combat.player.strength || 0,      key: "strength" },
       { label: "🦶",  cls: "dexterity", value: combat.player.dexterity || 0,     key: "dexterity" },
-      { label: "😵",  cls: "weak",      value: combat.player.weak || 0,          key: "weak" }
+      { label: "😵",  cls: "weak",      value: combat.player.weak || 0,          key: "weak" },
+      { label: "☣️", cls: "poison",    value: combat.player.poison || 0,        key: "poison" },
+      { label: "🔥", cls: "burn",      value: combat.player.burn || 0,          key: "burn" }
     ]);
 
     // Enemy panel
@@ -2331,7 +2342,9 @@
       { label: "🛡️", cls: "block",      value: combat.enemy.block || 0,      key: "block" },
       { label: "☠️",  cls: "hex",        value: combat.enemy.hex || 0,        key: "hex" },
       { label: "🎯",  cls: "vulnerable", value: combat.enemy.vulnerable || 0, key: "vulnerable" },
-      { label: "😵",  cls: "weak",       value: combat.enemy.weak || 0,       key: "weak" }
+      { label: "😵",  cls: "weak",       value: combat.enemy.weak || 0,       key: "weak" },
+      { label: "☣️", cls: "poison",     value: combat.enemy.poison || 0,     key: "poison" },
+      { label: "🔥", cls: "burn",       value: combat.enemy.burn || 0,       key: "burn" }
     ]);
 
     // Enemy avatar art

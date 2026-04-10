@@ -10,11 +10,15 @@ describe("createCombatEncounter", () => {
     expect(combat.player).toEqual({
       health: 80,
       block: 0,
-      energy: 0
+      energy: 0,
+      poison: 0,
+      burn: 0
     });
     expect(combat.hand).toEqual([]);
     expect(combat.discardPile).toEqual([]);
     expect(combat.enemy).toEqual({
+      poison: 0,
+      burn: 0,
       id: "slime",
       health: 30
     });

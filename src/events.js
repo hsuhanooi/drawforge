@@ -372,18 +372,51 @@ const createEventForNode = (node) => {
   return { id: `event-${node.id}`, ...template.factory(node) };
 };
 
-const createCampfireEvent = () => ({
-  id: "campfire",
-  kind: "campfire",
-  title: "Campfire",
-  description: "Rest or prepare for the road ahead.",
-  options: [
-    { id: "heal", effect: "heal", amount: 20 },
-    { id: "smith", effect: "smith" },
-    { id: "remove", effect: "remove" },
-    { id: "leave", effect: "leave" }
-  ]
-});
+const createCampfireEvent = (player = null) => {
+  const maxHealth = player?.maxHealth || player?.health || 70;
+  const healAmount = Math.max(12, Math.min(24, Math.round(maxHealth * 0.3)));
+
+  return {
+    id: "campfire",
+    kind: "campfire",
+    title: "Campfire",
+    description: "A quiet fire gives you room to recover, refine your deck, or harden yourself for the climb.",
+    options: [
+      {
+        id: "heal",
+        effect: "heal",
+        amount: healAmount,
+        label: `Rest: recover ${healAmount} HP`,
+        description: "The safest line when the next stretch looks dangerous."
+      },
+      {
+        id: "smith",
+        effect: "smith",
+        label: "Smith: upgrade a card",
+        description: "Spend the stop on raw deck power."
+      },
+      {
+        id: "fortify",
+        effect: "max_health_up",
+        amount: 6,
+        label: "Fortify: gain +6 max HP",
+        description: "Trade immediate tempo for a sturdier run."
+      },
+      {
+        id: "remove",
+        effect: "remove",
+        label: "Purge: remove a card",
+        description: "Trim weak or cursed cards before the next act spikes."
+      },
+      {
+        id: "leave",
+        effect: "leave",
+        label: "Leave",
+        description: "Keep moving if the fire offers nothing better."
+      }
+    ]
+  };
+};
 
 module.exports = {
   createEventForNode,

@@ -25,7 +25,7 @@ describe("node resolution", () => {
 
   it("returns a campfire event for rest nodes", () => {
     const node = { id: "r2c1", type: "rest", row: 2, col: 1 };
-    const player = { health: 80 };
+    const player = { health: 80, maxHealth: 80 };
 
     const result = resolveNode({ node, player });
 
@@ -34,6 +34,7 @@ describe("node resolution", () => {
     expect(result.event.kind).toBe("campfire");
     expect(result.event.options.some((o) => o.effect === "heal")).toBe(true);
     expect(result.event.options.some((o) => o.effect === "smith")).toBe(true);
+    expect(result.event.options.some((o) => o.effect === "max_health_up")).toBe(true);
     expect(result.event.options.some((o) => o.effect === "remove")).toBe(true);
   });
 

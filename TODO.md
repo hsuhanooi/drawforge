@@ -67,7 +67,7 @@
           "Verify campfire UI and action resolution stay stable for all supported options",
           "Add or update tests covering campfire choice availability and effects"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "content",

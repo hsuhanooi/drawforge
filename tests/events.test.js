@@ -94,7 +94,7 @@ describe("event structure", () => {
 });
 
 describe("campfire event", () => {
-  it("returns campfire kind with smith, heal, remove, leave options", () => {
+  it("returns campfire kind with heal, smith, fortify, remove, and leave options", () => {
     const event = createCampfireEvent();
 
     expect(event.kind).toBe("campfire");
@@ -102,7 +102,16 @@ describe("campfire event", () => {
     const effects = event.options.map((o) => o.effect);
     expect(effects).toContain("heal");
     expect(effects).toContain("smith");
+    expect(effects).toContain("max_health_up");
     expect(effects).toContain("remove");
     expect(effects).toContain("leave");
+  });
+
+  it("scales the campfire heal option from player max health", () => {
+    const event = createCampfireEvent({ health: 30, maxHealth: 90 });
+    const healOption = event.options.find((option) => option.effect === "heal");
+
+    expect(healOption.amount).toBe(24);
+    expect(healOption.label).toContain("24 HP");
   });
 });

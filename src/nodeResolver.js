@@ -36,7 +36,7 @@ const resolveNode = ({ node, player, balanceOverrides = {}, act = 1, ascensionLe
     return {
       state: "rest",
       combat: null,
-      event: createCampfireEvent()
+      event: createCampfireEvent(player)
     };
   }
 

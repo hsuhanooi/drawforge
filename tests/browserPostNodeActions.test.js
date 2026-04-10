@@ -58,6 +58,22 @@ describe("browser post-node actions", () => {
     expect(run.event).toBeNull();
   });
 
+  it("claims a campfire fortify option by raising max health", () => {
+    const run = claimEventOption({
+      ...baseRun,
+      player: { ...baseRun.player, health: 52, maxHealth: 80 },
+      event: {
+        id: "campfire",
+        kind: "campfire",
+        options: [{ id: "fortify", effect: "max_health_up", amount: 6 }]
+      }
+    }, "fortify");
+
+    expect(run.player.maxHealth).toBe(86);
+    expect(run.player.health).toBe(52);
+    expect(run.event).toBeNull();
+  });
+
   it("can remove a chosen card from the deck", () => {
     const run = removeCardFromDeck({
       ...baseRun,

@@ -5,7 +5,8 @@ const {
   claimRelicReward,
   skipRewards,
   claimEventOption,
-  removeCardFromDeck
+  removeCardFromDeck,
+  buyShopItem
 } = require("../src/browserPostNodeActions");
 
 describe("browser post-node actions", () => {
@@ -119,5 +120,21 @@ describe("browser post-node actions", () => {
     };
     const result = claimRelicReward(bossRun, "ember_ring");
     expect(() => claimRelicReward(result, "ember_ring")).toThrow();
+  });
+
+  it("uses the shop service heal amount from the generated shop state", () => {
+    const run = {
+      ...baseRun,
+      player: { ...baseRun.player, health: 40, maxHealth: 80, gold: 99 },
+      shop: {
+        cards: [],
+        relics: [],
+        services: [{ id: "heal", label: "Restore 20 HP", amount: 20, price: 30 }]
+      }
+    };
+
+    const healed = buyShopItem(run, "service", "heal", 30);
+    expect(healed.player.gold).toBe(69);
+    expect(healed.player.health).toBe(60);
   });
 });

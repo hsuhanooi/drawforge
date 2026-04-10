@@ -80,7 +80,16 @@ describe("ascension integration", () => {
     const run = createBrowserRun({}, { ascensionLevel: 4 });
     const shop = await createPlayShopState(run);
 
-    expect(shop.services.find((item) => item.id === "heal").price).toBe(50);
-    expect(shop.services.find((item) => item.id === "remove").price).toBe(94);
+    expect(shop.services.find((item) => item.id === "heal").price).toBe(30);
+    expect(shop.services.find((item) => item.id === "remove").price).toBe(69);
+  });
+
+  it("generates a richer shop inventory with four cards and stronger act 2 healing", async () => {
+    const run = { ...createBrowserRun(), act: 2 };
+    const shop = await createPlayShopState(run);
+
+    expect(shop.cards).toHaveLength(4);
+    expect(shop.relics).toHaveLength(3);
+    expect(shop.services.find((item) => item.id === "heal").amount).toBe(20);
   });
 });

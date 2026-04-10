@@ -266,9 +266,11 @@ const buyShopItem = (run, type, itemId, price) => {
   }
 
   if (type === "service") {
+    const service = (run.shop?.services || []).find((item) => item.id === itemId);
     if (itemId === "heal") {
       const maxH = nextPlayer.maxHealth || nextPlayer.health;
-      return { ...run, player: { ...nextPlayer, health: Math.min(nextPlayer.health + 15, maxH) } };
+      const healAmount = service?.amount || 15;
+      return { ...run, player: { ...nextPlayer, health: Math.min(nextPlayer.health + healAmount, maxH) } };
     }
     if (itemId === "remove") {
       return {

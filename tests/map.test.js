@@ -1,4 +1,4 @@
-const { generateMap } = require("../src/map");
+const { MAP_TEMPLATES, generateMap, pickMapTemplate } = require("../src/map");
 
 const createSequenceRng = (...values) => {
   let index = 0;
@@ -72,5 +72,43 @@ describe("map generation", () => {
         expect(node.row).toBeGreaterThan(0);
         expect(node.row).toBeLessThan(4);
       });
+  });
+
+  it("picks map templates deterministically from run seed and act", () => {
+    expect(pickMapTemplate("alpha", 1)).toBe(pickMapTemplate("alpha", 1));
+    expect(pickMapTemplate("alpha", 2)).not.toBe(pickMapTemplate("alpha", 1));
+  });
+
+  it("supports the Dense template distribution", () => {
+    const map = generateMap({ template: MAP_TEMPLATES.dense, rng: createSequenceRng(0.1, 0.4, 0.7, 0.2) });
+
+    expect(map.template).toBe("dense");
+    expect(map.rows).toBe(6);
+    expect(map.columns).toBe(3);
+    expect(map.nodes.filter((node) => node.type === "shop")).toHaveLength(2);
+    expect(map.nodes.filter((node) => node.type === "event")).toHaveLength(2);
+  });
+
+  it("supports the Sparse template distribution", () => {
+    const map = generateMap({ template: MAP_TEMPLATES.sparse, rng: createSequenceRng(0.2, 0.6, 0.8, 0.1) });
+
+    expect(map.template).toBe("sparse");
+    expect(map.rows).toBe(4);
+    expect(map.columns).toBe(4);
+    expect(map.nodes.filter((node) => node.type === "rest")).toHaveLength(1);
+    expect(map.nodes.filter((node) => node.type === "event")).toHaveLength(3);
+  });
+
+  it("supports the Gauntlet template distribution", () => {
+    const map = generateMap({ template: MAP_TEMPLATES.gauntlet, rng: createSequenceRng(0.3, 0.9, 0.5, 0.1) });
+    const eventCount = map.nodes.filter((node) => node.type === "event").length;
+    const eliteRows = new Set(map.nodes.filter((node) => node.type === "elite").map((node) => node.row));
+
+    expect(map.template).toBe("gauntlet");
+    expect(map.rows).toBe(7);
+    expect(map.columns).toBe(2);
+    expect(eventCount).toBe(0);
+    expect(eliteRows.has(2)).toBe(true);
+    expect(map.nodes.filter((node) => node.type === "shop")).toHaveLength(1);
   });
 });

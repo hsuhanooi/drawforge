@@ -20,7 +20,7 @@ const startNextAct = (run, act, healAmount) => {
     pendingRewards: null,
     event: null,
     map: {
-      ...generateMap({}, {}),
+      ...generateMap({ seed: run.seed, act }, {}),
       currentNodeId: null
     }
   };

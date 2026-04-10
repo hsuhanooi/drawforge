@@ -1083,7 +1083,7 @@
           "Verify existing map renderer adapts to variable grid dimensions without UI changes",
           "Add unit tests asserting each template produces the correct node type distribution"
         ],
-        "passes": false
+        "passes": true
       }
     ]
   }

@@ -33,7 +33,7 @@ const ARCHETYPES = {
 };
 
 const createBrowserRun = (balanceOverrides = {}, options = {}) => {
-  const base = startNewRun(balanceOverrides);
+  const base = startNewRun(balanceOverrides, options);
   const ascensionLevel = clampAscensionLevel(options.ascensionLevel || 0);
   return {
     ...base,
@@ -45,7 +45,7 @@ const createBrowserRun = (balanceOverrides = {}, options = {}) => {
     pendingDeckChoice: true,
     player: { ...base.player, deck: [] },
     map: {
-      ...generateMap({}, balanceOverrides),
+      ...generateMap({ seed: base.seed, act: base.act }, balanceOverrides),
       currentNodeId: null
     }
   };

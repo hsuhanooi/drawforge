@@ -2,12 +2,16 @@ const { RUN_STATE_IN_PROGRESS } = require("./constants");
 const { createBalanceConfig } = require("./balance");
 const { createStarterDeck } = require("./deck");
 
-const startNewRun = (balanceOverrides = {}) => {
+const createRunSeed = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+
+const startNewRun = (balanceOverrides = {}, options = {}) => {
   const balance = createBalanceConfig(balanceOverrides);
+  const { seed = createRunSeed() } = options;
 
   return {
     state: RUN_STATE_IN_PROGRESS,
     act: 1,
+    seed,
     player: {
       health: balance.player.health,
       maxHealth: balance.player.health,

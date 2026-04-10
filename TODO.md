@@ -1043,7 +1043,7 @@
           "Update campfire UI to show count of upgradeable cards in current deck",
           "Add unit tests covering each new upgrade mapping"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "content",

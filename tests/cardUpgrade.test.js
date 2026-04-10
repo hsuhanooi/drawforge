@@ -1,4 +1,4 @@
-const { getUpgradedId, canUpgrade, upgradeCardInDeck, UPGRADED_CARD_ENTRIES } = require("../src/cardUpgrade");
+const { UPGRADE_ID_MAP, getUpgradedId, canUpgrade, upgradeCardInDeck, UPGRADED_CARD_ENTRIES } = require("../src/cardUpgrade");
 const { createCardCatalog } = require("../src/cardCatalog");
 const { upgradeCard } = require("../src/browserPostNodeActions");
 
@@ -18,14 +18,19 @@ const makeRun = (deck = ["strike", "defend"]) => ({
 });
 
 describe("cardUpgrade module", () => {
-  it("canUpgrade returns true for upgradeable cards", () => {
+  it("canUpgrade returns true for starter and milestone upgrade cards", () => {
     expect(canUpgrade("strike")).toBe(true);
     expect(canUpgrade("defend")).toBe(true);
     expect(canUpgrade("hex")).toBe(true);
+    expect(canUpgrade("deep_hex")).toBe(true);
+    expect(canUpgrade("fire_sale")).toBe(true);
+    expect(canUpgrade("charge_up")).toBe(true);
+    expect(canUpgrade("venom_strike")).toBe(true);
+    expect(canUpgrade("heavy_swing")).toBe(true);
   });
 
   it("canUpgrade returns false for non-upgradeable cards and already-upgraded cards", () => {
-    expect(canUpgrade("mark_of_ruin")).toBe(false);
+    expect(canUpgrade("parasite")).toBe(false);
     expect(canUpgrade("strike_plus")).toBe(false);
   });
 
@@ -36,7 +41,7 @@ describe("cardUpgrade module", () => {
   });
 
   it("getUpgradedId returns null for non-upgradeable cards", () => {
-    expect(getUpgradedId("mark_of_ruin")).toBeNull();
+    expect(getUpgradedId("parasite")).toBeNull();
     expect(getUpgradedId("strike_plus")).toBeNull();
   });
 
@@ -53,7 +58,7 @@ describe("cardUpgrade module", () => {
   });
 
   it("upgradeCardInDeck throws if card cannot be upgraded", () => {
-    const deck = ["mark_of_ruin"];
+    const deck = ["parasite"];
     expect(() => upgradeCardInDeck(deck, 0)).toThrow();
   });
 
@@ -72,6 +77,11 @@ describe("upgraded card catalog entries", () => {
     }
   });
 
+  it("covers more than 40 upgrade mappings for the expanded campfire system", () => {
+    expect(Object.keys(UPGRADE_ID_MAP)).toHaveLength(41);
+    expect(UPGRADED_CARD_ENTRIES).toHaveLength(41);
+  });
+
   it("strike_plus deals more damage than strike", () => {
     const catalog = createCardCatalog();
     expect(catalog["strike_plus"].damage).toBeGreaterThan(catalog["strike"].damage);
@@ -85,6 +95,16 @@ describe("upgraded card catalog entries", () => {
   it("hex_plus costs 0 energy", () => {
     const catalog = createCardCatalog();
     expect(catalog["hex_plus"].cost).toBe(0);
+  });
+
+  it("includes meaningful upgrades for Living Spire archetype cards", () => {
+    const catalog = createCardCatalog();
+    expect(catalog["deep_hex_plus"].hex).toBeGreaterThan(catalog["deep_hex"].hex);
+    expect(catalog["fire_sale_plus"].draw).toBeGreaterThan(catalog["fire_sale"].draw);
+    expect(catalog["charge_up_plus"].draw).toBeGreaterThan(catalog["charge_up"].draw);
+    expect(catalog["venom_strike_plus"].applyPoison).toBeGreaterThan(catalog["venom_strike"].applyPoison);
+    expect(catalog["ember_throw_plus"].applyBurn).toBeGreaterThan(catalog["ember_throw"].applyBurn);
+    expect(catalog["heavy_swing_plus"].damage).toBeGreaterThan(catalog["heavy_swing"].damage);
   });
 });
 
@@ -103,7 +123,13 @@ describe("upgradeCard run action", () => {
   });
 
   it("throws if deckIndex refers to a non-upgradeable card", () => {
-    const run = makeRun(["mark_of_ruin"]);
+    const run = makeRun(["parasite"]);
     expect(() => upgradeCard(run, 0)).toThrow();
+  });
+
+  it("upgrades newly added archetype cards through the same campfire action", () => {
+    const run = makeRun(["deep_hex", "fire_sale", "charge_up"]);
+    const result = upgradeCard(run, 1);
+    expect(result.player.deck).toEqual(["deep_hex", "fire_sale_plus", "charge_up"]);
   });
 });

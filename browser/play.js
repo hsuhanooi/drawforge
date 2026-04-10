@@ -2875,7 +2875,12 @@
 
       const nameEl = document.createElement("div");
       nameEl.className = "rest-option-name";
-      const EFFECT_LABELS = { heal: "Rest & Heal", smith: "Upgrade a Card", remove: "Remove a Card" };
+      const upgradeableCount = (currentRun.player.deck || []).filter((cardId) => !!((cardCatalog || {})[`${cardId}_plus`])).length;
+      const EFFECT_LABELS = {
+        heal: "Rest & Heal",
+        smith: `Upgrade a Card${upgradeableCount > 0 ? ` (${upgradeableCount} available)` : ""}`,
+        remove: "Remove a Card"
+      };
       nameEl.textContent = option.label || EFFECT_LABELS[option.effect] || option.effect || option.id || "Option";
 
       btn.appendChild(iconEl);
@@ -2911,10 +2916,17 @@
     clearEl(cardsEl);
 
     const deck = currentRun.player.deck || [];
+    const titleEl = $id("upgrade-title");
+    const upgradeableCount = deck.filter((cardId) => !!((cardCatalog || {})[`${cardId}_plus`])).length;
+    if (titleEl) {
+      titleEl.textContent = upgradeableCount > 0
+        ? `Choose a card to upgrade (${upgradeableCount} available)`
+        : "No upgradeable cards in deck";
+    }
     deck.forEach((cardId, deckIndex) => {
       const card = (cardCatalog || {})[cardId] || { id: cardId, name: cardId, cost: 0, type: "skill", rarity: "common" };
-      const upgradeable = !cardId.endsWith("_plus");
-      const upgradedCard = upgradeable ? (cardCatalog || {})[cardId + "_plus"] : null;
+      const upgradedCard = (cardCatalog || {})[`${cardId}_plus`] || null;
+      const upgradeable = !!upgradedCard;
 
       const wrap = document.createElement("div");
       wrap.className = "smith-card-wrap";

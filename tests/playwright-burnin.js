@@ -354,6 +354,7 @@ async function clickAvailableMapNode(page) {
     '.map-node.available.type-event',
     '.map-node.available.type-shop',
     '.map-node.available.type-rest',
+    '.map-node.available.type-boss',
     '.map-node.available'
   ];
 
@@ -385,6 +386,7 @@ async function clickAvailableMapNode(page) {
       '.map-node.available.type-event',
       '.map-node.available.type-shop',
       '.map-node.available.type-rest',
+      '.map-node.available.type-boss',
       '.map-node.available'
     ];
     for (const selector of selectorsInPriority) {

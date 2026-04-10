@@ -165,8 +165,8 @@ async function clickCombatCard(page) {
   ]);
 }
 
-async function actOnRewardScreen(page) {
-  const rewardTarget = await page.evaluate(() => {
+async function actOnRewardScreen(page, { preferContinue = true } = {}) {
+  const rewardTarget = await page.evaluate((shouldPreferContinue) => {
     const isShown = (selector) => {
       const el = document.querySelector(selector);
       if (!el) return false;
@@ -183,6 +183,11 @@ async function actOnRewardScreen(page) {
         && !el.closest('.hidden');
     }).length;
 
+    if (shouldPreferContinue) {
+      if (isShown('#reward-continue-btn')) return '#reward-continue-btn';
+      if (isShown('#reward-skip-btn')) return '#reward-skip-btn';
+      if (isShown('#removal-skip-btn')) return '#removal-skip-btn';
+    }
     if (isShown('#relic-choice-panel') && countVisible('#reward-cards-row-relics > *') > 0) return '#reward-cards-row-relics > *';
     if (isShown('#reward-content') && countVisible('#reward-cards-row > *') > 0) return '#reward-cards-row > *';
     if (isShown('#removal-panel') && countVisible('#removal-cards > *') > 0) return '#removal-cards > *';
@@ -190,7 +195,7 @@ async function actOnRewardScreen(page) {
     if (isShown('#reward-skip-btn')) return '#reward-skip-btn';
     if (isShown('#removal-skip-btn')) return '#removal-skip-btn';
     return null;
-  });
+  }, preferContinue);
 
   if (!rewardTarget) return null;
   const clicked = await clickFirst(page, [rewardTarget]);
@@ -342,7 +347,7 @@ async function clickAvailableMapNode(page) {
   ]);
 }
 
-async function actOnScreen(page, screen) {
+async function actOnScreen(page, screen, options = {}) {
   switch (screen) {
     case 'start':
       await clickFirst(page, ['#start-new-run-btn']);
@@ -361,7 +366,7 @@ async function actOnScreen(page, screen) {
     case 'combat':
       return actOnCombatScreen(page);
     case 'reward':
-      return actOnRewardScreen(page);
+      return actOnRewardScreen(page, options);
     case 'event': {
       const choice = await clickFirst(page, ['#event-choices > * button', '#event-choices > *']);
       return choice ? `event:${choice}` : null;
@@ -459,7 +464,8 @@ async function runSingle(browser, runIndex) {
         lastProgressAt = Date.now();
       }
 
-      const action = await actOnScreen(page, screen);
+      const preferRewardContinue = screen === 'reward';
+      const action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });
       actions.push({ step, screen, action, state: stateBeforeAction });
 
       if (!action) {
@@ -492,7 +498,7 @@ async function runSingle(browser, runIndex) {
         repeatedCount = 1;
       }
 
-      if (repeatedCount >= 12 && screen === 'combat') {
+      if (repeatedCount >= 12 && (screen === 'combat' || screen === 'reward')) {
         return {
           runIndex,
           ok: false,
@@ -501,7 +507,9 @@ async function runSingle(browser, runIndex) {
           actions,
           consoleErrors,
           pageErrors,
-          bug: 'Combat action loop repeated without state change',
+          bug: screen === 'combat'
+            ? 'Combat action loop repeated without state change'
+            : 'Reward action loop repeated without state change',
           state: stateBeforeAction
         };
       }

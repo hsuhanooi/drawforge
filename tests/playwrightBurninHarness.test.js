@@ -54,4 +54,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('await sleep(120);');
     expect(burninSource).toContain("const choice = await clickAvailableMapNode(page);");
   });
+
+  it('prefers continue or skip controls on reward screens before slower choice clicks', () => {
+    expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = true } = {}) {');
+    expect(burninSource).toContain('if (shouldPreferContinue) {');
+    expect(burninSource).toContain("const preferRewardContinue = screen === 'reward';");
+    expect(burninSource).toContain("const action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });");
+    expect(burninSource).toContain("bug: screen === 'combat'");
+    expect(burninSource).toContain("'Reward action loop repeated without state change'");
+  });
 });

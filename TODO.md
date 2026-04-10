@@ -901,7 +901,7 @@
           "Add regression coverage for the transition-state handling",
           "Verify the focused burn-in no longer loops on stale target selection after lethal damage"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "validation",
@@ -912,7 +912,7 @@
           "Log any remaining reproducible failure signatures to TODO.md and progress.txt",
           "Only then escalate back to the full 50-run validation loop"
         ],
-        "passes": false
+        "passes": true
       }
     ]
   }

@@ -2176,8 +2176,9 @@
     currentRun = result.run;
 
     if (node.type === "rest") {
+      const deck = encodeURIComponent((currentRun.player?.deck || []).join(","));
       currentRun.event = await fetchJson(
-        `/play/event.json?nodeType=rest&row=${node.row || 0}&col=${node.col || 0}`
+        `/play/event.json?nodeType=rest&row=${node.row || 0}&col=${node.col || 0}&health=${currentRun.player?.health || 0}&maxHealth=${currentRun.player?.maxHealth || currentRun.player?.health || 0}&act=${currentRun.act || 1}&deck=${deck}`
       );
     }
     if (node.type === "shop") {

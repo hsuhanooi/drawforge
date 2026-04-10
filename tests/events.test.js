@@ -113,5 +113,18 @@ describe("campfire event", () => {
 
     expect(healOption.amount).toBe(24);
     expect(healOption.label).toContain("24 HP");
+    expect(healOption.description).toContain("60 missing HP");
+  });
+
+  it("makes smith and fortify feel more informed for later acts", () => {
+    const event = createCampfireEvent({ health: 80, maxHealth: 80, deck: ["strike", "parasite", "defend"] }, 3);
+    const smithOption = event.options.find((option) => option.effect === "smith");
+    const fortifyOption = event.options.find((option) => option.effect === "max_health_up");
+    const removeOption = event.options.find((option) => option.effect === "remove");
+
+    expect(smithOption.description).toContain("2 cards are ready to upgrade");
+    expect(fortifyOption.amount).toBe(8);
+    expect(fortifyOption.label).toContain("+8 max HP");
+    expect(removeOption.description).toContain("3-card deck");
   });
 });

@@ -6,6 +6,7 @@
 const { createRelicReward } = require("./relics");
 const { createRewardOptions } = require("./rewards");
 const { toRenderableCard } = require("./cardCatalog");
+const { canUpgrade } = require("./cardUpgrade");
 
 const cat = (id) => toRenderableCard(id);
 
@@ -372,9 +373,15 @@ const createEventForNode = (node) => {
   return { id: `event-${node.id}`, ...template.factory(node) };
 };
 
-const createCampfireEvent = (player = null) => {
-  const maxHealth = player?.maxHealth || player?.health || 70;
+const createCampfireEvent = (player = null, act = 1) => {
+  const health = player?.health || 70;
+  const maxHealth = player?.maxHealth || health;
+  const missingHealth = Math.max(0, maxHealth - health);
+  const deck = Array.isArray(player?.deck) ? player.deck : [];
+  const upgradeableCount = deck.filter((cardId) => canUpgrade(cardId)).length;
+  const removableCount = deck.length;
   const healAmount = Math.max(12, Math.min(24, Math.round(maxHealth * 0.3)));
+  const fortifyAmount = act >= 3 ? 8 : act >= 2 ? 7 : 6;
 
   return {
     id: "campfire",
@@ -387,26 +394,32 @@ const createCampfireEvent = (player = null) => {
         effect: "heal",
         amount: healAmount,
         label: `Rest: recover ${healAmount} HP`,
-        description: "The safest line when the next stretch looks dangerous."
+        description: missingHealth > 0
+          ? `Recover ${Math.min(healAmount, missingHealth)} of ${missingHealth} missing HP before the next stretch.`
+          : "You are already at full health, so this is mostly safety padding for later."
       },
       {
         id: "smith",
         effect: "smith",
         label: "Smith: upgrade a card",
-        description: "Spend the stop on raw deck power."
+        description: upgradeableCount > 0
+          ? `${upgradeableCount} card${upgradeableCount === 1 ? " is" : "s are"} ready to upgrade for immediate deck power.`
+          : "No upgradeable cards right now, so this stop may be better spent elsewhere."
       },
       {
         id: "fortify",
         effect: "max_health_up",
-        amount: 6,
-        label: "Fortify: gain +6 max HP",
-        description: "Trade immediate tempo for a sturdier run."
+        amount: fortifyAmount,
+        label: `Fortify: gain +${fortifyAmount} max HP`,
+        description: "Trade immediate tempo for a sturdier run and better future rests."
       },
       {
         id: "remove",
         effect: "remove",
         label: "Purge: remove a card",
-        description: "Trim weak or cursed cards before the next act spikes."
+        description: removableCount > 0
+          ? `Remove 1 card from a ${removableCount}-card deck to tighten future draws.`
+          : "No cards available to remove."
       },
       {
         id: "leave",

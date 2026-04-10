@@ -44,10 +44,10 @@ const createPlayShopRelics = (run, count = 3) => {
   return picked.sort((left, right) => (RARITY_SCORE[right.rarity] || 0) - (RARITY_SCORE[left.rarity] || 0)).slice(0, count);
 };
 
-const createPlayEventState = async (node) => {
+const createPlayEventState = async (node, run = null) => {
   const kind = node.type === "rest" ? "campfire" : node.type;
   if (kind === "campfire") {
-    return createCampfireEvent();
+    return createCampfireEvent(run?.player || null, run?.act || 1);
   }
   if (kind === "event") {
     return {

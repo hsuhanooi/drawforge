@@ -167,7 +167,14 @@ const requestListener = async (req, res) => {
     const nodeType = requestUrl.searchParams.get("nodeType") || "event";
     const row = Number(requestUrl.searchParams.get("row") || 0);
     const col = Number(requestUrl.searchParams.get("col") || 0);
-    const payload = await createPlayEventState({ id: `play-${nodeType}-${row}-${col}`, type: nodeType, row, col });
+    const health = Number(requestUrl.searchParams.get("health"));
+    const maxHealth = Number(requestUrl.searchParams.get("maxHealth"));
+    const act = Number(requestUrl.searchParams.get("act") || 1);
+    const deck = (requestUrl.searchParams.get("deck") || "").split(",").filter(Boolean);
+    const player = Number.isFinite(health)
+      ? { health, maxHealth: Number.isFinite(maxHealth) ? maxHealth : health, deck }
+      : null;
+    const payload = await createPlayEventState({ id: `play-${nodeType}-${row}-${col}`, type: nodeType, row, col }, player ? { player, act } : null);
     sendJson(res, 200, payload);
     return;
   }

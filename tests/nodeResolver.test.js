@@ -25,9 +25,9 @@ describe("node resolution", () => {
 
   it("returns a campfire event for rest nodes", () => {
     const node = { id: "r2c1", type: "rest", row: 2, col: 1 };
-    const player = { health: 80, maxHealth: 80 };
+    const player = { health: 80, maxHealth: 80, deck: ["strike", "defend", "parasite"] };
 
-    const result = resolveNode({ node, player });
+    const result = resolveNode({ node, player, act: 3 });
 
     expect(result.state).toBe("rest");
     expect(result.combat).toBeNull();
@@ -36,6 +36,8 @@ describe("node resolution", () => {
     expect(result.event.options.some((o) => o.effect === "smith")).toBe(true);
     expect(result.event.options.some((o) => o.effect === "max_health_up")).toBe(true);
     expect(result.event.options.some((o) => o.effect === "remove")).toBe(true);
+    expect(result.event.options.find((o) => o.effect === "max_health_up").amount).toBe(8);
+    expect(result.event.options.find((o) => o.effect === "smith").description).toContain("2 cards are ready to upgrade");
   });
 
   it("returns a shop state for shop nodes", () => {

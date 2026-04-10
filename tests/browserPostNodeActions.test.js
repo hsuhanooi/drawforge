@@ -26,11 +26,12 @@ describe("browser post-node actions", () => {
   it("applies victory rewards into pending rewards", () => {
     const run = applyVictoryToRun(
       { ...baseRun, map: { currentNodeId: "r2c1", nodes: [{ id: "r2c1", row: 2, col: 1, type: "combat", next: [] }] } },
-      { nodeType: "combat", player: { health: 72 } }
+      { nodeType: "combat", player: { health: 72 }, enemy: { rewardGold: 16 } }
     );
 
     expect(run.player.health).toBe(72);
     expect(run.pendingRewards.cards.length).toBeGreaterThan(0);
+    expect(run.pendingRewards.gold).toBe(16);
   });
 
   it("claims a reward card and adds it to the deck", () => {
@@ -136,5 +137,16 @@ describe("browser post-node actions", () => {
     const healed = buyShopItem(run, "service", "heal", 30);
     expect(healed.player.gold).toBe(69);
     expect(healed.player.health).toBe(60);
+  });
+
+  it("uses enemy-specific gold rewards instead of the old flat combat gold", () => {
+    const run = applyVictoryToRun(baseRun, {
+      nodeType: "combat",
+      player: { health: 80 },
+      enemy: { rewardGold: 18 }
+    });
+
+    expect(run.player.gold).toBe(baseRun.player.gold + 18);
+    expect(run.pendingRewards.gold).toBe(18);
   });
 });

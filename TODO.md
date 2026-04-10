@@ -47,7 +47,7 @@
       },
       {
         "category": "balance",
-        "description": "Retune gold economy across combats, elites, shops, and events so spending decisions become strategic instead of starved or trivial",
+        "description": "Retune gold economy across combats, elites, bosses, and events so spending decisions become strategic instead of starved or trivial",
         "steps": [
           "Audit gold inflow from combats, elites, bosses, and events across acts",
           "Tune gold payouts relative to new shop pricing so route choice matters",
@@ -55,7 +55,7 @@
           "Run targeted simulations or deterministic checks on spendability across sample runs",
           "Add tests covering gold payout and economy invariants where practical"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "category": "gameplay",

@@ -270,20 +270,20 @@ describe("bone_token health cap", () => {
 });
 
 describe("lucky_coin", () => {
-  it("grants +5 gold per combat victory", () => {
+  it("grants +5 gold on top of the enemy-specific combat reward", () => {
     const run = makeRun(["lucky_coin"]);
-    const combat = { state: "victory", nodeType: "combat", player: { health: 80 } };
+    const combat = { state: "victory", nodeType: "combat", player: { health: 80 }, enemy: { rewardGold: 18 } };
     const result = applyVictoryToRun(run, combat);
-    expect(result.player.gold).toBeGreaterThanOrEqual(5);
+    expect(result.player.gold).toBe(run.player.gold + 23);
   });
 });
 
 describe("pilgrims_map", () => {
-  it("grants +3 gold per non-boss combat", () => {
+  it("grants +3 gold per non-boss combat on top of the enemy-specific reward", () => {
     const run = makeRun(["pilgrims_map"]);
-    const combat = { state: "victory", nodeType: "combat", player: { health: 80 } };
+    const combat = { state: "victory", nodeType: "combat", player: { health: 80 }, enemy: { rewardGold: 16 } };
     const result = applyVictoryToRun(run, combat);
-    expect(result.player.gold).toBeGreaterThanOrEqual(3);
+    expect(result.player.gold).toBe(run.player.gold + 19);
   });
 
   it("does not grant bonus on boss combat", () => {

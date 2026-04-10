@@ -67,6 +67,9 @@ const afterCardSelection = (run) => {
 
 const applyVictoryToRun = (run, combat) => {
   const rewards = createVictoryRewards(combat.nodeType, run);
+  if (typeof combat.enemy?.rewardGold === "number") {
+    rewards.gold = combat.enemy.rewardGold;
+  }
   rewards.cards = toRenderableCards(rewards.cards || []);
 
   const maxHealth = run.player.maxHealth || run.player.health;

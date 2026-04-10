@@ -26,6 +26,12 @@ const startNewRun = (balanceOverrides = {}, options = {}) => {
       cardsPlayed: 0,
       turnsPlayed: 0,
       goldEarned: 0,
+      goldSpent: 0,
+      shopVisits: 0,
+      restVisits: 0,
+      eventVisits: 0,
+      rewardCardChoiceScreens: 0,
+      rewardCardsClaimed: 0,
       highestSingleHit: 0,
       cardPlayCounts: {}
     },

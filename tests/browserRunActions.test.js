@@ -53,6 +53,31 @@ describe("browser run actions", () => {
     expect(result.node.type).toBe("event");
     expect(result.run.event.kind).toBeDefined();
     expect(result.run.event.options.length).toBeGreaterThan(0);
+    expect(result.run.stats.eventVisits).toBe(1);
+  });
+
+  it("tracks shop and rest visits when entering those nodes", () => {
+    const shopRun = {
+      ...createBrowserRun(),
+      map: {
+        rows: 2,
+        columns: 1,
+        currentNodeId: null,
+        nodes: [{ id: "r0c0", row: 0, col: 0, type: "shop", next: [] }]
+      }
+    };
+    const restRun = {
+      ...createBrowserRun(),
+      map: {
+        rows: 2,
+        columns: 1,
+        currentNodeId: null,
+        nodes: [{ id: "r0c0", row: 0, col: 0, type: "rest", next: [] }]
+      }
+    };
+
+    expect(enterBrowserNode(shopRun, "r0c0").run.stats.shopVisits).toBe(1);
+    expect(enterBrowserNode(restRun, "r0c0").run.stats.restVisits).toBe(1);
   });
 
   it("rejects invalid traversal moves", () => {

@@ -80,8 +80,25 @@ const enterBrowserNode = (run, nodeId) => {
     throw new Error(run.map.currentNodeId === null ? "Invalid starting node" : "Invalid move");
   }
 
+  const prevStats = run.stats || {};
+  const nextStats = {
+    ...prevStats,
+    shopVisits: prevStats.shopVisits || 0,
+    restVisits: prevStats.restVisits || 0,
+    eventVisits: prevStats.eventVisits || 0
+  };
+
+  if (node.type === "shop") {
+    nextStats.shopVisits += 1;
+  } else if (node.type === "rest") {
+    nextStats.restVisits += 1;
+  } else if (node.type === "event") {
+    nextStats.eventVisits += 1;
+  }
+
   const nextRun = {
     ...run,
+    stats: nextStats,
     map: {
       ...run.map,
       currentNodeId: traversalResult.currentNodeId || traversalResult.selectedNodeId

@@ -20,6 +20,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("actions.push(`target:${target}`);");
   });
 
+  it('confirms selected non-attack cards by clicking the selected hand card again', () => {
+    expect(burninSource).toContain("const selectedCardState = await page.evaluate(() => {");
+    expect(burninSource).toContain("if (selectedCardState?.type === 'attack') {");
+    expect(burninSource).toContain("} else if (selectedCardState?.selector) {");
+    expect(burninSource).toContain("target = await clickFirst(page, [selectedCardState.selector]);");
+  });
+
   it('batches multiple combat micro-actions before spending a whole burn-in step', () => {
     expect(burninSource).toContain('async function actOnCombatScreen(page) {');
     expect(burninSource).toContain('for (let microStep = 0; microStep < 8; microStep += 1) {');
@@ -38,5 +45,13 @@ describe('playwright burn-in harness combat prioritization', () => {
 
   it('prefers the second archetype explicitly so burn-in runs stay deterministic and more aggressive', () => {
     expect(burninSource).toContain("'#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn'");
+  });
+
+  it('waits briefly for available map nodes before failing the map step', () => {
+    expect(burninSource).toContain('async function clickAvailableMapNode(page) {');
+    expect(burninSource).toContain("await page.waitForFunction(() => {");
+    expect(burninSource).toContain("document.querySelectorAll('.map-node.available')");
+    expect(burninSource).toContain('await sleep(120);');
+    expect(burninSource).toContain("const choice = await clickAvailableMapNode(page);");
   });
 });

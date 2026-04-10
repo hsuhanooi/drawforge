@@ -258,7 +258,23 @@ async function actOnCombatScreen(page) {
     if (!played) break;
 
     await sleep(COMBAT_MICRO_DELAY_MS);
-    const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '#hand-area .card-component.is-selected', '#hand-area .card.is-selected']);
+
+    const selectedCardState = await page.evaluate(() => {
+      const selected = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
+      if (!selected) return null;
+      return {
+        type: selected.classList.contains('type-attack') ? 'attack' : 'other',
+        selector: selected.classList.contains('card-component') ? '#hand-area .card-component.is-selected' : '#hand-area .card.is-selected'
+      };
+    }).catch(() => null);
+
+    let target = null;
+    if (selectedCardState?.type === 'attack') {
+      target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
+    } else if (selectedCardState?.selector) {
+      target = await clickFirst(page, [selectedCardState.selector]);
+    }
+
     actions.push(`play:${played}${target ? `:${target}` : ':no-target'}`);
     await sleep(COMBAT_MICRO_DELAY_MS);
   }
@@ -289,6 +305,43 @@ async function actOnCombatScreen(page) {
   }
 }
 
+async function clickAvailableMapNode(page) {
+  await page.waitForFunction(() => {
+    const nodes = Array.from(document.querySelectorAll('.map-node.available'));
+    return nodes.some((el) => {
+      const style = window.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return !el.classList.contains('hidden')
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && rect.width > 0
+        && rect.height > 0
+        && !el.closest('.hidden');
+    });
+  }, { timeout: 1000 }).catch(() => {});
+
+  const choice = await clickFirst(page, [
+    '.map-node.available.type-combat',
+    '.map-node.available.type-elite',
+    '.map-node.available.type-event',
+    '.map-node.available.type-shop',
+    '.map-node.available.type-rest',
+    '.map-node.available'
+  ]);
+
+  if (choice) return choice;
+
+  await sleep(120);
+  return clickFirst(page, [
+    '.map-node.available.type-combat',
+    '.map-node.available.type-elite',
+    '.map-node.available.type-event',
+    '.map-node.available.type-shop',
+    '.map-node.available.type-rest',
+    '.map-node.available'
+  ]);
+}
+
 async function actOnScreen(page, screen) {
   switch (screen) {
     case 'start':
@@ -302,14 +355,7 @@ async function actOnScreen(page, screen) {
       return choice ? `deck-choice:${choice}` : null;
     }
     case 'map': {
-      const choice = await clickFirst(page, [
-        '.map-node.available.type-combat',
-        '.map-node.available.type-elite',
-        '.map-node.available.type-event',
-        '.map-node.available.type-shop',
-        '.map-node.available.type-rest',
-        '.map-node.available'
-      ]);
+      const choice = await clickAvailableMapNode(page);
       return choice ? `map:${choice}` : null;
     }
     case 'combat':

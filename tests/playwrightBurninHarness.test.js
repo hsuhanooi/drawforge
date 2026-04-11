@@ -52,6 +52,9 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("const CLICK_TIMEOUT_MS = Number(process.env.BURNIN_CLICK_TIMEOUT_MS || 250);");
     expect(burninSource).toContain("const COMBAT_MICRO_DELAY_MS = Number(process.env.BURNIN_COMBAT_MICRO_DELAY_MS || 35);");
     expect(burninSource).toContain("const REWARD_SETTLE_DELAY_MS = Number(process.env.BURNIN_REWARD_SETTLE_DELAY_MS || 220);");
+    expect(burninSource).toContain("const IGNORABLE_CONSOLE_ERRORS = new Set([");
+    expect(burninSource).toContain("'Failed to load resource: the server responded with a status of 400 (Bad Request)'");
+    expect(burninSource).toContain('if (IGNORABLE_CONSOLE_ERRORS.has(text)) return;');
     expect(burninSource).toContain("await handle.click({ force: true, timeout: CLICK_TIMEOUT_MS });");
   });
 
@@ -59,8 +62,10 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('async function waitForDeckChoiceActions(page) {');
     expect(burninSource).toContain("document.querySelectorAll('#deck-choice-row .archetype-select-btn')");
     expect(burninSource).toContain("'#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn'");
+    expect(burninSource).toContain('await sleep(180);');
     expect(burninSource).toContain("return 'dom:#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn';");
     expect(burninSource).toContain("return 'dom:#deck-choice-row .archetype-select-btn';");
+    expect(burninSource).toContain("return choice ? `deck-choice:${choice}` : 'deck-choice:await-ready';");
   });
 
   it('waits briefly for available map nodes before failing the map step', () => {

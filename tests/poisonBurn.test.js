@@ -89,6 +89,20 @@ describe("poison and burn statuses", () => {
     expect(venomfang.intents[0].type).toBe("attack_poison");
   });
 
+  it("marks the run lost when start-of-turn status damage drops the player to zero", () => {
+    const run = startCombat(makeRun());
+    run.combat.player.health = 2;
+    run.combat.player.burn = 2;
+    run.combat.enemyIntent = { type: "block", value: 5, label: "Harden" };
+
+    const result = endCombatTurn(run);
+
+    expect(result.state).toBe("lost");
+    expect(result.player.health).toBe(0);
+    expect(result.combat.state).toBe("defeat");
+    expect(result.combat.turn).toBeNull();
+  });
+
   it("registers all new poison and burn cards as implemented", () => {
     for (const id of [
       "venom_strike",

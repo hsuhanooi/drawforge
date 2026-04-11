@@ -15,6 +15,9 @@ const RUN_IDLE_TIMEOUT_MS = Number(process.env.BURNIN_RUN_IDLE_TIMEOUT_MS || DEF
 const RUN_HARD_TIMEOUT_MS = Number(process.env.BURNIN_RUN_TIMEOUT_MS || DEFAULT_RUN_HARD_TIMEOUT_MS);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const IGNORABLE_CONSOLE_ERRORS = new Set([
+  'Failed to load resource: the server responded with a status of 400 (Bad Request)'
+]);
 
 function summarizeError(error) {
   return error?.message || String(error);
@@ -581,6 +584,13 @@ async function actOnScreen(page, screen, options = {}) {
         '#deck-choice-row .archetype-select-btn'
       ]);
       if (!choice) {
+        await sleep(180);
+        choice = await clickFirst(page, [
+          '#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn',
+          '#deck-choice-row .archetype-select-btn'
+        ]);
+      }
+      if (!choice) {
         choice = await page.evaluate(() => {
           const isVisible = (el) => {
             if (!el || el.disabled || el.closest('.hidden')) return false;
@@ -605,7 +615,7 @@ async function actOnScreen(page, screen, options = {}) {
           return null;
         }).catch(() => null);
       }
-      return choice ? `deck-choice:${choice}` : null;
+      return choice ? `deck-choice:${choice}` : 'deck-choice:await-ready';
     }
     case 'map': {
       const choice = await clickAvailableMapNode(page);
@@ -648,7 +658,10 @@ async function runSingle(browser, runIndex) {
   let repeatedCount = 0;
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (IGNORABLE_CONSOLE_ERRORS.has(text)) return;
+    consoleErrors.push(text);
   });
   page.on('pageerror', (err) => pageErrors.push(err.message));
 

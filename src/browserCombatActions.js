@@ -694,9 +694,15 @@ const endCombatTurn = (run) => {
     }
   }
   if (next.player.health <= 0) {
-    next.state = "defeat";
-    next.turn = null;
-    next.enemyIntent = null;
+    if (hasRelic(run, "phoenix_ash") && !nextRun.phoenix_used) {
+      next.player.health = 1;
+      nextRun.phoenix_used = true;
+    } else {
+      next.state = "defeat";
+      next.turn = null;
+      next.enemyIntent = null;
+      return { ...nextRun, combat: normalizeStatusStacks(next), player: { ...run.player, health: 0 }, state: "lost" };
+    }
   }
   next = checkPhaseShift(next);
   if (next.enemy.health <= 0) {

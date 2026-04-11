@@ -480,4 +480,34 @@ describe("soundEngine.js SFX synthesizer", () => {
     expect(initSection).not.toContain("new AudioContext");
     expect(initSection).not.toContain("new window.AudioContext");
   });
+
+  it("shop renders a potion section with buy buttons", () => {
+    expect(playJs).toContain("shop-potion-section");
+    expect(playJs).toContain("shop-potion-row");
+    expect(playJs).toContain("shop-potion-btn");
+    // buy handler uses potion type
+    expect(playJs).toContain('type: "potion"');
+    expect(playJs).toContain('"/run/buy-shop-item.json"');
+  });
+
+  it("POTION_ICONS covers all 12 potion types", () => {
+    const iconsMatch = playJs.match(/const POTION_ICONS = \{([^}]+)\}/s);
+    expect(iconsMatch).not.toBeNull();
+    const iconsBlock = iconsMatch[1];
+    const expectedIds = [
+      "healing_potion", "strength_potion", "hex_vial",
+      "block_potion", "energy_potion", "swift_potion",
+      "vulnerable_potion", "weak_potion", "antidote_potion",
+      "poison_vial", "burn_vial", "charged_vial"
+    ];
+    for (const id of expectedIds) {
+      expect(iconsBlock).toContain(id);
+    }
+  });
+
+  it("potion strip renders use and discard buttons with potion-btn class", () => {
+    expect(playJs).toContain("potion-btn");
+    expect(playJs).toContain('"/run/use-potion.json"');
+    expect(playJs).toContain('"/run/discard-potion.json"');
+  });
 });

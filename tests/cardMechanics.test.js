@@ -134,7 +134,7 @@ describe("charged mechanic", () => {
 });
 
 describe("exhaustedThisTurn counter", () => {
-  it("grave_fuel gains energy equal to exhaustedThisTurn on the combat state", () => {
+  it("grave_fuel gains energy from exhaustedThisTurn capped at MAX_EXHAUST_ENERGY_PER_TURN", () => {
     const graveFuel = graveFuelCardDefinition();
     const combat = startPlayerTurn(createCombatEncounter({
       player: { health: 80 },
@@ -150,8 +150,8 @@ describe("exhaustedThisTurn counter", () => {
     const result = playCard(withHand, graveFuel);
 
     expect(result.rejected).toBe(false);
-    // Started with 1 energy, spent 1 on grave_fuel, gained 3 from exhaustedThisTurn
-    expect(result.combat.player.energy).toBe(3);
+    // Started with 1 energy, spent 1 on grave_fuel, gained 2 from exhaustedThisTurn (capped at 2)
+    expect(result.combat.player.energy).toBe(2);
   });
 
   it("blood_pact applies self-damage and grants energy", () => {

@@ -147,3 +147,46 @@
 2026-04-11 02:32 UTC - Watchdog telemetry follow-through: fixed a real post-enemy-turn defeat bug in `src/browserCombatActions.js` where start-of-turn Poison/Burn or power damage could leave combat in `defeat` with player HP at 0 but the run still marked `in_progress`, which is what caused the burn-in combat stall snapshot. Added `tests/poisonBurn.test.js` coverage to lock the run-loss transition, then hardened `tests/playwright-burnin.js` deck-choice retries and filtered the known benign browser 400 resource log so handled fast-action retries no longer fail otherwise-complete burn-ins. Re-verified with `npm test -- --runInBand tests/poisonBurn.test.js tests/playwrightBurninHarness.test.js tests/playBundle.test.js`, `BURNIN_RUNS=10 BURNIN_CONCURRENCY=5 BURNIN_MAX_STEPS=160 BURNIN_RUN_IDLE_TIMEOUT_MS=20000 node tests/playwright-burnin.js` (10/10 completed, 0 failures), and the full gate `npm test` + `npm run lint`, now green at 55 suites / 462 tests.
 2026-04-11 03:39-03:41 UTC - Watchdog resume: audited the next unfinished PRD slice and found M12 curse/potion work plus M13 run-stats work already landed in code but left stale as passes:false in prd.json. Re-verified with targeted Jest + lint (`tests/curses.test.js`, `tests/cards.test.js`, `tests/events.test.js`, `tests/browserPostNodeActions.test.js`, `tests/browserCombatActions.test.js`, `tests/enemies.test.js`, `tests/ascension.test.js`, `tests/stats.test.js`, `tests/browserRunActions.test.js`, `tests/rewards.test.js`, `tests/playBundle.test.js`) and marked those six PRD items complete. Next unfinished task is M14 visual immersion work, starting with card hover preview.
 2026-04-11 03:41-03:45 UTC - Follow-through PRD sync: verified the M14 visual-feel slice is already landed in browser/play.* via targeted UI regressions (`tests/playBundle.test.js`, `tests/playwrightBurninHarness.test.js`) and a green DOM smoke (`node tests/playwright-e2e.js`, 0 bugs). Marked the 10 M14 tasks complete in prd.json. Note: direct `eslint` on raw `.css`/`.html` paths still throws parser errors, so lint verification stayed on the repo JS/test entrypoints rather than those asset files themselves.
+2026-04-11 - Fixed harness map dead-end repeat detector. Added `repeatedCount >= 6 && screen === 'map'` check to `runSingle` in `tests/playwright-burnin.js` so runs that stall on the map screen (no state change across 6 steps) bail early with a `Map action loop repeated without state change` bug tag instead of grinding to the 120-step hard cap. Verified with `npm test` (461/461 green), `npm run lint` (clean), and a 2-run burn-in confirming map dead-ends now bail at ~36 steps rather than ~120. Marked run-depth telemetry TODO item `passes: true`.
+2026-04-11 - Implemented the Balance, Endgame Depth & Narrative Events milestone. (1) Card balance pass: added `MAX_HEX_STACKS = 10` and `MAX_EXHAUST_ENERGY_PER_TURN = 2` to `src/constants.js`; clamped all hex additions in `src/cards.js` and `src/browserCombatActions.js` (doom_engine, hex_lantern, card effects, intents, relics, hexPerExhausted); capped exhaust-energy gain in both paths; buffed `DEFEND_BLOCK` 5→6 and `BARRIER_BLOCK` 8→10 in both `src/cardCatalog.js` and `src/cards.js` constants; bumped Act 3 elites (Hex Titan 16→18, Cinder Colossus 17→19 damage) in `src/enemies.js`. (2) Ascension 6-10: extended `src/ascension.js` to `MAX_ASCENSION_LEVEL = 10` with level 6 (+2 wounds, +2 dmg), level 7 (+35% HP), level 8 (elites/bosses +1 strength, +50% shop prices), level 9 (+3 dmg), and level 10 (boss phase 3 immediately, +60% HP, +3 wounds). (3) Narrative event expansion: added 8 new events to `src/events.js` (hollowed_knight, leech_pool, abandoned_cache, the_tombstone, the_ferryman, ritual_circle, wandering_healer, echoing_chamber) bringing the total to 33. (4) Reward cascade polish: gold float now counts up from 0 via setInterval over ~800ms; reward cards insert after a 600ms fanfare delay on first entry to let confetti play. Updated all affected tests (cardMechanics, statusEffects, ascension, events, playBundle, cards). Verified with `npm test` (469/469 green), `npm run lint` (clean), and 3/3 burn-in.
+
+---
+date: 2026-04-10
+milestone: Character Identity & World Variety
+tasks_completed: 4
+
+task_1: Archetype-biased reward pools
+  - Added ARCHETYPE_CARD_THEMES mapping (hex_witch, ashen_knight, static_duelist, poison_vanguard)
+  - Implemented buildBiasedPool: 50% themed cards + 50% general per archetype
+  - Wired into createVictoryCardRewards via poolOverride param in createRewardOptions
+  - Falls back to unbiased pool for null/unrecognized archetype
+  - 4 new assertions in tests/rewards.test.js (15 total, all pass)
+
+task_2: Boss pool randomization
+  - Added Crypt Warden, Stone Idol (Act 1) and Hex Lord, Bone Emperor (Act 2)
+  - Bone Emperor is 2-phase; all bosses use factory functions in act1/2/3BossPool arrays
+  - selectBossForAct(act, runSeed): char-code hash, deterministic per seed+act, varies across seeds
+  - createEnemyForNode gains 4th runSeed param; nodeResolver.js and browserCombatActions.js pass run.seed
+  - 6 new assertions in tests/enemies.test.js, 1 in tests/nodeResolver.test.js
+  - Fixed stale assertions in tests/act2.test.js (pool-based instead of hardcoded IDs)
+
+task_3: Poison Vanguard 4th archetype
+  - plague_sigil relic added (tier: starter, on_kill: carry 2 poison to next enemy)
+  - carryoverPoison field wired in browserCombatActions.js start/end
+  - poison_vanguard added to ARCHETYPES + ARCHETYPE_RELICS in browserRunActions.js
+  - poison_vanguard added to ARCHETYPES array + VISUAL_THEMES in browser/play.js
+  - resolveCardFrameVariant returns "venom" for poison_vanguard theme or Poison archetype cards
+  - Full CSS theme added: data-theme="poison_vanguard", data-theme-panel="venom", venom card frame/name/stripe/accent
+  - 1 new test in tests/browserRunActions.test.js; relic registry/system tests updated for 45 relics
+
+task_4: Run flags and event chains
+  - runFlags: {} and usedChainFlags: [] added to startNewRun in src/run.js
+  - setsFlag added to ferryman (pay), devil_bargain (deal), haunted_crossroads (deal), leech_pool (bathe)
+  - 4 CHAIN_EVENTS defined: Return Crossing, Collector's Visit, Spirit's Return, The Residue
+  - findChainEvent(act, runFlags, usedChainFlags) exported from events.js
+  - createEventForNode(node, runFlags, usedChainFlags) injects chain events before hash fallback
+  - claimEventOption in browserPostNodeActions.js writes setsFlag to runFlags and chainFlag to usedChainFlags
+  - call sites in browserRunActions.js and nodeResolver.js pass run.runFlags + run.usedChainFlags
+  - 5 new assertions in tests/events.test.js, 2 in tests/browserPostNodeActions.test.js
+
+final: 488 tests pass, lint clean, 3/3 burn-in OK

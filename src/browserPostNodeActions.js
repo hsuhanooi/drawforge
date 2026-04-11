@@ -201,6 +201,18 @@ const claimEventOption = (run, optionId) => {
 
   let nextRun = { ...run, event: null };
 
+  // Wire run flags from triggering options and consume chain events
+  if (option.setsFlag) {
+    nextRun = { ...nextRun, runFlags: { ...(nextRun.runFlags || {}), [option.setsFlag]: true } };
+  }
+  if (run.event?.chainFlag) {
+    const usedChainFlags = [...(nextRun.usedChainFlags || [])];
+    if (!usedChainFlags.includes(run.event.chainFlag)) {
+      usedChainFlags.push(run.event.chainFlag);
+    }
+    nextRun = { ...nextRun, usedChainFlags };
+  }
+
   if (option.effect === "heal") {
     nextRun = {
       ...nextRun,

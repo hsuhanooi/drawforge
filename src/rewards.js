@@ -9,6 +9,14 @@ const { createBalanceConfig } = require("./balance");
 const { createRelicReward, createRelicChoices: createTieredRelicChoices } = require("./relics");
 const { createRandomPotion, POTION_DROP_CHANCE, MAX_POTIONS } = require("./potions");
 
+/** @type {Record<string, string[]>} */
+const ARCHETYPE_CARD_THEMES = {
+  hex_witch: ["Hex", "Hex / Exhaust", "Debuff"],
+  ashen_knight: ["Exhaust", "Hex / Exhaust", "Burn"],
+  static_duelist: ["Charged", "Defense"],
+  poison_vanguard: ["Poison", "Debuff"]
+};
+
 const RARITY_SCORE = {
   common: 1,
   uncommon: 2,
@@ -42,15 +50,37 @@ const buildWeightedPool = (factories) => {
 };
 
 /**
+ * Build a weighted pool biased 50% toward the current run archetype's themed cards.
+ * Falls back to the unbiased pool when archetype is null or unrecognized.
+ * @param {CardFactory[]} factories
+ * @param {string | null | undefined} archetype
+ * @returns {CardFactory[]}
+ */
+const buildBiasedPool = (factories, archetype) => {
+  const themes = ARCHETYPE_CARD_THEMES[archetype];
+  if (!themes) return buildWeightedPool(factories);
+  const themed = factories.filter((f) => {
+    const card = f();
+    return themes.some((t) => (card.archetype || "").includes(t));
+  });
+  const general = factories.filter((f) => !themed.includes(f));
+  const half = Math.ceil(factories.length / 2);
+  const themedPool = buildWeightedPool(themed.length > 0 ? themed : factories);
+  const generalPool = buildWeightedPool(general.length > 0 ? general : factories);
+  return [...themedPool.slice(0, half), ...generalPool.slice(0, half)];
+};
+
+/**
  * @param {number | undefined} count
  * @param {object} [balanceOverrides]
  * @param {() => number} [rng]
+ * @param {CardFactory[] | null} [poolOverride]
  * @returns {Card[]}
  */
-const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random) => {
+const createRewardOptions = (count, balanceOverrides = {}, rng = Math.random, poolOverride = null) => {
   const balance = createBalanceConfig(balanceOverrides);
   const optionCount = Math.min(count ?? balance.rewards.cardOptionCount, rewardPool.length);
-  const weightedPool = buildWeightedPool(rewardPool);
+  const weightedPool = poolOverride ? [...poolOverride] : buildWeightedPool(rewardPool);
   /** @type {Set<string>} */
   const selectedIds = new Set();
   /** @type {Card[]} */
@@ -112,7 +142,8 @@ const createVictoryCardRewards = (nodeType = "combat", run = null, balanceOverri
   const baseCount = createBalanceConfig(balanceOverrides).rewards.cardOptionCount;
   const optionCount = baseCount + extraCards + (act >= 2 && nodeType === "combat" ? 1 : 0);
   const candidateCount = Math.min(rewardPool.length, Math.max(optionCount + 3, optionCount * 2));
-  const candidates = createRewardOptions(candidateCount, balanceOverrides, rng);
+  const biasedPool = run?.archetype ? buildBiasedPool(rewardPool, run.archetype) : null;
+  const candidates = createRewardOptions(candidateCount, balanceOverrides, rng, biasedPool);
   const rarityFloor = nodeType === "boss" ? 2 : nodeType === "elite" || act >= 3 ? 1.5 : 1;
   const filtered = candidates.filter((card) => (RARITY_SCORE[card.rarity] || 0) >= rarityFloor || card.rarity === "rare");
   const pool = (filtered.length >= optionCount ? filtered : candidates)

@@ -49,6 +49,7 @@ const {
   spiteShieldCardDefinition
 } = require("../src/cards");
 const { executeCardEffect } = require("../src/combatEngine");
+const { MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("../src/constants");
 
 describe("card model", () => {
   it("creates cards with core properties", () => {
@@ -441,5 +442,38 @@ describe("new card definitions", () => {
     const next = executeCardEffect(card, state);
     expect(next.player.block).toBe(SPITE_SHIELD_BLOCK);
     expect(next.enemy.hex).toBe(SPITE_SHIELD_HEX);
+  });
+});
+
+describe("balance caps", () => {
+  it("defend grants 6 block (buffed from 5)", () => {
+    expect(DEFEND_BLOCK).toBe(6);
+    const card = defendCardDefinition();
+    const state = { player: { health: 80, block: 0, energy: 3 }, enemy: { health: 30 } };
+    const next = executeCardEffect(card, state);
+    expect(next.player.block).toBe(6);
+  });
+
+  it("barrier grants 10 block (buffed from 8)", () => {
+    expect(BARRIER_BLOCK).toBe(10);
+    const card = barrierCardDefinition();
+    const state = { player: { health: 80, block: 0, energy: 3 }, enemy: { health: 30 } };
+    const next = executeCardEffect(card, state);
+    expect(next.player.block).toBe(10);
+  });
+
+  it("hex stacks are capped at MAX_HEX_STACKS (10)", () => {
+    const hexCard = witherCardDefinition(); // applies 1 hex
+    const state = { player: { health: 80, energy: 3 }, enemy: { health: 30, hex: 10 } };
+    const next = executeCardEffect(hexCard, state);
+    expect(next.enemy.hex).toBe(MAX_HEX_STACKS);
+  });
+
+  it("grave_fuel exhaust-energy is capped at MAX_EXHAUST_ENERGY_PER_TURN (2)", () => {
+    const card = graveFuelCardDefinition();
+    // exhaustedThisTurn = 5 — should give at most 2 energy
+    const state = { player: { health: 80, block: 0, energy: 0 }, enemy: { health: 30 }, exhaustedThisTurn: 5 };
+    const next = executeCardEffect(card, state);
+    expect(next.player.energy).toBe(MAX_EXHAUST_ENERGY_PER_TURN);
   });
 });

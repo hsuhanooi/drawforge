@@ -348,6 +348,14 @@ describe("play.js thin-client regression coverage", () => {
     expect(playCss).toContain("relic-cascade-in");
     // CSS: reward-actions-row fades in with delay
     expect(playCss).toContain("animation-delay: 0.38s");
+    // Gold count-up animation: starts at +0g and increments via setInterval
+    expect(playJs).toContain('div.textContent = "+0g"');
+    expect(playJs).toContain("const step = Math.max(1, Math.ceil(rewards.gold / 16));");
+    expect(playJs).toContain("div.textContent = `+${current}g`");
+    // Fanfare pause: cards inserted after 600ms on first reward screen entry
+    expect(playJs).toContain("const cardInsertDelay = enteringReward ? 600 : 0;");
+    expect(playJs).toContain("setTimeout(() => {");
+    expect(playJs).toContain("if (!cardRow.isConnected) return;");
   });
 
   it("wires AnimEngine.freeze() hitstop on enemy hit and player damage for impact feel", () => {

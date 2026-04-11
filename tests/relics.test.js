@@ -39,14 +39,14 @@ describe("relic system", () => {
   });
 
   it("all relics have a rarity field", () => {
-    const validRarities = new Set(["common", "uncommon", "rare", "boss"]);
+    const validRarities = new Set(["common", "uncommon", "rare", "boss", "starter"]);
     for (const relic of RELICS) {
       expect(validRarities.has(relic.rarity)).toBe(true);
     }
   });
 
-  it("has 44 relics total", () => {
-    expect(RELICS).toHaveLength(44);
+  it("has 45 relics total (44 reward relics + plague_sigil starter)", () => {
+    expect(RELICS).toHaveLength(45);
   });
 
   it("derives relic descriptions and metadata from the canonical registry", () => {

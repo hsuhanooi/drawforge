@@ -3,11 +3,11 @@ const { createCombatEncounter } = require("./combat");
 const { createEnemyForNode } = require("./enemies");
 const { createEventForNode, createCampfireEvent } = require("./events");
 
-const resolveNode = ({ node, player, balanceOverrides = {}, act = 1, ascensionLevel = 0 }) => {
+const resolveNode = ({ node, player, balanceOverrides = {}, act = 1, ascensionLevel = 0, seed = undefined, runFlags = {}, usedChainFlags = [] }) => {
   const balance = createBalanceConfig(balanceOverrides);
 
   if (["combat", "elite", "boss"].includes(node.type)) {
-    const enemy = createEnemyForNode({ row: node.row ?? 0, col: node.col ?? 0, type: node.type }, act, ascensionLevel);
+    const enemy = createEnemyForNode({ row: node.row ?? 0, col: node.col ?? 0, type: node.type }, act, ascensionLevel, seed);
     const health = node.type === "combat"
       ? balance.enemy.basicEnemyHealth
       : enemy.health || balance.enemy.basicEnemyHealth;
@@ -28,7 +28,7 @@ const resolveNode = ({ node, player, balanceOverrides = {}, act = 1, ascensionLe
     return {
       state: "event",
       combat: null,
-      event: createEventForNode({ row: node.row ?? 0, col: node.col ?? 0, id: node.id })
+      event: createEventForNode({ row: node.row ?? 0, col: node.col ?? 0, id: node.id, act }, runFlags, usedChainFlags)
     };
   }
 

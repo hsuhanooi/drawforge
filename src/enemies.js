@@ -34,7 +34,156 @@ const resolveEnemyIntent = (enemy, turnNumber = 0) => {
   return intents[turnNumber % intents.length];
 };
 
-const createEnemyForNode = (node, act = 1, ascensionLevel = 0) => {
+// Boss pool definitions — ordered as [existing, new1, new2] so act3 stays single
+const act1BossPool = [
+  () => createEnemy({
+    id: "spire_guardian",
+    name: "Spire Guardian",
+    health: 70,
+    damage: 12,
+    rewardGold: 50,
+    intents: [
+      { type: "attack", value: 12, label: "Crush for 12" },
+      { type: "block", value: 10, label: "Fortify: gain 10 block" },
+      { type: "multi_attack", value: 4, hits: 3, label: "Barrage: 3x4" }
+    ]
+  }),
+  () => createEnemy({
+    id: "crypt_warden",
+    name: "Crypt Warden",
+    health: 75,
+    damage: 11,
+    rewardGold: 55,
+    intents: [
+      { type: "attack", value: 11, label: "Bone Crush for 11" },
+      { type: "block", value: 12, label: "Fortify: gain 12 block" },
+      { type: "debuff_vulnerable", value: 1, label: "Wail: apply Vulnerable 1" },
+      { type: "attack", value: 11, label: "Bone Crush for 11" }
+    ]
+  }),
+  () => createEnemy({
+    id: "stone_idol",
+    name: "Stone Idol",
+    health: 85,
+    damage: 10,
+    rewardGold: 55,
+    intents: [
+      { type: "attack", value: 10, label: "Slam for 10" },
+      { type: "block", value: 8, label: "Regenerate: gain 8 block" },
+      { type: "attack", value: 14, label: "Pulverize for 14" },
+      { type: "attack", value: 10, label: "Slam for 10" }
+    ]
+  })
+];
+
+const act2BossPool = [
+  () => createEnemy({
+    id: "void_sovereign",
+    name: "Void Sovereign",
+    health: 95,
+    damage: 14,
+    rewardGold: 75,
+    phaseThreshold: 47,
+    phase: 1,
+    phase2Strength: 2,
+    intents: [
+      { type: "attack", value: 14, label: "Void Slash for 14" },
+      { type: "debuff_hex", value: 2, label: "Cursed Gaze: apply Hex 2" },
+      { type: "multi_attack", value: 7, hits: 2, label: "Rift Strike: 2x7" }
+    ],
+    phase2Intents: [
+      { type: "multi_attack", value: 8, hits: 2, label: "Chaos Rend: 2x8" },
+      { type: "debuff_curse", curseId: "wound", label: "Void Brand: add Wound to deck" },
+      { type: "attack", value: 18, label: "Annihilate for 18" }
+    ]
+  }),
+  () => createEnemy({
+    id: "hex_lord",
+    name: "Hex Lord",
+    health: 105,
+    damage: 13,
+    rewardGold: 70,
+    startHex: 2,
+    intents: [
+      { type: "debuff_hex_attack", hex: 2, value: 9, label: "Hex Pulse: apply Hex 2 + 9 dmg" },
+      { type: "multi_attack", value: 7, hits: 2, label: "Void Drain: 2x7" },
+      { type: "debuff_hex", value: 2, label: "Hex Ascend: apply Hex 2" },
+      { type: "attack", value: 14, label: "Annihilate for 14" }
+    ]
+  }),
+  () => createMultiPhaseBoss({
+    id: "bone_emperor",
+    name: "Bone Emperor",
+    health: 115,
+    damage: 14,
+    rewardGold: 70,
+    phaseThresholds: [55],
+    phaseIntents: [
+      [
+        { type: "attack", value: 14, label: "Decree for 14" },
+        { type: "block", value: 11, label: "Crown Parry: gain 11 block" },
+        { type: "multi_attack", value: 7, hits: 2, label: "Imperial Strike: 2x7" }
+      ],
+      [
+        { type: "multi_attack", value: 6, hits: 3, label: "Frenzy: 3x6" },
+        { type: "attack", value: 17, label: "Shatter for 17" },
+        { type: "debuff_weak", value: 2, label: "Edict: apply Weak 2" }
+      ]
+    ]
+  })
+];
+
+const act3BossPool = [
+  () => createMultiPhaseBoss({
+    id: "the_undying",
+    name: "The Undying",
+    health: 180,
+    damage: 18,
+    rewardGold: 100,
+    phaseThresholds: [150, 100, 50],
+    phase2Strength: 2,
+    phase3Strength: 3,
+    phase4Strength: 4,
+    phaseIntents: [
+      [
+        { type: "attack", value: 18, label: "Final Slash for 18" },
+        { type: "debuff_hex", value: 2, label: "Death Mark: apply Hex 2" },
+        { type: "block", value: 14, label: "Unending Guard: gain 14 block" }
+      ],
+      [
+        { type: "multi_attack", value: 10, hits: 2, label: "Soul Rend: 2x10" },
+        { type: "debuff_weak", value: 2, label: "Withering Cry: apply Weak 2" },
+        { type: "attack", value: 22, label: "Grave Crash for 22" }
+      ],
+      [
+        { type: "debuff_burn", value: 3, label: "Ashen Wake: apply Burn 3" },
+        { type: "multi_attack", value: 8, hits: 3, label: "Eternal Barrage: 3x8" },
+        { type: "attack", value: 24, label: "Oblivion for 24" }
+      ],
+      [
+        { type: "debuff_poison", value: 4, label: "Rot Bloom: apply Poison 4" },
+        { type: "multi_attack", value: 11, hits: 3, label: "Death Spiral: 3x11" },
+        { type: "attack", value: 30, label: "Undying End for 30" }
+      ]
+    ]
+  })
+];
+
+/**
+ * Select a boss from the act's pool deterministically by run seed.
+ * @param {number} act
+ * @param {string | number | undefined} runSeed
+ * @returns {object}
+ */
+const selectBossForAct = (act, runSeed) => {
+  const pool = act === 1 ? act1BossPool : act === 2 ? act2BossPool : act3BossPool;
+  if (pool.length === 1) return pool[0]();
+  const seedStr = String(runSeed || "default");
+  const hash = [...seedStr].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return pool[(hash + act) % pool.length]();
+};
+
+const createEnemyForNode = (node, act = 1, ascensionLevel = 0, runSeed = undefined) => {
   if (node.type === "elite") {
     const act1Elites = [
       createEnemy({
@@ -97,7 +246,7 @@ const createEnemyForNode = (node, act = 1, ascensionLevel = 0) => {
         id: "hex_titan",
         name: "Hex Titan",
         health: 165,
-        damage: 16,
+        damage: 18,
         rewardGold: 40,
         phaseThresholds: [110, 65],
         phase2Strength: 2,
@@ -124,7 +273,7 @@ const createEnemyForNode = (node, act = 1, ascensionLevel = 0) => {
         id: "cinder_colossus",
         name: "Cinder Colossus",
         health: 150,
-        damage: 17,
+        damage: 19,
         rewardGold: 40,
         burnImmune: true,
         intents: [
@@ -140,77 +289,7 @@ const createEnemyForNode = (node, act = 1, ascensionLevel = 0) => {
   }
 
   if (node.type === "boss") {
-    if (act >= 3) {
-      return scaleEnemyForAscension(createMultiPhaseBoss({
-        id: "the_undying",
-        name: "The Undying",
-        health: 180,
-        damage: 18,
-        rewardGold: 100,
-        phaseThresholds: [150, 100, 50],
-        phase2Strength: 2,
-        phase3Strength: 3,
-        phase4Strength: 4,
-        phaseIntents: [
-          [
-            { type: "attack", value: 18, label: "Final Slash for 18" },
-            { type: "debuff_hex", value: 2, label: "Death Mark: apply Hex 2" },
-            { type: "block", value: 14, label: "Unending Guard: gain 14 block" }
-          ],
-          [
-            { type: "multi_attack", value: 10, hits: 2, label: "Soul Rend: 2x10" },
-            { type: "debuff_weak", value: 2, label: "Withering Cry: apply Weak 2" },
-            { type: "attack", value: 22, label: "Grave Crash for 22" }
-          ],
-          [
-            { type: "debuff_burn", value: 3, label: "Ashen Wake: apply Burn 3" },
-            { type: "multi_attack", value: 8, hits: 3, label: "Eternal Barrage: 3x8" },
-            { type: "attack", value: 24, label: "Oblivion for 24" }
-          ],
-          [
-            { type: "debuff_poison", value: 4, label: "Rot Bloom: apply Poison 4" },
-            { type: "multi_attack", value: 11, hits: 3, label: "Death Spiral: 3x11" },
-            { type: "attack", value: 30, label: "Undying End for 30" }
-          ]
-        ]
-      }), ascensionLevel, node.type);
-    }
-
-    if (act === 2) {
-      return scaleEnemyForAscension(createEnemy({
-        id: "void_sovereign",
-        name: "Void Sovereign",
-        health: 95,
-        damage: 14,
-        rewardGold: 75,
-        phaseThreshold: 47,
-        phase: 1,
-        phase2Strength: 2,
-        intents: [
-          { type: "attack", value: 14, label: "Void Slash for 14" },
-          { type: "debuff_hex", value: 2, label: "Cursed Gaze: apply Hex 2" },
-          { type: "multi_attack", value: 7, hits: 2, label: "Rift Strike: 2x7" }
-        ],
-        phase2Intents: [
-          { type: "multi_attack", value: 8, hits: 2, label: "Chaos Rend: 2x8" },
-          { type: "debuff_curse", curseId: "wound", label: "Void Brand: add Wound to deck" },
-          { type: "attack", value: 18, label: "Annihilate for 18" }
-        ]
-      }), ascensionLevel, node.type);
-    }
-
-    return scaleEnemyForAscension(createEnemy({
-      id: "spire_guardian",
-      name: "Spire Guardian",
-      health: 70,
-      damage: 12,
-      rewardGold: 50,
-      intents: [
-        { type: "attack", value: 12, label: "Crush for 12" },
-        { type: "block", value: 10, label: "Fortify: gain 10 block" },
-        { type: "multi_attack", value: 4, hits: 3, label: "Barrage: 3x4" }
-      ]
-    }), ascensionLevel, node.type);
+    return scaleEnemyForAscension(selectBossForAct(act, runSeed), ascensionLevel, node.type);
   }
 
   const act1Enemies = [
@@ -557,5 +636,9 @@ const createEnemyForNode = (node, act = 1, ascensionLevel = 0) => {
 module.exports = {
   createEnemy,
   createEnemyForNode,
-  resolveEnemyIntent
+  resolveEnemyIntent,
+  selectBossForAct,
+  act1BossPool,
+  act2BossPool,
+  act3BossPool
 };

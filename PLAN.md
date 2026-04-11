@@ -1,290 +1,313 @@
-# Drawforge — Next Milestone Plan: "The Living Spire"
+# Milestone Plan: Card Depth & Combat Feel
 
 ## Context
 
-The burn-in now runs 50/50 at BURNIN_CONCURRENCY=6. The core loop works. The UI milestone is complete. The question is: what separates a functional prototype from a game that competes with Slay the Spire 2?
+The "Character Identity & World Variety" milestone is complete. Drawforge now has 4 archetypes, 7 bosses across 3 acts, archetype-biased rewards, and cross-act event chains. 488 tests pass, 91 cards, 45 relics.
 
-After a full audit of the codebase, here is the honest picture:
+**The user's complaint**: "gameplay still feels flat and card depth and balance still feels wrong."
 
-**What's good:**
-- Solid particle/VFX engine (animEngine.js, 1,250 lines)
-- Three archetypes with real internal synergies (Hex, Exhaust, Charged)
-- 48 relics with meaningful trigger variety
-- Clean server/test architecture, 404/404 unit tests
+Three audits identified the root causes:
+1. **Poison (5 cards) and Burn (5 cards) are dangerously thin** — Hex has 7 pure + 6 hybrids with rich mechanics (Hexburst consumes stacks, No Mercy repeats vs hexed). Poison/Burn have zero consumption or scaling mechanics.
+2. **0% power card upgrade coverage** — all 8 powers stuck at base stats forever. Defense and Debuff cards also largely unupgradeable.
+3. **No multi-hit attacks** — a StS staple. Only conditional repeats (Harvester, No Mercy) exist.
+4. **Powers are flat** — 9 total, most are "+1 stat/turn" with no build-around potential.
+5. **Stack caps too low** (MAX_POISON=10, MAX_BURN=10) — consumption finishers need headroom.
 
-**What the burn-in data reveals:**
-- Runs complete in 32–68 steps. StS2 runs take 3–5× longer. The game is thin.
-- Shop is always skipped (nothing worth buying). Economy is broken.
-- Rest always upgrades (only 11/76 cards are upgradeable — rest is dead).
-- Deck size stays near 10 many runs. Card acquisition rate is too slow or rewards are too weak.
-
-**My critiques, ranked by impact on feel:**
-
-1. **The game is completely silent.** Not a card flip, not a hit sound. This is the single biggest gap versus any published roguelike. Silence makes every interaction feel unconfirmed.
-
-2. **Cards lay flat in a straight line.** StS's fanned arc is iconic precisely because it feels like holding a real hand of cards. Drawforge's straight row feels like a spreadsheet.
-
-3. **Enemy attacks are instant.** The enemy intent shows a sword icon. Then health drops. There is no wind-up, no lunge, no impact frame. Combat feels bloodless.
-
-4. **Cataclysm Sigil breaks Act 2.** With enough hex stacks it hits 50–80 damage. The Void Sovereign has 95 HP and dies in 2–3 turns. The boss isn't a boss — it's a performance review of your hex stack.
-
-5. **Only 2 acts.** The game ends just as it's getting interesting. There's no late-game payoff for your deck.
-
-6. **Hex is the only stacking mechanic.** No poison, no burn. Combat is clean in a bad way — there's no sense of attrition, no building dread.
-
-7. **Winning does nothing.** No meta-progression, no Ascension, no unlock. Run 2 is identical to run 1.
-
-8. **Upgrades barely exist.** Only 11 of 76 cards can be upgraded. You can build an entire Exhaust deck and none of its cards are upgradeable. The campfire is a waste.
-
-9. **Reward screens have no ceremony.** Cards appear instantly. No cascade, no glow, no anticipation.
-
-10. **The map is a 5×3 grid every single run.** By run 3 you've memorized the structure. No route diversity.
+This milestone adds 14 new cards, 30 new upgrades, and 3 new combat engine mechanics (consume-poison, consume-burn, multi-hit). Expected outcome: Poison and Burn become viable archetype strategies with real depth, every power card can scale via upgrades, and multi-hit opens new interaction with Vulnerable/Strength.
 
 ---
 
-## Milestone: "The Living Spire"
+## Task 1 — Deepen Poison Archetype (5 new cards + consume mechanic)
 
-**Goal:** Close the gap to StS2 quality on the four axes that matter most to feel and replayability: sound, combat animation, card depth, and run longevity.
+### Problem
+Poison Vanguard has 5 cards and no finisher. Hex has Hexburst (consume all hex, deal bonus per stack). Poison needs the same consumption pattern plus scaling depth.
 
-**Success criteria:**
-- A run feels complete (3 acts, climactic boss)
-- Combat feels physical (sound + animation on every hit)
-- Card balance allows multiple viable strategies without any single dominant path
-- Players have a reason to start run 2 (meta-progression hook)
+### Files
+- `src/constants.js` — raise `MAX_POISON_STACKS` from 10 to 20
+- `src/cardRegistry.js` — add 5 card entries
+- `src/cardCatalog.js` — add 5 `implementedOverrides`, update `deriveKeywords`
+- `src/browserCombatActions.js` — add `consumePoisonBonus`, `hitCount`, `applyPoisonPerHit`, `doublePoison` mechanics; add `virulent_aura` power
+- `src/cards.js` — mirror `consumePoisonBonus` in server-side damage calc (follows `consumeHexBonus` pattern at line 160)
 
----
+### New Cards
 
-## Tasks (in priority order for TODO.md)
+| ID | Name | Cost | Type | Rarity | Archetype | Effect |
+|---|---|---|---|---|---|---|
+| `plague_burst` | Plague Burst | 2 | attack | rare | Poison | Dmg 5. Consume all Poison on target. Deal 3 per stack consumed. |
+| `toxic_barrage` | Toxic Barrage | 1 | attack | uncommon | Poison | Hit 3×3 dmg. Apply 1 Poison per hit. |
+| `virulent_aura` | Virulent Aura | 2 | power | uncommon | Poison | Each turn, apply 1 Poison to enemy. |
+| `contagion` | Contagion | 1 | skill | uncommon | Poison | Double Poison on target (up to cap). |
+| `fetid_wound` | Fetid Wound | 1 | attack | common | Poison | Dmg 4. Apply Poison 2. Gain 3 Block. |
 
----
+### Implementation
 
-### 1. SOUND SYSTEM — Web Audio SFX
-**Category:** feel  
-**Why first:** Silence is the single biggest gap. Sound makes every other animation feel more impactful.
+1. `constants.js`: `MAX_POISON_STACKS = 20`
+2. `cardRegistry.js`: Add 5 entries following existing pattern
+3. `cardCatalog.js` `implementedOverrides`:
+   - `plague_burst: { damage: 5, consumePoisonBonus: 3 }`
+   - `toxic_barrage: { damage: 3, hitCount: 3, applyPoisonPerHit: 1 }`
+   - `virulent_aura: {}` (power — resolved in endCombatTurn)
+   - `contagion: { doublePoison: true }`
+   - `fetid_wound: { damage: 4, applyPoison: 2, block: 3 }`
+4. `cardCatalog.js` `deriveKeywords`: Add `consumePoisonBonus` → "Consume" keyword (mirror line 151 for hex)
+5. `browserCombatActions.js` `playCombatCard` damage section (near line 285-288):
+   - **consumePoisonBonus**: Mirror `consumeHexBonus` pattern — read `enemy.poison`, multiply by bonus, zero out poison
+   - **hitCount**: Wrap damage+block-piercing block in a loop. Each hit independently resolves vs enemy block. Apply `applyPoisonPerHit` per iteration.
+   - **doublePoison**: `next.enemy.poison = clampStacks((next.enemy.poison || 0) * 2, MAX_POISON_STACKS)`
+6. `browserCombatActions.js` `endCombatTurn` power loop (line 670-700): Add `virulent_aura` branch — apply 1 poison per turn
+7. `cards.js` server-side: Mirror `consumePoisonBonus` (line 160 pattern)
+8. Add `poison_vanguard` archetype theme entries for new cards in `ARCHETYPE_CARD_THEMES` in `src/rewards.js` (already includes "Poison")
 
-**Implementation:**
-- Add `browser/soundEngine.js` — Web Audio API oscillator-based synthesizer (no audio files needed)
-- Procedurally generate 15 sounds: card_play (whoosh), card_exhaust (crumple), hit_light (thud), hit_heavy (bass thud), block (clank), death_enemy (pop), death_player (boom), heal (chime), relic_trigger (ding), energy_restore (hum), draw_card (swish), shuffle (shuffle), reward_reveal (shimmer), map_move (thud), UI_click (tick)
-- Synthesize using OscillatorNode + GainNode + BiquadFilterNode — no .mp3 files, no CORS
-- Volume master control (persisted in localStorage)
-- Respects existing `fx=off` query param (already gate-checks visual FX)
-- Hook into existing animEngine callbacks: `onEnemyHit`, `onPlayerCardPlay`, `onRelicTrigger`, etc.
-- Add unit test asserting soundEngine is initialized with correct event hook surface
-
-**Files:** `browser/soundEngine.js` (new), `browser/play.js` (hook calls), `tests/playBundle.test.js` (source assertions)
-
----
-
-### 2. CARD HAND ARC LAYOUT
-**Category:** feel  
-**Why:** The single most iconic thing about holding cards in a physical game. Straight line feels like a debug view.
-
-**Implementation:**
-- Replace straight `#hand-area` flex row with canvas-positioned arc layout
-- Arc parameters: center at bottom-center of hand area, radius ~900px, spread angle capped at 60° for ≤8 cards
-- Each card gets `transform: rotate(Xdeg) translateY(Ypx)` based on position in arc
-- Hovered card rises to vertical, neighboring cards fan away (CSS transition 120ms)
-- Selected card rises fully vertical and highlights
-- 0-card and 1-card cases degrade gracefully (no arc)
-- Cards deal in with staggered `card-deal` animation (already in play.css)
-- No regression to existing unplayable/selected state classes
-
-**Files:** `browser/play.js` (hand render function), `browser/play.css` (arc transforms), `tests/playBundle.test.js` (regression assertions on hand class structure)
-
----
-
-### 3. ENEMY ATTACK ANIMATION
-**Category:** feel  
-**Why:** The intent icon shows ⚔️ 14 and then HP just drops. There's no physical impact.
-
-**Implementation:**
-- **Enemy lunge:** When enemy attacks, animate enemy canvas `translateX(+60px)` over 120ms then snap back over 200ms (spring ease). Already have `enemy-lunge` in play.css — wire it to enemy turn resolution.
-- **Hit freeze:** On player damage, pause all animation for 80ms (frozen frame = impact feel). Implemented by setting `animEngine.frozen = true` for 80ms.
-- **Player recoil:** `player-recoil` CSS class already exists — apply on player HP loss, remove after 500ms.
-- **Enemy hit flash:** `enemy-hit-flash` CSS class already exists — apply on enemy HP loss, remove after 200ms.
-- **Sequence in animEngine:** `onEnemyAttack()` callback → lunge tween → freeze → damage float + particles → recoil.
-- These are all existing CSS classes and animEngine infrastructure — this is wiring, not new systems.
-
-**Files:** `browser/play.js` (enemy turn rendering sequence), `browser/animEngine.js` (freeze state, onEnemyAttack), `browser/play.css` (verify/refine existing animation classes)
+### Tests — `tests/poisonDepth.test.js`
+- `plague_burst` consumes all poison, deals base + bonus
+- `plague_burst` with 0 poison deals only base damage
+- `toxic_barrage` hits 3 times independently (test with enemy block)
+- `toxic_barrage` applies 1 poison per hit (3 total)
+- `contagion` doubles poison, respects cap of 20
+- `virulent_aura` applies 1 poison per turn via power
+- `fetid_wound` deals damage + poison + block
+- Verify MAX_POISON_STACKS is now 20
 
 ---
 
-### 4. REWARD SCREEN CASCADE ANIMATION
-**Category:** feel  
-**Why:** Cards appearing instantly breaks the anticipation that makes rewards exciting in StS.
+## Task 2 — Deepen Burn Archetype (5 new cards + consume mechanic)
 
-**Implementation:**
-- On reward screen reveal (`renderReward()`), stagger card appearance: each card animates in with `card-deal` at 80ms intervals
-- Relic reveals: scale-in with `rare-shimmer` + `badge-pop` combined for 600ms
-- Gold display: count-up animation from 0 to actual value over 800ms (existing `float-dmg` logic can inform this)
-- Victory fanfare: `animEngine.onVictory()` already fires 80 rainbow particles — keep, but add 600ms delay before reward cards appear to let it play
-- Skip/continue button fades in last (after all cards visible)
+### Problem
+Burn has 5 cards with no consumption finisher and no block interaction. Burn doesn't decay (unlike Poison), which is a unique strength — but there's no way to exploit high burn stacks.
 
-**Files:** `browser/play.js` (renderReward), `browser/play.css` (stagger timing), `tests/playBundle.test.js` (assertion on stagger class/data-index)
+### Files
+- `src/constants.js` — raise `MAX_BURN_STACKS` from 10 to 20
+- `src/cardRegistry.js` — add 5 card entries
+- `src/cardCatalog.js` — add 5 overrides, update `deriveKeywords`
+- `src/browserCombatActions.js` — add `consumeBurnBonus`, `blockPerBurn` mechanics; add `inferno_aura` power
+- `src/cards.js` — mirror `consumeBurnBonus` in server-side calc
 
----
+### New Cards
 
-### 5. POISON & BURN STATUS EFFECTS
-**Category:** gameplay depth  
-**Why:** Hex is the only stacking mechanic. DoT opens entirely new archetypes and creates attrition.
+| ID | Name | Cost | Type | Rarity | Archetype | Effect |
+|---|---|---|---|---|---|---|
+| `immolate` | Immolate | 2 | attack | rare | Burn | Dmg 6. Consume all Burn. Deal 3 per stack consumed. |
+| `backdraft` | Backdraft | 1 | attack | uncommon | Burn | Dmg 4. +2 damage per Burn on target. |
+| `inferno_aura` | Inferno Aura | 2 | power | uncommon | Burn | Each turn, apply 1 Burn to enemy. |
+| `heat_shield` | Heat Shield | 1 | skill | uncommon | Burn | Gain 4 Block. +2 Block per Burn on target. |
+| `flash_fire` | Flash Fire | 0 | skill | common | Burn | Apply Burn 2. Draw 1. Exhaust. |
 
-**Implementation:**
-- **Poison:** Applied in stacks. At end of player's turn (after all cards), enemy takes `poison` damage, then poison decrements by 1 (StS exact mechanic). Tracked in `enemy.status.poison`.
-- **Burn:** Applied in stacks. At START of enemy's turn, deals `burn` damage. Stacks do NOT decrement. Tracked in `enemy.status.burn`.
-- Both resolve via `resolveStatusEffects(enemy)` called in `src/turns.js` at correct phase.
-- **5 new Poison cards** for Hex Witch archetype: Venom Strike (8dmg+2poison), Toxic Cloud (3poison AoE intent→single), Creeping Blight (power: 1poison/turn), Septic Touch (apply 3poison, 0-cost), Infectious Wound (if enemy dies poisoned, poison carries to next)
-- **5 new Burn cards** for Ashen Knight archetype: Ember Throw (5dmg+2burn), Kindle (power: +1burn on attack), Scorch (3burn, draws a card), Funeral Pyre (exhaust: deal burn×4 damage), Smoldering Brand (attack applies 1burn permanently each hit)
-- Status icons: 🐍 poison (green), 🔥 burn (orange) — add to `renderBadgesAnimated()`
-- 3 new enemies with DoT intents: Plague Rat (applies 2poison/turn), Cinder Shade (applies 2burn/turn), Venomfang (attacks + 1poison)
-- Balance: poison/burn must cap at 10 stacks to prevent degenerate scaling
+### Implementation
 
-**Files:** `src/combat.js`, `src/turns.js`, `src/cards.js`, `src/enemies.js`, `browser/play.js` (badge render), tests for new status mechanics
+1. `constants.js`: `MAX_BURN_STACKS = 20`
+2. `cardRegistry.js`: Add 5 entries
+3. `cardCatalog.js`:
+   - `immolate: { damage: 6, consumeBurnBonus: 3 }`
+   - `backdraft: { damage: 4, bonusDmgPerBurn: 2 }`
+   - `inferno_aura: {}` (power)
+   - `heat_shield: { block: 4, blockPerBurn: 2 }`
+   - `flash_fire: { applyBurn: 2, draw: 1, exhaust: true }`
+4. `deriveKeywords`: Add `consumeBurnBonus` → "Consume"
+5. `browserCombatActions.js`:
+   - **consumeBurnBonus**: Mirror consumeHexBonus/consumePoisonBonus — consume burn stacks, deal bonus
+   - **blockPerBurn**: In block section, add burn-scaled block: `if (card.blockPerBurn) totalBlock += (enemy.burn || 0) * card.blockPerBurn`
+6. `endCombatTurn` power loop: Add `inferno_aura` — apply 1 burn per turn
+7. `cards.js` server-side: Mirror consumeBurnBonus
 
----
-
-### 6. CARD BALANCE PASS
-**Category:** balance  
-**Why:** Burn-in shows Hex decks kill Act 2 boss in 2–3 turns. Multiple archetypes should be viable with similar TTK.
-
-**Specific changes:**
-- **Cataclysm Sigil:** Cap `bonusDmgPerHex` total bonus at 40 (currently unbounded). OR raise cost to 3 energy. Both approaches tested.
-- **No Mercy:** Add `consumesHex: true` — clears hex on use, preventing infinite stack exploitation.
-- **Grave Fuel + Ritual Collapse combo:** Raise Grave Fuel cost from 1→2, or add "you may only gain 1 energy per turn from exhaust effects" cap in `src/energy.js`.
-- **Block undertuned:** Raise base Defend from 5→6. Raise Barrier from 8→10. Add dexterity scaling to Fortify (currently +4 block, should be +4+dex).
-- **Hex stacking cap:** Add `MAX_HEX_STACKS = 10` in `src/constants.js`. Enemy `status.hex` clamps at this value.
-- **Enemy damage scaling:** Act 2 common enemies deal 7→9, Act 2 elites deal 12→14 (player damage scales much faster than enemy; close the gap).
-- **Upgraded cards:** After balance pass, re-validate all upgrade deltas are meaningful (+damage upgrades should be +3 min, not +1).
-- Add unit tests in `tests/combat.test.js` asserting hex cap behavior and energy exhaust cap.
-
-**Files:** `src/cards.js`, `src/enemies.js`, `src/constants.js`, `src/energy.js`, `tests/combat.test.js`
-
----
-
-### 7. CARD UPGRADE EXPANSION
-**Category:** gameplay depth  
-**Why:** Only 11/76 cards upgradeable. Players build Exhaust/Charged/Poison decks and have nothing to upgrade at campfire.
-
-**Implementation:**
-- Expand `src/cardUpgrade.js` to cover ALL core archetype cards (target: 40+ upgradeable cards)
-- **Hex Witch additions:** Deep Hex+, Hexburst+, Detonate Sigil+, Cataclysm Sigil+ (capped), No Mercy+, Feast on Weakness+
-- **Ashen Knight additions:** Fire Sale+, Cremate+, Grave Fuel+, Cinder Rush+, Ritual Collapse+, Overclock+
-- **Charged additions:** Charge Up+, Arc Lash+, Release+, Static Guard+, Capacitor+
-- **New Poison/Burn additions:** Venom Strike+, Ember Throw+, Scorch+
-- **Neutral additions:** Bash+, Heavy Swing+, Pommel+, Recover+, Insight+
-- Upgrade effects should be **meaningful**: cost reduction, +30% damage, adds secondary effect (not just +1 dmg)
-- Two upgrade styles: `cost_reduce` (0-energy) and `enhanced` (better effect)
-- Update campfire UI to show "UPGRADEABLE" count from deck
-- Add unit tests covering each new upgrade mapping
-
-**Files:** `src/cardUpgrade.js`, `src/cards.js` (upgraded variants), `tests/` (upgrade coverage)
+### Tests — `tests/burnDepth.test.js`
+- `immolate` consumes all burn, correct burst damage
+- `immolate` with 0 burn deals only base
+- `backdraft` scales with burn stacks
+- `heat_shield` block scales with burn stacks
+- `inferno_aura` applies 1 burn per turn
+- `flash_fire` applies burn, draws, exhausts
+- Verify MAX_BURN_STACKS is now 20
 
 ---
 
-### 8. ACT 3 — ENDGAME CONTENT
-**Category:** content/longevity  
-**Why:** The game ends just as synergies get interesting. Act 2's Void Sovereign is the final content wall.
+## Task 3 — Multi-Hit Cards + Build-Around Powers (4 new cards)
 
-**Implementation:**
-- **Act 3 enemy pool** (8 new enemies): Escalated stats, new mechanics
-  - Nightmare Husk (55HP, 13dmg, applies 2 burn/turn)
-  - Hex Revenant (60HP, 11dmg, strips 3 hex from itself when attacked — immune to hex spam)
-  - Stone Eater (70HP, 14dmg, gains +1 strength per 2 turns)
-  - Soul Collector (50HP, 12dmg, heals 5HP if curse in player deck)
-  - Void Crawler (65HP, 10dmg, applies vulnerable each turn)
-  - Ashwalker (55HP, 16dmg, blocks 10 every other turn)
-  - Elites: Hex Titan (100HP, 16dmg, 3 phases), Cinder Colossus (110HP, 14dmg, burn stack immune)
-- **Act 3 Boss: The Undying** — 3-phase boss
-  - Phase 1 (150HP): Heavy attacks + applies 2 burn/turn
-  - Phase 2 (100HP → triggered at 100HP): Gains 3 strength, attack pattern shifts, spawns adds
-  - Phase 3 (50HP → triggered at 50HP): Panic mode — 25 dmg/turn, curse floods deck
-  - Victory condition changes: need to deplete all 3 phase HP pools
-- Act 3 map: same 5×3 structure, escalated enemy pool + new boss
-- `src/actTransition.js` needs Act 3 routing
-- Reward after Act 3 boss: "True Victory" end screen
+### Problem
+No multi-hit player attacks exist. Multi-hit interacts multiplicatively with Vulnerable (1.5× per hit) and Strength (+N per hit), creating emergent depth. Also need powers with real build-around potential.
 
-**Files:** `src/enemies.js`, `src/actTransition.js`, `src/map.js`, `src/nodeResolver.js`, `browser/play.js` (act 3 theming)
+### Files
+- `src/cardRegistry.js` — add 4 card entries
+- `src/cardCatalog.js` — add 4 overrides
+- `src/browserCombatActions.js` — `hitCountIfCharged` variant, `noxious_presence` on-attack trigger, `charged_field` power
 
----
+### New Cards
 
-### 9. META-PROGRESSION — ASCENSION SYSTEM
-**Category:** replayability  
-**Why:** Winning does nothing. There is zero reason to start run 2. This is the deepest engagement hook.
+| ID | Name | Cost | Type | Rarity | Archetype | Effect |
+|---|---|---|---|---|---|---|
+| `volt_barrage` | Volt Barrage | 1 | attack | uncommon | Charged | Hit 3×3 dmg. If Charged, hit 5× instead. |
+| `flurry_of_blows` | Flurry of Blows | 2 | attack | uncommon | Neutral | Hit 4×3 dmg. |
+| `noxious_presence` | Noxious Presence | 1 | power | uncommon | Poison | Whenever you play an Attack, apply 1 Poison. |
+| `charged_field` | Charged Field | 2 | power | rare | Charged | Each turn, become Charged. Draw 1 extra. |
 
-**Implementation:**
-- **Ascension 1–10** (start with 5 levels)
-  - Level 1: Enemies have +10% HP
-  - Level 2: +10% HP and +1 enemy attack damage
-  - Level 3: Starting deck includes 1 Curse (Wound)
-  - Level 4: +20% enemy HP, +1 enemy damage, shop prices +25%
-  - Level 5: Boss has Phase 2 that starts immediately
-- **Persistence:** Ascension level stored in `localStorage["drawforge_ascension"]`
-- **Unlock condition:** Win at current level to unlock next
-- **Win tracking:** `localStorage["drawforge_wins"]`, `localStorage["drawforge_best_ascension"]`
-- **Victory screen:** Show current Ascension, best, total wins, "Next Challenge: Ascension N" CTA
-- **Deck choice screen:** Show current Ascension level badge
-- No gameplay changes needed to existing combat — ascension just tweaks enemy `hp` and `damage` multipliers at enemy creation time in `src/enemies.js` via a passed `ascensionLevel` parameter
-- Add to `src/run.js` as `run.ascensionLevel` and propagate through `createBrowserRun()`
+### Implementation
 
-**Files:** `src/run.js`, `src/enemies.js`, `browser/play.js` (UI for ascension), `src/constants.js`
+1. `cardRegistry.js` + `cardCatalog.js`: Add entries
+   - `volt_barrage: { damage: 3, hitCount: 3, hitCountIfCharged: 5 }`
+   - `flurry_of_blows: { damage: 3, hitCount: 4 }`
+   - `noxious_presence: {}` (triggered power)
+   - `charged_field: {}` (turn-start power)
+2. `browserCombatActions.js` hitCount (from Task 1):
+   - Add `hitCountIfCharged`: If player is charged and card has this prop, use it instead of `hitCount`
+3. `browserCombatActions.js` after attack damage resolution:
+   - If `powers` includes `noxious_presence` and card is an attack, apply 1 poison
+4. `endCombatTurn` power loop:
+   - `charged_field`: Set `next.player.charged = true`, draw 1 extra card
+
+### Tests — `tests/multiHit.test.js`
+- `flurry_of_blows` hits 4× independently (test with enemy block — first hits absorbed, rest damage HP)
+- `volt_barrage` hits 3× normally, 5× when charged
+- Multi-hit interacts correctly with Vulnerable (each hit amplified)
+- Multi-hit interacts correctly with Weak (each hit reduced)
+- Multi-hit interacts correctly with Strength (bonus per hit)
+- `noxious_presence` applies 1 poison per attack played
+- `charged_field` sets charged + draws extra each turn
 
 ---
 
-### 10. MAP VARIETY
-**Category:** replayability  
-**Why:** Every run is an identical 5×3 grid. By run 3 the structure is memorized.
+## Task 4 — Power & Defense Upgrades (20 upgrade entries)
 
-**Implementation:**
-- **3 map templates** per act (randomly selected per run):
-  - Dense: 6 rows × 3 cols (more combat, 2 shops, 2 events)
-  - Sparse: 4 rows × 4 cols (fewer combats, guaranteed rest, 3 events)
-  - Gauntlet: 7 rows × 2 cols (no events, 1 shop, extra elite row)
-- **Act-specific map seeds** so Act 1 and Act 2 have different shapes each run
-- Template selection seeded from `run.seed` (deterministic per run, varied across runs)
-- `src/map.js` `createMap()` accepts `{ template }` param
-- No UI changes needed — existing map renderer adapts to grid dimensions
+### Problem
+8 power cards have 0% upgrade coverage. 4 defense cards and most debuff cards also can't upgrade. Upgrade coverage is ~45% — should be >75%.
 
-**Files:** `src/map.js`, `src/balance.js` (map template constants)
+### Files
+- `src/cardUpgrade.js` — add 20 entries to `UPGRADE_ID_MAP` and `UPGRADED_CARD_ENTRIES`
+- `src/browserCombatActions.js` — refactor power resolution to read values from power object (not hardcoded)
+
+### Power Upgrade Strategy
+
+Currently powers store only `{ id, label }` in `combat.powers[]` (line 261). For upgrades to affect power behavior, change the push to store full card data:
+```js
+next.powers = [...(next.powers || []), { id: card.id, label: card.name, ...card }];
+```
+Then refactor `endCombatTurn` power loop to read parametric values (e.g., `power.dexPerTurn || 1`) instead of hardcoded numbers.
+
+### Upgrade Specifications
+
+**8 Power upgrades:**
+
+| Base ID | Cost Change | Effect Change |
+|---|---|---|
+| `iron_will` | 2→1 | +2 Dex/turn (was 1) |
+| `burning_aura` | 2→1 | 5 damage/turn (was 3) |
+| `hex_resonance` | 1→0 | +2 Hex/turn (was 1) |
+| `storm_call` | 2→1 | 3 dmg per Hex (was 2) |
+| `exhaust_engine` | 2→1 | Max 4 energy (was 3) |
+| `weak_field` | 1→0 | +2 Weak/turn (was 1) |
+| `dark_pact` | 1→0 | Lose 1 HP (was 2), +1 Energy |
+| `vampiric_aura` | 2→1 | Heal 3 (was 2) |
+
+**6 Defense upgrades:**
+
+| Base ID | Upgrade Effect |
+|---|---|
+| `brace` | Block 10 (was 7) |
+| `parry` | Block 5 (was 3) |
+| `spite_shield` | Block 8. Apply Hex 2 if attacked. |
+| `hollow_ward` | Block 12 (was 8). Exhaust. |
+| `refrain` | Block 6 (was 4). Return to hand. |
+| `last_word` | Dmg 10. +12 if last card. |
+
+**6 Archetype upgrades:**
+
+| Base ID | Upgrade Effect |
+|---|---|
+| `septic_touch` | Apply Poison 3. Apply Weak 2. |
+| `infectious_wound` | Dmg 6. Apply Poison 3. Draw 1. |
+| `kindle` | Apply Burn 5 (was 3). |
+| `smoldering_brand` | Apply Burn 3. Apply Weak 2. |
+| `funeral_pyre` | Apply Burn 6 (was 4). Exhaust. |
+| `harvester` | Dmg 6. Repeat conditions unchanged. |
+
+### Implementation
+
+1. Add 20 entries to `UPGRADE_ID_MAP`
+2. Add 20 `createUpgrade(...)` entries to `UPGRADED_CARD_ENTRIES`
+3. Refactor power push (line 261) to store full card data with parametric values
+4. Add parametric values to power card overrides in `cardCatalog.js`:
+   - `iron_will: { dexPerTurn: 1 }`, upgrade gets `{ dexPerTurn: 2 }`
+   - `burning_aura: { auraDamage: 3 }`, upgrade gets `{ auraDamage: 5 }`
+   - etc.
+5. Refactor `endCombatTurn` power loop to read from power object fields
+
+### Tests — extend `tests/cardUpgrade.test.js`
+- All 20 new upgrades appear in catalog
+- Power upgrades have correct cost reductions
+- `iron_will_plus` grants 2 dex/turn via combat test
+- `burning_aura_plus` deals 5 damage/turn via combat test
+- Defense upgrades produce correct block values
+- Regression: all existing upgrade tests pass
 
 ---
 
-## Verification Plan
+## Task 5 — Remaining Upgrade Coverage Sweep (10 entries)
 
-1. `npm test` — 404+ tests green (new tests for poison/burn, balance caps, upgrade coverage, ascension, sound hooks)
-2. `BURNIN_CONCURRENCY=6 BURNIN_RUNS=50` — 50/50 passes with Act 3 content
-3. Manual play: build a Hex deck → Cataclysm Sigil should no longer one-shot boss
-4. Manual play: build an Exhaust deck → campfire should show upgradeable cards
-5. Manual play: complete Act 3 → see Ascension unlock
-6. Visual check: hand fan arc renders, enemy lunges on attack, reward cards cascade in
-7. Audio check: hit sounds, card plays, reward chime all fire (with `fx=off` silencing them)
+### Problem
+After Task 4, upgrade coverage is ~75%. Push to ~85% by covering the remaining debuff, exhaust, and hybrid gaps.
+
+### Files
+- `src/cardUpgrade.js` — add 10 entries
+
+### Upgrade Specifications
+
+| Base ID | Type | Upgrade Effect |
+|---|---|---|
+| `cripple` | Debuff | Cost 1→0. Apply 2 Weak. |
+| `pressure_point` | Debuff | Dmg 6. Apply 2 Vulnerable. |
+| `enervate` | Debuff | Apply 3 Weak. Draw 1. |
+| `echo_strike` | Debuff | Dmg 9. +9 vs Vulnerable. |
+| `titan_strike` | Strength | Dmg 10. +3 per Strength. |
+| `ashen_blow` | Exhaust | Dmg 10. Energy gain unchanged. |
+| `scorch_nerves` | Exhaust | Dmg 20 (was 15). Exhaust. |
+| `final_draft` | Exhaust | Draw 3. Exhaust 1 random. |
+| `doom_engine` | Hex/Exhaust | Cost 1→0. Effect unchanged. |
+| `plan_ahead` | Neutral | Draw 3. Exhaust. |
+
+### Implementation
+1. Add 10 entries to `UPGRADE_ID_MAP`
+2. Add 10 `createUpgrade(...)` entries — all use existing mechanics, no engine changes
+
+### Tests — extend `tests/cardUpgrade.test.js`
+- All 10 new upgrades in catalog
+- Cost reductions and stat bumps match spec
+- Full suite regression pass
 
 ---
 
-## Files Changed (summary)
+## Sequencing
+
+Task 1 → Task 2 → Task 3 → Task 4 → Task 5
+
+Tasks 1 and 2 are symmetric and can run in parallel. Task 1 introduces `hitCount` needed by Task 3. Task 4 refactors the power loop, so do it after Tasks 1-3 add new powers. Task 5 is pure data.
+
+## Verification
+
+```bash
+# After each task — targeted tests + lint
+npm test -- --runInBand tests/poisonDepth.test.js tests/burnDepth.test.js tests/multiHit.test.js tests/cardUpgrade.test.js
+
+# Full suite after all tasks
+npm test
+
+# Lint
+npm run lint
+
+# Short burn-in (1-3 runs)
+BURNIN_RUNS=3 BURNIN_CONCURRENCY=3 node tests/playwright-burnin.js
+```
+
+Expected: ~520+ tests green, lint clean, burn-in passes. New card variety visible in burn-in logs.
+
+## Files Changed Summary
 
 | File | Change |
 |------|--------|
-| `browser/soundEngine.js` | **NEW** — Web Audio SFX synthesizer |
-| `browser/play.js` | Hand arc layout, enemy attack sequence, reward cascade, sound hooks, ascension UI |
-| `browser/play.css` | Arc transforms, stagger animations |
-| `browser/animEngine.js` | freeze state, `onEnemyAttack` callback |
-| `src/cards.js` | 10 new cards (5 poison, 5 burn), upgraded variants for 30+ cards |
-| `src/cardUpgrade.js` | 40+ upgradeable cards (up from 11) |
-| `src/enemies.js` | 8 Act 3 enemies + 2 elites + Act 3 boss (3-phase), ascension scaling |
-| `src/turns.js` | Poison/burn resolution at correct phase |
-| `src/combat.js` | Hex cap, energy exhaust cap |
-| `src/constants.js` | MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN |
-| `src/actTransition.js` | Act 3 routing |
-| `src/map.js` | 3 map templates per act |
-| `src/run.js` | ascensionLevel field |
-| `tests/` | New tests for all above |
-| `TODO.md` | This milestone appended as next milestone block |
-
----
-
-## Out of Scope (next milestone after this one)
-
-- Multiple playable characters / class system (large card pool work)
-- Music / background tracks (needs audio assets)
-- Drag-to-play card interactions (major input remodel)
-- Narrative event chains (scripted story arcs)
-- Online leaderboards / run sharing
+| `src/constants.js` | MAX_POISON_STACKS and MAX_BURN_STACKS → 20 |
+| `src/cardRegistry.js` | +14 new card entries |
+| `src/cardCatalog.js` | +14 implementedOverrides, deriveKeywords updates |
+| `src/cardUpgrade.js` | +30 upgrade entries |
+| `src/browserCombatActions.js` | consumePoison/Burn, hitCount, blockPerBurn, 4 new powers, power data refactor |
+| `src/cards.js` | Mirror consumePoison/Burn in server calc |
+| `tests/poisonDepth.test.js` | New — 8 tests |
+| `tests/burnDepth.test.js` | New — 7 tests |
+| `tests/multiHit.test.js` | New — 7 tests |
+| `tests/cardUpgrade.test.js` | +20 upgrade assertions |

@@ -7,11 +7,12 @@
 const { createCard } = require("./card");
 const { createCardCatalog } = require("./cardCatalog");
 const { CARD_REGISTRY } = require("./cardRegistry");
+const { MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("./constants");
 
 const STRIKE_DAMAGE = 6;
-const DEFEND_BLOCK = 5;
+const DEFEND_BLOCK = 6;
 const BASH_DAMAGE = 8;
-const BARRIER_BLOCK = 8;
+const BARRIER_BLOCK = 10;
 const QUICK_STRIKE_DAMAGE = 4;
 const VOLLEY_DAMAGE = 5;
 const HEX_DAMAGE_BONUS = 4;
@@ -210,10 +211,10 @@ const buildRuntimeEffect = (card) => {
 
     if (card.energyGain) next.player.energy = (next.player.energy || 0) + card.energyGain;
     if (card.energyIfCharged && next.player?.charged) next.player.energy = (next.player.energy || 0) + card.energyIfCharged;
-    if (card.energyPerExhausted) next.player.energy = (next.player.energy || 0) + (state.exhaustedThisTurn || 0);
+    if (card.energyPerExhausted) next.player.energy = (next.player.energy || 0) + Math.min(state.exhaustedThisTurn || 0, MAX_EXHAUST_ENERGY_PER_TURN);
     if (card.ifHexedEnergyGain && (next.enemy?.hex || 0) > 0) next.player.energy = (next.player.energy || 0) + card.ifHexedEnergyGain;
 
-    if (card.hex) next.enemy.hex = (next.enemy.hex || 0) + card.hex;
+    if (card.hex) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + card.hex);
     if (card.applyPoison) next.enemy.poison = (next.enemy.poison || 0) + card.applyPoison;
     if (card.applyBurn) next.enemy.burn = (next.enemy.burn || 0) + card.applyBurn;
     if (card.applyWeak) next.enemy.weak = (next.enemy.weak || 0) + card.applyWeak;
@@ -234,7 +235,7 @@ const buildRuntimeEffect = (card) => {
     }
     if (card.hexPerExhausted) {
       const exhausted = card.exhaustFromHandCount || 0;
-      next.enemy.hex = (next.enemy.hex || 0) + exhausted;
+      next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + exhausted);
     }
     if (card.ifHexedExhaustFromHand && (next.enemy?.hex || 0) > 0) {
       next.exhaustFromHand = true;

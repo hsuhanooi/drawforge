@@ -45,7 +45,9 @@ const RELIC_REGISTRY = [
   { id: "hex_crown", name: "Hex Crown", rarity: "boss", tier: "boss", effectText: "Enemies start each combat with Hex 1", triggerType: "start_of_combat", assetRef: "relics/hex_crown", status: "implemented" },
   { id: "crematorium_bell", name: "Crematorium Bell", rarity: "boss", tier: "boss", effectText: "The first 2 Exhausts each combat also grant +1 energy", triggerType: "triggered", assetRef: "relics/crematorium_bell", status: "implemented" },
   { id: "storm_diadem", name: "Storm Diadem", rarity: "boss", tier: "boss", effectText: "Start each combat already Charged", triggerType: "start_of_combat", assetRef: "relics/storm_diadem", status: "implemented" },
-  { id: "vault_key", name: "Vault Key", rarity: "boss", tier: "boss", effectText: "Boss fights offer 2 relic choices instead of 1", triggerType: "passive", assetRef: "relics/vault_key", status: "implemented" }
+  { id: "vault_key", name: "Vault Key", rarity: "boss", tier: "boss", effectText: "Boss fights offer 2 relic choices instead of 1", triggerType: "passive", assetRef: "relics/vault_key", status: "implemented" },
+
+  { id: "plague_sigil", name: "Plague Sigil", rarity: "starter", tier: "starter", effectText: "Enemies you kill while Poisoned carry 2 Poison stacks to the next enemy", triggerType: "on_kill", assetRef: "relics/plague_sigil", status: "implemented" }
 ];
 
 const DESIGNED_RELIC_SET = RELIC_REGISTRY;

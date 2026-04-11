@@ -36,6 +36,8 @@ const startNewRun = (balanceOverrides = {}, options = {}) => {
       cardPlayCounts: {}
     },
     combat: null,
+    runFlags: {},
+    usedChainFlags: [],
     map: {
       currentNodeId: null
     }

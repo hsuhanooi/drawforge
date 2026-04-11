@@ -43,6 +43,14 @@
       color: "#4f8ef7",
       description: "Build electrical charge and release it in powerful surges. Defend until the moment is right.",
       starterCards: ["charge_up", "arc_lash", "static_guard", "capacitor", "guarded_pulse"]
+    },
+    {
+      id: "poison_vanguard",
+      name: "Poison Vanguard",
+      icon: "🐍",
+      color: "#44c068",
+      description: "Stack Poison swiftly and carry deadly stacks across enemies. Let the venom do the work.",
+      starterCards: ["venom_strike", "toxic_cloud", "creeping_blight", "septic_touch", "infectious_wound"]
     }
   ];
 
@@ -66,6 +74,11 @@
       id: "static_duelist",
       panel: "storm",
       accent: "storm"
+    },
+    poison_vanguard: {
+      id: "poison_vanguard",
+      panel: "venom",
+      accent: "venom"
     }
   };
 
@@ -86,6 +99,7 @@
     if (themeId === "hex_witch" || archetype.includes("hex")) return "hex";
     if (themeId === "ashen_knight" || archetype.includes("exhaust")) return "ember";
     if (themeId === "static_duelist" || archetype.includes("charged")) return "storm";
+    if (themeId === "poison_vanguard" || archetype.includes("poison")) return "venom";
     if ((card.type || "").toLowerCase() === "power") return "royal";
     return "neutral";
   }
@@ -2767,17 +2781,24 @@
       $id("reward-continue-btn").textContent = "Continue";
       if (enteringReward) {
         setTimeout(() => spawnConfetti(), 150);
-        // Float gold earned
+        // Float gold earned with count-up animation
         if ((rewards.gold || 0) > 0) {
           const anchor = $id("reward-header") || document.body;
           const div = document.createElement("div");
           div.className = "float-dmg gold-gain";
-          div.textContent = `+${rewards.gold}g`;
+          div.textContent = "+0g";
           const rect = anchor.getBoundingClientRect();
           div.style.left = `${rect.left + rect.width / 2 - 20}px`;
           div.style.top = `${rect.top + 10}px`;
           document.body.appendChild(div);
-          div.addEventListener("animationend", () => div.remove());
+          let current = 0;
+          const step = Math.max(1, Math.ceil(rewards.gold / 16));
+          const iv = setInterval(() => {
+            current = Math.min(current + step, rewards.gold);
+            div.textContent = `+${current}g`;
+            if (current >= rewards.gold) clearInterval(iv);
+          }, 50);
+          div.addEventListener("animationend", () => { clearInterval(iv); div.remove(); });
         }
       }
       const isElite = rewards.relics?.length > 0;
@@ -2790,21 +2811,26 @@
       clearEl(removalCards);
       if (cardRow) {
         clearEl(cardRow);
-        rewards.cards.forEach((card, i) => {
-          const el = makeCard(card, {
-            large: true,
-            dealDelay: i * 80,
-            onClick: async () => withRewardClaim(async () => {
-              el.classList.add("card-picked");
-              await new Promise((r) => setTimeout(r, 260));
-              currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });
-              saveRun(currentRun);
-              render();
-            })
+        // Delay card insertion on first entry to let the victory fanfare play
+        const cardInsertDelay = enteringReward ? 600 : 0;
+        setTimeout(() => {
+          if (!cardRow.isConnected) return;
+          rewards.cards.forEach((card, i) => {
+            const el = makeCard(card, {
+              large: true,
+              dealDelay: i * 80,
+              onClick: async () => withRewardClaim(async () => {
+                el.classList.add("card-picked");
+                await new Promise((r) => setTimeout(r, 260));
+                currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });
+                saveRun(currentRun);
+                render();
+              })
+            });
+            el.classList.add("reward-item");
+            cardRow.appendChild(el);
           });
-          el.classList.add("reward-item");
-          cardRow.appendChild(el);
-        });
+        }, cardInsertDelay);
       }
       return;
     }

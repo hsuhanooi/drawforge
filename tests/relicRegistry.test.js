@@ -6,9 +6,9 @@ const {
 } = require("../src/relicRegistry");
 
 describe("relic registry", () => {
-  it("contains the canonical 44-relic designed set", () => {
-    expect(DESIGNED_RELIC_SET).toHaveLength(44);
-    expect(RELIC_REGISTRY).toHaveLength(44);
+  it("contains the canonical 45-relic designed set (44 reward + plague_sigil starter)", () => {
+    expect(DESIGNED_RELIC_SET).toHaveLength(45);
+    expect(RELIC_REGISTRY).toHaveLength(45);
   });
 
   it("tracks implemented vs missing relics explicitly", () => {
@@ -26,7 +26,7 @@ describe("relic registry", () => {
       expect(relic).toHaveProperty("effectText");
       expect(relic).toHaveProperty("triggerType");
       expect(relic).toHaveProperty("assetRef");
-      expect(["passive", "triggered", "start_of_combat", "post_combat"]).toContain(relic.triggerType);
+      expect(["passive", "triggered", "start_of_combat", "post_combat", "on_kill"]).toContain(relic.triggerType);
       expect(["implemented", "missing"]).toContain(relic.status);
     }
   });

@@ -74,6 +74,16 @@ body[data-theme="static_duelist"] {
   --type-skill: #4fd1c5;
 }
 
+body[data-theme="poison_vanguard"] {
+  --accent: #44c068;
+  --bg: #070f09;
+  --bg2: #0d1810;
+  --bg3: #132117;
+  --border: #254d2d;
+  --type-attack: #2d9d4a;
+  --type-skill: #5da872;
+}
+
 body[data-node-tone="boss"] #screen-combat,
 body[data-node-tone="boss"] #screen-reward {
   background: radial-gradient(circle at top, rgba(155, 89, 182, 0.16), transparent 38%), var(--bg);
@@ -114,6 +124,14 @@ body[data-theme-panel="storm"] .pile-counter,
 body[data-theme-panel="storm"] #map-header,
 body[data-theme-panel="storm"] #combat-topbar {
   box-shadow: inset 0 1px 0 rgba(121, 196, 255, 0.08), 0 0 0 1px rgba(88, 166, 255, 0.1);
+}
+
+body[data-theme-panel="venom"] .combatant-panel,
+body[data-theme-panel="venom"] #combat-log-panel,
+body[data-theme-panel="venom"] .pile-counter,
+body[data-theme-panel="venom"] #map-header,
+body[data-theme-panel="venom"] #combat-topbar {
+  box-shadow: inset 0 1px 0 rgba(100, 200, 120, 0.06), 0 0 0 1px rgba(68, 192, 104, 0.08);
 }
 
 /* ─── Screens ────────────────────────────────────────────────────── */
@@ -1001,6 +1019,9 @@ body[data-theme-panel="storm"] #combat-topbar {
 .card-component[data-frame-variant="royal"] {
   background: linear-gradient(170deg, #22122f 0%, #120d19 100%);
 }
+.card-component[data-frame-variant="venom"] {
+  background: linear-gradient(170deg, #0d2212 0%, #07100a 100%);
+}
 
 .card-component[data-frame-variant="hex"] .card-name,
 #card-preview-popup[data-frame-variant="hex"] .preview-name {
@@ -1013,6 +1034,10 @@ body[data-theme-panel="storm"] #combat-topbar {
 .card-component[data-frame-variant="storm"] .card-name,
 #card-preview-popup[data-frame-variant="storm"] .preview-name {
   color: #d5e8ff;
+}
+.card-component[data-frame-variant="venom"] .card-name,
+#card-preview-popup[data-frame-variant="venom"] .preview-name {
+  color: #b8f5c8;
 }
 
 .card-component[data-frame-variant="hex"] .card-type-stripe,
@@ -1030,6 +1055,11 @@ body[data-theme-panel="storm"] #combat-topbar {
   background: linear-gradient(90deg, #58a6ff, rgba(88,166,255,0.36), transparent);
   box-shadow: 0 0 8px rgba(88,166,255,0.58);
 }
+.card-component[data-frame-variant="venom"] .card-type-stripe,
+.card-type-stripe[data-frame-variant="venom"] {
+  background: linear-gradient(90deg, #44c068, rgba(68,192,104,0.36), transparent);
+  box-shadow: 0 0 8px rgba(68,192,104,0.55);
+}
 
 /* Rarity-specific borders and glows */
 body[data-theme-accent="violet"] .card-component.rarity-common {
@@ -1043,6 +1073,10 @@ body[data-theme-accent="ember"] .card-component.rarity-common {
 body[data-theme-accent="storm"] .card-component.rarity-common {
   border-color: #6caef5;
   box-shadow: 0 0 0 1px rgba(88,166,255,0.12) inset;
+}
+body[data-theme-accent="venom"] .card-component.rarity-common {
+  border-color: #44c068;
+  box-shadow: 0 0 0 1px rgba(68,192,104,0.12) inset;
 }
 
 .card-component.rarity-uncommon {

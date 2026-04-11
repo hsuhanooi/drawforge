@@ -4,9 +4,9 @@ const { makeAssetRef, buildPresentationAssets } = require("./assets");
 
 const implementedOverrides = {
   strike: { damage: 6 },
-  defend: { block: 5 },
+  defend: { block: 6 },
   bash: { damage: 8 },
-  barrier: { block: 8 },
+  barrier: { block: 10 },
   quick_strike: { damage: 4 },
   focus: { energyGain: 1 },
   volley: { damage: 5, draw: 1 },

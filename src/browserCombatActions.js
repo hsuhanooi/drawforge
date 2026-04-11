@@ -2,7 +2,7 @@ const { createEnemyForNode, resolveEnemyIntent } = require("./enemies");
 const { createCardCatalog } = require("./cardCatalog");
 const { getCombatEnergyBonus } = require("./relics");
 const { applyPotion } = require("./potions");
-const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS } = require("./constants");
+const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("./constants");
 const CARD_CATALOG = createCardCatalog();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -134,7 +134,7 @@ const checkPhaseShift = (combat) => {
 };
 
 const startCombatForNode = (run, node) => {
-  const enemy = { ...createEnemyForNode(node, run.act || 1, run.ascensionLevel || 0) };
+  const enemy = { ...createEnemyForNode(node, run.act || 1, run.ascensionLevel || 0, run.seed) };
   enemy.maxHp = enemy.health;
   const energyBonus = getCombatEnergyBonus(run, node.type);
   const ashenBonus = hasRelic(run, "ashen_idol") ? 1 : 0;
@@ -184,7 +184,7 @@ const startCombatForNode = (run, node) => {
       ...enemy,
       vulnerable: hasRelic(run, "cracked_lens") ? 1 : 0,
       hex: hasRelic(run, "hex_crown") ? 1 : 0,
-      poison: 0,
+      poison: run.carryoverPoison || 0,
       burn: 0
     }
   }, drawCount), `Combat started against ${enemy.name}.`, "system");
@@ -236,7 +236,7 @@ const playCombatCard = (run, handIndex) => {
     next.exhaustPile = [...(next.exhaustPile || []), card];
     next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
     next.exhaustTotal = (next.exhaustTotal || 0) + 1;
-    if (next.doom_engine_active) next.enemy.hex = (next.enemy.hex || 0) + 1;
+    if (next.doom_engine_active) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
     if (hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
       next = drawCards(next, 1);
       next.coal_pendant_used = true;
@@ -298,7 +298,7 @@ const playCombatCard = (run, handIndex) => {
     if (flickerBonus > 0) { next.flicker_used = true; next.triggeredRelics.push("flicker_charm"); }
     if (duelistBonus > 0) { next.duelist_used_this_turn = true; next.triggeredRelics.push("duelists_thread"); }
     if (hasRelic(run, "hex_lantern") && !next.hex_lantern_used && remainingDamage > 0) {
-      next.enemy.hex = (next.enemy.hex || 0) + 1;
+      next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
       next.hex_lantern_used = true;
       next.triggeredRelics.push("hex_lantern");
     }
@@ -325,14 +325,14 @@ const playCombatCard = (run, handIndex) => {
     }
   }
   if (card.energyGain) next.player.energy += card.energyGain;
-  if (card.energyPerExhausted) next.player.energy += (next.exhaustedThisTurn || 0);
+  if (card.energyPerExhausted) next.player.energy += Math.min(next.exhaustedThisTurn || 0, MAX_EXHAUST_ENERGY_PER_TURN);
   if (card.selfDamage) next.player.health = Math.max(0, next.player.health - card.selfDamage);
   if (card.hex) {
     const hexAmount = card.hex + (hasRelic(run, "worn_grimoire") && !next.grimoire_used ? 1 : 0);
     if (hasRelic(run, "worn_grimoire") && !next.grimoire_used && card.hex > 0) {
       next.grimoire_used = true;
     }
-    next.enemy.hex = (next.enemy.hex || 0) + hexAmount;
+    next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + hexAmount);
     if (hasRelic(run, "sigil_engine") && !next.sigil_fired && (next.enemy.hex || 0) >= 3) {
       const sigBlocked = Math.min(next.enemy.block || 0, 8);
       next.enemy.block = (next.enemy.block || 0) - sigBlocked;
@@ -388,7 +388,7 @@ const playCombatCard = (run, handIndex) => {
     next.exhaustPile = [...(next.exhaustPile || []), exhausted];
     next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
     next.exhaustTotal = (next.exhaustTotal || 0) + 1;
-    if (next.doom_engine_active) next.enemy.hex = (next.enemy.hex || 0) + 1;
+    if (next.doom_engine_active) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
     if (hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
       next = drawCards(next, 1);
       next.coal_pendant_used = true;
@@ -413,7 +413,7 @@ const playCombatCard = (run, handIndex) => {
       next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
       next.exhaustTotal = (next.exhaustTotal || 0) + 1;
       next.player.energy += 1; // 1 energy per card (empty_the_chamber)
-      if (next.doom_engine_active) next.enemy.hex = (next.enemy.hex || 0) + 1;
+      if (next.doom_engine_active) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
       if (hasRelic(run, "cinder_box")) next.player.block += 2;
       if (hasRelic(run, "crematorium_bell") && next.exhaustTotal <= 2) next.player.energy += 1;
       if (hasRelic(run, "black_prism") && !next.black_prism_fired && next.exhaustTotal >= 3) {
@@ -433,7 +433,7 @@ const playCombatCard = (run, handIndex) => {
       next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
       next.exhaustTotal = (next.exhaustTotal || 0) + 1;
       hexFromExhaust += 1;
-      if (next.doom_engine_active) next.enemy.hex = (next.enemy.hex || 0) + 1;
+      if (next.doom_engine_active) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
       if (hasRelic(run, "coal_pendant") && !next.coal_pendant_used) {
         next = drawCards(next, 1);
         next.coal_pendant_used = true;
@@ -445,7 +445,7 @@ const playCombatCard = (run, handIndex) => {
         next.black_prism_fired = true;
       }
     }
-    if (card.hexPerExhausted) next.enemy.hex = (next.enemy.hex || 0) + hexFromExhaust;
+    if (card.hexPerExhausted) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + hexFromExhaust);
   }
 
   if (card.exhaustSkillsFromHand) {
@@ -455,7 +455,7 @@ const playCombatCard = (run, handIndex) => {
       next.exhaustPile = [...(next.exhaustPile || []), s];
       next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
       next.exhaustTotal = (next.exhaustTotal || 0) + 1;
-      if (next.doom_engine_active) next.enemy.hex = (next.enemy.hex || 0) + 1;
+      if (next.doom_engine_active) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
       if (hasRelic(run, "cinder_box")) next.player.block += 2;
       if (hasRelic(run, "crematorium_bell") && next.exhaustTotal <= 2) next.player.energy += 1;
       if (hasRelic(run, "black_prism") && !next.black_prism_fired && next.exhaustTotal >= 3) {
@@ -471,7 +471,7 @@ const playCombatCard = (run, handIndex) => {
     next.exhaustPile = [...(next.exhaustPile || []), exhausted];
     next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
     next.exhaustTotal = (next.exhaustTotal || 0) + 1;
-    if (next.doom_engine_active) next.enemy.hex = (next.enemy.hex || 0) + 1;
+    if (next.doom_engine_active) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
   }
   if (card.ifHexedEnergyGain && (next.enemy.hex || 0) > 0) {
     next.player.energy += card.ifHexedEnergyGain;
@@ -521,12 +521,17 @@ const playCombatCard = (run, handIndex) => {
     mostPlayedCardId: mostPlayed
   };
 
+  const carryoverPoison = (next.state === "victory" && (next.enemy.poison || 0) > 0 && hasRelic(run, "plague_sigil"))
+    ? 2
+    : (run.carryoverPoison || 0);
+
   return {
     ...run,
     stats: newStats,
     combat: normalizeStatusStacks(next),
     player: { ...run.player, health: next.player.health },
-    phoenix_used: run.phoenix_used || false
+    phoenix_used: run.phoenix_used || false,
+    carryoverPoison
   };
 };
 
@@ -585,7 +590,7 @@ const applyEnemyIntent = (combat, intent) => {
     return next;
   }
   if (intent.type === "debuff_hex") {
-    next.enemy.hex = (next.enemy.hex || 0) + (intent.value || 1);
+    next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + (intent.value || 1));
     return next;
   }
   if (intent.type === "debuff_curse") {
@@ -674,7 +679,7 @@ const endCombatTurn = (run) => {
       next.enemy.block = (next.enemy.block || 0) - thornBlocked;
       next.enemy.health = Math.max(0, next.enemy.health - (3 - thornBlocked));
     } else if (power.id === "hex_resonance") {
-      next.enemy.hex = (next.enemy.hex || 0) + 1;
+      next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
     } else if (power.id === "storm_call") {
       const hexCount = next.enemy.hex || 0;
       if (hexCount > 0) {

@@ -1,4 +1,4 @@
-const { createEventForNode, createCampfireEvent } = require("../src/events");
+const { createEventForNode, createCampfireEvent, findChainEvent } = require("../src/events");
 
 const VALID_EFFECTS = ["heal", "relic", "gold", "reward_cards", "add_card", "remove", "gold_for_curse", "leave", "max_health_up", "smith"];
 
@@ -105,6 +105,40 @@ describe("campfire event", () => {
     expect(effects).toContain("max_health_up");
     expect(effects).toContain("remove");
     expect(effects).toContain("leave");
+  });
+
+  it("injects chain event when ferryman_paid flag is set in act 2", () => {
+    const node = { id: "r2c0", row: 2, col: 0, act: 2 };
+    const event = createEventForNode(node, { ferryman_paid: true }, []);
+
+    expect(event.title).toBe("The Return Crossing");
+    expect(Array.isArray(event.options)).toBe(true);
+    expect(event.options.length).toBeGreaterThan(0);
+    expect(event.chainFlag).toBe("ferryman_paid");
+  });
+
+  it("does not inject chain event if flag is not set", () => {
+    const node = { id: "r2c0", row: 2, col: 0, act: 2 };
+    const event = createEventForNode(node, {}, []);
+
+    expect(event.title).not.toBe("The Return Crossing");
+  });
+
+  it("does not inject chain event if already used", () => {
+    const node = { id: "r2c0", row: 2, col: 0, act: 2 };
+    const event = createEventForNode(node, { ferryman_paid: true }, ["ferryman_paid"]);
+
+    expect(event.title).not.toBe("The Return Crossing");
+  });
+
+  it("findChainEvent returns null when no flags are set", () => {
+    expect(findChainEvent(2, {}, [])).toBeNull();
+  });
+
+  it("findChainEvent returns chain when flag set and act matches", () => {
+    const chain = findChainEvent(2, { devil_bargained: true }, []);
+    expect(chain).not.toBeNull();
+    expect(chain.flag).toBe("devil_bargained");
   });
 
   it("scales the campfire heal option from player max health", () => {

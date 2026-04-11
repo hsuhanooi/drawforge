@@ -159,6 +159,44 @@ describe("browser post-node actions", () => {
     expect(healed.stats.goldSpent).toBe(30);
   });
 
+  it("setsFlag on event option writes to run.runFlags", () => {
+    const run = {
+      ...baseRun,
+      runFlags: {},
+      event: {
+        id: "event-r0c0",
+        kind: "merchant",
+        title: "The Ferryman",
+        options: [
+          { id: "pay", effect: "gold", amount: 0, setsFlag: "ferryman_paid", label: "Pay the toll" }
+        ]
+      }
+    };
+
+    const result = claimEventOption(run, "pay");
+    expect(result.runFlags.ferryman_paid).toBe(true);
+  });
+
+  it("chain event is marked used after claiming an option", () => {
+    const run = {
+      ...baseRun,
+      runFlags: { ferryman_paid: true },
+      usedChainFlags: [],
+      event: {
+        id: "chain-ferryman_paid-r2c0",
+        chainFlag: "ferryman_paid",
+        kind: "merchant",
+        title: "The Return Crossing",
+        options: [
+          { id: "accept", effect: "gold", amount: 35, label: "Take gold instead: gain 35 gold" }
+        ]
+      }
+    };
+
+    const result = claimEventOption(run, "accept");
+    expect(result.usedChainFlags).toContain("ferryman_paid");
+  });
+
   it("uses enemy-specific gold rewards instead of the old flat combat gold", () => {
     const run = applyVictoryToRun(baseRun, {
       nodeType: "combat",

@@ -49,4 +49,16 @@ describe("node resolution", () => {
     expect(result.state).toBe("shop");
     expect(result.combat).toBeNull();
   });
+
+  it("boss node enemy name varies across different run seeds", () => {
+    const node = { id: "r4c0", type: "boss", row: 4, col: 0 };
+    const player = { health: 80 };
+
+    const bossNames = new Set();
+    for (let i = 0; i < 50; i++) {
+      const result = resolveNode({ node, player, act: 1, seed: `run-seed-${i}` });
+      bossNames.add(result.combat.enemy.name);
+    }
+    expect(bossNames.size).toBeGreaterThan(1);
+  });
 });

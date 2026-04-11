@@ -50,8 +50,8 @@ describe("Status effects: Strength", () => {
     const blockBefore = withCombat.combat.player.block;
     const { idx } = getCard(withCombat.combat, "defend");
     const result = playCombatCard(withCombat, idx);
-    // Defend gives 5 block + 0 dexterity = 5; strength does not add
-    expect(result.combat.player.block).toBe(blockBefore + 5);
+    // Defend gives 6 block + 0 dexterity = 6; strength does not add
+    expect(result.combat.player.block).toBe(blockBefore + 6);
   });
 
   it("war_cry card grants 2 Strength", () => {
@@ -86,8 +86,8 @@ describe("Status effects: Dexterity", () => {
     const blockBefore = withCombat.combat.player.block;
     const { idx } = getCard(withCombat.combat, "defend");
     const result = playCombatCard(withCombat, idx);
-    // Defend gives 5 + 2 dex = 7
-    expect(result.combat.player.block).toBe(blockBefore + 7);
+    // Defend gives 6 + 2 dex = 8
+    expect(result.combat.player.block).toBe(blockBefore + 8);
   });
 
   it("fortify card grants 2 Dexterity", () => {

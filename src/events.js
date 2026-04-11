@@ -90,7 +90,7 @@ const EVENTS = [
       description: "A spectral figure points down three roads. Each path promises something — at a cost.",
       options: [
         { id: "relic", effect: "relic", relic: createRelicReward(node.row + 1), label: "Follow the spirit: receive a relic" },
-        { id: "deal", effect: "gold_for_curse", amount: 55, curseId: "parasite", label: "Seal the deal: +55 gold, receive Parasite" },
+        { id: "deal", effect: "gold_for_curse", amount: 55, curseId: "parasite", setsFlag: "haunted_bargained", label: "Seal the deal: +55 gold, receive Parasite" },
         { id: "leave", effect: "leave", label: "Turn away" }
       ]
     })
@@ -313,7 +313,7 @@ const EVENTS = [
       title: "The Devil's Bargain",
       description: "A red-eyed figure grins from the roadside. 'I can make you stronger. For a price.'",
       options: [
-        { id: "deal", effect: "gold_for_curse", amount: 50, curseId: "parasite", label: "Deal: +50 gold, receive Parasite" },
+        { id: "deal", effect: "gold_for_curse", amount: 50, curseId: "parasite", setsFlag: "devil_bargained", label: "Deal: +50 gold, receive Parasite" },
         { id: "cards", effect: "reward_cards", cards: createRewardOptions(2), label: "Ask for power instead: choose a card" },
         { id: "leave", effect: "leave", label: "Refuse" }
       ]
@@ -360,14 +360,206 @@ const EVENTS = [
         { id: "leave", effect: "leave", label: "The risk is too great" }
       ]
     })
+  },
+  // index 25
+  {
+    id: "hollowed_knight",
+    factory: () => ({
+      kind: "discovery",
+      title: "The Hollowed Knight",
+      description: "An armored corpse blocks the path, sword still clutched in gauntleted fingers. The armor is fine work.",
+      options: [
+        { id: "search", effect: "gold", amount: 30, label: "Search the body: gain 30 gold" },
+        { id: "absorb", effect: "max_health_up", amount: 8, label: "Wear the armor: +8 max HP" },
+        { id: "leave", effect: "leave", label: "Step around it" }
+      ]
+    })
+  },
+  // index 26
+  {
+    id: "leech_pool",
+    factory: (node) => ({
+      kind: "well",
+      title: "The Leech Pool",
+      description: "Black water pools in a crater, faintly luminescent. Something stirs in the depths.",
+      options: [
+        { id: "bathe", effect: "reward_cards", cards: createRewardOptions(2), setsFlag: "leech_pool_bathed", label: "Bathe in it: choose a card (the water burns)" },
+        { id: "flask", effect: "relic", relic: createRelicReward(node.row + 1), label: "Fill your flask: receive a relic" },
+        { id: "leave", effect: "leave", label: "Step away from the pool" }
+      ]
+    })
+  },
+  // index 27
+  {
+    id: "abandoned_cache",
+    factory: () => ({
+      kind: "vault",
+      title: "Abandoned Cache",
+      description: "A hidden alcove behind a loose stone. Someone stashed supplies here and never returned.",
+      options: [
+        { id: "loot", effect: "gold", amount: 28, label: "Grab the gold: gain 28 gold" },
+        { id: "study", effect: "remove", label: "Study their notes: remove a card from your deck" },
+        { id: "leave", effect: "leave", label: "Leave it untouched" }
+      ]
+    })
+  },
+  // index 28
+  {
+    id: "the_tombstone",
+    factory: () => ({
+      kind: "shrine",
+      title: "The Tombstone",
+      description: "A stone marker etched with a name you almost recognize. Something about it feels like a warning.",
+      options: [
+        { id: "read", effect: "add_card", card: cat("brace"), label: "Read the inscription: add Brace to your deck" },
+        { id: "shatter", effect: "max_health_up", amount: 8, label: "Shatter the stone: +8 max HP" },
+        { id: "leave", effect: "leave", label: "Walk past in silence" }
+      ]
+    })
+  },
+  // index 29
+  {
+    id: "the_ferryman",
+    factory: (node) => ({
+      kind: "merchant",
+      title: "The Ferryman",
+      description: "A cloaked figure waits at a narrow bridge, hand outstretched. The river below moves wrong.",
+      options: [
+        { id: "pay", effect: "relic", relic: createRelicReward(node.row + 1), setsFlag: "ferryman_paid", label: "Pay the toll: receive a relic" },
+        { id: "bargain", effect: "gold_for_curse", amount: 40, curseId: "wound", label: "Bargain for passage: +40 gold, receive Wound" },
+        { id: "refuse", effect: "leave", label: "Find another crossing" }
+      ]
+    })
+  },
+  // index 30
+  {
+    id: "ritual_circle",
+    factory: () => ({
+      kind: "hex",
+      title: "Ritual Circle",
+      description: "Runes burned into the stone floor form a perfect circle, still faintly warm to the touch.",
+      options: [
+        { id: "complete", effect: "add_card", card: cat("ritual_collapse"), label: "Complete the ritual: add Ritual Collapse to your deck" },
+        { id: "disrupt", effect: "heal", amount: 18, label: "Disrupt the circle: restore 18 HP" },
+        { id: "ignore", effect: "leave", label: "Step around it" }
+      ]
+    })
+  },
+  // index 31
+  {
+    id: "wandering_healer",
+    factory: () => ({
+      kind: "camp",
+      title: "Wandering Healer",
+      description: "A weary figure in patched robes offers aid. Their hands glow faintly. They ask for nothing.",
+      options: [
+        { id: "healing", effect: "heal", amount: 22, label: "Accept their healing: restore 22 HP" },
+        { id: "blessing", effect: "max_health_up", amount: 6, label: "Accept their blessing: +6 max HP" },
+        { id: "cards", effect: "reward_cards", cards: createRewardOptions(2), label: "Ask for knowledge: choose a card" }
+      ]
+    })
+  },
+  // index 32
+  {
+    id: "echoing_chamber",
+    factory: () => ({
+      kind: "discovery",
+      title: "Echoing Chamber",
+      description: "You speak and your words return to you changed — sharper, stranger. The walls remember every strike.",
+      options: [
+        { id: "train", effect: "add_card", card: cat("echo_strike"), label: "Train your form: add Echo Strike to your deck" },
+        { id: "meditate", effect: "max_health_up", amount: 5, label: "Meditate here: +5 max HP" },
+        { id: "leave", effect: "leave", label: "The chamber unsettles you" }
+      ]
+    })
+  }
+];
+
+// Chain event definitions — each entry has: flag (triggers it), minAct (earliest act to appear), factory
+const CHAIN_EVENTS = [
+  {
+    flag: "ferryman_paid",
+    minAct: 2,
+    factory: (node) => ({
+      kind: "merchant",
+      title: "The Return Crossing",
+      description: "The same cloaked figure waits by the bridge. 'You paid honestly. I remember.' They press something into your hand.",
+      options: [
+        { id: "accept", effect: "relic", relic: createRelicReward(node.row + 2), label: "Accept the gift: receive a relic" },
+        { id: "gold", effect: "gold", amount: 35, label: "Take gold instead: gain 35 gold" }
+      ]
+    })
+  },
+  {
+    flag: "devil_bargained",
+    minAct: 2,
+    factory: () => ({
+      kind: "devil",
+      title: "The Collector's Visit",
+      description: "A red-eyed courier bows at your path. 'The master wants his due.' Their smile shows too many teeth.",
+      options: [
+        { id: "pay", effect: "gold", amount: -30, label: "Pay the debt: lose 30 gold" },
+        { id: "refuse", effect: "add_card", card: cat("wound"), label: "Refuse: receive a Wound" }
+      ]
+    })
+  },
+  {
+    flag: "haunted_bargained",
+    minAct: 2,
+    factory: () => ({
+      kind: "haunted",
+      title: "The Spirit's Return",
+      description: "The spirit from the crossroads stands before you again, patient and cold. 'Our arrangement has not been forgotten.'",
+      options: [
+        { id: "upgrade_all", effect: "upgrade_all", label: "Accept its gift: all Wounds in your deck become Decays" },
+        { id: "remove_curse", effect: "remove_curse", label: "Demand release: remove one curse from your deck" }
+      ]
+    })
+  },
+  {
+    flag: "leech_pool_bathed",
+    minAct: 2,
+    factory: () => ({
+      kind: "well",
+      title: "The Residue",
+      description: "Your skin still shows the marks from the pool. Others step away from you in the dark.",
+      options: [
+        { id: "embrace", effect: "reward_cards_rare", label: "Embrace the taint: choose a rare card" },
+        { id: "cleanse", effect: "max_health_up", amount: 5, label: "Cleanse yourself: +5 max HP" }
+      ]
+    })
   }
 ];
 
 /**
+ * Check if a chain event should fire for this node given the current run flags.
+ * Returns the chain event entry or null.
+ * @param {number} act
+ * @param {Record<string, boolean>} runFlags
+ * @param {string[]} usedChainFlags
+ * @returns {{ flag: string, minAct: number, factory: Function } | null}
+ */
+const findChainEvent = (act, runFlags, usedChainFlags = []) => {
+  for (const chain of CHAIN_EVENTS) {
+    if (runFlags[chain.flag] && act >= chain.minAct && !usedChainFlags.includes(chain.flag)) {
+      return chain;
+    }
+  }
+  return null;
+};
+
+/**
  * @param {Pick<MapNode, "id" | "row" | "col">} node
+ * @param {Record<string, boolean>} [runFlags]
+ * @param {string[]} [usedChainFlags]
  * @returns {EventState}
  */
-const createEventForNode = (node) => {
+const createEventForNode = (node, runFlags = {}, usedChainFlags = []) => {
+  const act = node.act || 1;
+  const chain = findChainEvent(act, runFlags, usedChainFlags);
+  if (chain) {
+    return { id: `chain-${chain.flag}-${node.id}`, chainFlag: chain.flag, ...chain.factory(node) };
+  }
   const hash = (node.row * 11 + node.col * 7 + (node.row % 2) * 13) % EVENTS.length;
   const template = EVENTS[hash];
   return { id: `event-${node.id}`, ...template.factory(node) };
@@ -433,5 +625,6 @@ const createCampfireEvent = (player = null, act = 1) => {
 
 module.exports = {
   createEventForNode,
-  createCampfireEvent
+  createCampfireEvent,
+  findChainEvent
 };

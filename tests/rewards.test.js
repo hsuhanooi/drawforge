@@ -105,6 +105,42 @@ describe("combat rewards", () => {
     }
   });
 
+  it("biases rewards toward Hex/Debuff cards for hex_witch archetype", () => {
+    const hexArchetypes = ["Hex", "Hex / Exhaust"];
+    const run = { act: 1, relics: [], archetype: "hex_witch" };
+    // Draw a large enough sample to observe the bias
+    const cards = createVictoryCardRewards("combat", run, {}, Math.random);
+    const hexCards = cards.filter((c) => hexArchetypes.some((t) => (c.archetype || "").includes(t)));
+    // With 50% bias, at least 1 out of 3 reward cards should be themed
+    expect(hexCards.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("biases rewards toward Poison cards for poison_vanguard archetype", () => {
+    const run = { act: 1, relics: [], archetype: "poison_vanguard" };
+    // At least 1 Poison card in rewards when archetype is poison_vanguard
+    // (probabilistic — run enough candidate pool to make this reliable)
+    const allCards = [];
+    for (let i = 0; i < 20; i++) {
+      allCards.push(...createVictoryCardRewards("combat", run, {}, Math.random));
+    }
+    const anyPoison = allCards.some((c) => (c.archetype || "").includes("Poison"));
+    expect(anyPoison).toBe(true);
+  });
+
+  it("biased reward cards contain no duplicates", () => {
+    const run = { act: 1, relics: [], archetype: "hex_witch" };
+    const cards = createVictoryCardRewards("combat", run, {}, Math.random);
+    const ids = cards.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("falls back to unbiased pool when archetype is null", () => {
+    const run = { act: 1, relics: [], archetype: null };
+    const cards = createVictoryCardRewards("combat", run, {}, Math.random);
+    expect(cards.length).toBeGreaterThan(0);
+    cards.forEach((c) => expect(c).toHaveProperty("id"));
+  });
+
   it("weighted rarity pool produces more commons than rares over many samples", () => {
     // Run 100 reward draws of 1 card each and count rarity occurrences
     let commonCount = 0;

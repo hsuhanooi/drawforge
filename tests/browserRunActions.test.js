@@ -80,6 +80,20 @@ describe("browser run actions", () => {
     expect(enterBrowserNode(restRun, "r0c0").run.stats.restVisits).toBe(1);
   });
 
+  it("chooseArchetype poison_vanguard populates Poison deck and grants plague_sigil", () => {
+    const run = createBrowserRun();
+    const chosen = chooseArchetype(run, "poison_vanguard");
+
+    expect(chosen.pendingDeckChoice).toBe(false);
+    expect(chosen.archetype).toBe("poison_vanguard");
+    expect(chosen.archetypeName).toBe("Poison Vanguard");
+    expect(chosen.player.deck).toContain("venom_strike");
+    expect(chosen.player.deck).toContain("toxic_cloud");
+    expect(chosen.player.deck).toContain("creeping_blight");
+    expect(chosen.player.deck).toContain("infectious_wound");
+    expect(chosen.relics.some((r) => r.id === "plague_sigil")).toBe(true);
+  });
+
   it("rejects invalid traversal moves", () => {
     const run = {
       ...createBrowserRun(),

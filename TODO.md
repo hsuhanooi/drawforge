@@ -1,95 +1,87 @@
 {
   "milestone": {
-    "name": "Economy, Rewards, and Run Depth",
-    "goal": "Turn Drawforge from a now-complete Living Spire baseline into a run that sustains interesting decisions across all three acts by fixing shop value, reward cadence, deck growth, and route-level run thickness.",
+    "name": "Character Identity & World Variety",
+    "goal": "Make archetype choice matter throughout the entire run — not just the starting deck — and make boss encounters unpredictable across runs. Add the 4th archetype that the existing Poison cards have been waiting for, and wire the first cross-act event consequence chains.",
     "outcomes": [
-      "Shops become worth visiting instead of automatic skips",
-      "Reward screens regularly offer meaningful card, relic, and gold decisions",
-      "Decks grow beyond the starter shell at a healthy pace across a full run",
-      "Rest sites, shops, and events each support distinct strategic tradeoffs",
-      "Runs feel longer and richer without reintroducing burn-in instability",
+      "Reward screens offer cards biased toward the current run's archetype theme, making each archetype feel distinct across the whole run",
+      "Boss encounters are unpredictable — Act 1 and Act 2 each have a pool of 3 bosses selected by run seed",
+      "Poison Vanguard is a fully playable 4th archetype with its own visual theme and starter relic",
+      "Four cross-act event chains make world choices feel consequential across acts",
       "progress.txt appended after each completed task"
     ],
     "in_scope": [
-      "Shop inventory and pricing rebalance",
-      "Reward-value rebalance",
-      "Card acquisition pacing",
-      "Gold economy tuning",
-      "Rest-site decision depth",
-      "Route/node distribution tuning",
-      "Run telemetry and burn-in validation for economy outcomes",
-      "Targeted tests for reward/shop/run-depth systems"
+      "Archetype-biased card reward pools (50% themed + 50% general)",
+      "2 new Act 1 bosses (Crypt Warden, Stone Idol) — pool of 3",
+      "2 new Act 2 bosses (Hex Lord, Bone Emperor) — pool of 3",
+      "Boss selection via run seed (deterministic per run, varies across runs)",
+      "4th archetype: Poison Vanguard (venom_strike, toxic_cloud, creeping_blight, septic_touch, infectious_wound)",
+      "New plague_sigil starter relic for Poison Vanguard",
+      "Poison Vanguard visual theme (dark green palette)",
+      "runFlags: {} on run state",
+      "4 chain event pairs: Ferryman, Devil's Bargain, Haunted Crossroads, Leech Pool",
+      "setsFlag field on event options + applyEventChoice wires runFlags",
+      "Targeted tests for all four tasks"
     ],
     "tasks": [
       {
-        "category": "balance",
-        "description": "Rebalance shop pricing and inventory so shops are no longer routinely skipped",
-        "steps": [
-          "Inspect current shop prices, gold gains, and inventory composition across Acts 1-3",
-          "Tune card, relic, and removal pricing so at least two shop actions are commonly affordable",
-          "Improve shop inventory quality weighting so visits surface stronger cards, relics, or utility",
-          "Verify shop screens still render correctly with the updated item mix",
-          "Add or update tests covering shop generation and pricing expectations"
-        ],
-        "passes": true
-      },
-      {
-        "category": "balance",
-        "description": "Increase card reward quality and deck-growth pacing so runs do not stagnate near the starter deck",
-        "steps": [
-          "Inspect current reward pools and skip patterns from the burn-in and code paths",
-          "Tune reward card quality and archetype relevance so post-combat picks are more compelling",
-          "Adjust acquisition pacing so decks typically grow beyond the low-teens by late run",
-          "Verify reward flow remains stable and does not regress the burn-in harness",
-          "Add or update tests covering reward-option generation and deck-growth assumptions"
-        ],
-        "passes": true
-      },
-      {
-        "category": "balance",
-        "description": "Retune gold economy across combats, elites, bosses, and events so spending decisions become strategic instead of starved or trivial",
-        "steps": [
-          "Audit gold inflow from combats, elites, bosses, and events across acts",
-          "Tune gold payouts relative to new shop pricing so route choice matters",
-          "Ensure event gold outcomes and shop costs do not create obvious dominant paths",
-          "Run targeted simulations or deterministic checks on spendability across sample runs",
-          "Add tests covering gold payout and economy invariants where practical"
-        ],
-        "passes": true
-      },
-      {
         "category": "gameplay",
-        "description": "Deepen rest-site decisions so rest is not dominated by a single always-correct action",
+        "description": "Archetype-biased card reward pools so reward screens reflect the current run's strategic theme",
         "steps": [
-          "Inspect current campfire options and usage patterns after the upgrade expansion",
-          "Add or tune alternate rest-site choices such as heal, smith, purge, or archetype utility where appropriate",
-          "Balance those options so each can be right in different board or deck states",
-          "Verify campfire UI and action resolution stay stable for all supported options",
-          "Add or update tests covering campfire choice availability and effects"
+          "Add ARCHETYPE_CARD_THEMES mapping in src/rewards.js",
+          "Implement buildBiasedPool that splits the reward pool 50% themed / 50% general",
+          "Wire buildBiasedPool into createVictoryCardRewards using run.archetype",
+          "Ensure fallback to unbiased pool when archetype is null or unrecognized",
+          "Add bias assertions to tests/rewards.test.js",
+          "Run targeted tests and lint"
         ],
         "passes": true
       },
       {
         "category": "content",
-        "description": "Tune map node distribution and route incentives so runs feel thicker and support more varied economic paths",
+        "description": "Boss variety per act — 2 new Act 1 and 2 new Act 2 bosses with seed-based random selection",
         "steps": [
-          "Review current Dense, Sparse, and Gauntlet template outputs against the new 3-act structure",
-          "Adjust node-type distribution for shops, rests, combats, events, and elites to improve route diversity",
-          "Ensure each template creates different but viable economy and upgrade opportunities",
-          "Verify map generation stays deterministic by seed and compatible with traversal logic",
-          "Add or update map-generation tests for the new routing expectations"
+          "Add Crypt Warden and Stone Idol boss definitions to src/enemies.js",
+          "Add Hex Lord and Bone Emperor boss definitions (Bone Emperor is 2-phase) to src/enemies.js",
+          "Group bosses into act1BossPool, act2BossPool, act3BossPool arrays",
+          "Implement selectBossForAct(act, runSeed) using char-code hash for determinism",
+          "Update createEnemyForNode to accept and use runSeed for boss selection",
+          "Pass run.seed from src/nodeResolver.js into createEnemyForNode",
+          "Add boss pool and determinism assertions to tests/enemies.test.js",
+          "Add seed-varied boss name assertions to tests/nodeResolver.test.js",
+          "Run targeted tests and lint"
         ],
         "passes": true
       },
       {
-        "category": "verification",
-        "description": "Add run-depth telemetry and validation so economy improvements are measured instead of guessed",
+        "category": "content",
+        "description": "4th playable archetype: Poison Vanguard with green visual theme and plague_sigil starter relic",
         "steps": [
-          "Extend automated validation or harness reporting to capture deck size, gold spend, shop usage, and reward pick rates",
-          "Run medium and long validation samples on the new economy tuning",
-          "Confirm runs are longer and richer without reviving dead-end or reward-flow bugs",
-          "Log findings in progress.txt and use them to tighten any remaining weak spots",
-          "Run the full test suite and lint before marking the milestone stable"
+          "Add plague_sigil to src/relicRegistry.js (Enemies you kill while Poisoned carry 2 Poison to the next enemy)",
+          "Wire plague_sigil effect in src/browserCombatActions.js (on enemy death while poisoned, set carryover poison)",
+          "Add poison_vanguard to ARCHETYPES and ARCHETYPE_RELICS in src/browserRunActions.js",
+          "Add poison_vanguard to ARCHETYPES array and VISUAL_THEMES in browser/play.js",
+          "Update resolveCardFrameVariant to return venom for poison_vanguard theme",
+          "Add poison_vanguard CSS theme variables and venom panel shadow to browser/play.css",
+          "Add venom card frame variant CSS alongside hex/ember/storm",
+          "Add poison_vanguard archetype choice test to tests/browserRunActions.test.js",
+          "Run targeted tests and lint"
+        ],
+        "passes": true
+      },
+      {
+        "category": "gameplay",
+        "description": "Run flags and 4 cross-act event chains so world choices have lasting consequences",
+        "steps": [
+          "Add runFlags: {} to startNewRun in src/run.js",
+          "Add setsFlag field to the_ferryman pay option and devil_bargain deal option and haunted_crossroads deal option and leech_pool bathe option in src/events.js",
+          "Add 4 chain event definitions (return_crossing, collectors_visit, spirits_return, the_residue)",
+          "Implement findChainEvent(act, runFlags) and extend createEventForNode to accept runFlags and inject chain events",
+          "Mark used chain flags on the run to prevent re-triggering",
+          "Wire setsFlag and usedFlags into applyEventChoice in src/browserPostNodeActions.js",
+          "Pass run.runFlags into createEventForNode at all call sites in src/events.js and src/nodeResolver.js",
+          "Add chain event injection assertions to tests/events.test.js",
+          "Add setsFlag -> runFlags write assertion to tests/browserPostNodeActions.test.js",
+          "Run targeted tests and lint"
         ],
         "passes": true
       }

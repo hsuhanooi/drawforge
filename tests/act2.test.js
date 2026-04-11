@@ -1,7 +1,10 @@
 const { startNewRun } = require("../src/run");
 const { startAct2 } = require("../src/actTransition");
-const { createEnemyForNode } = require("../src/enemies");
+const { createEnemyForNode, act1BossPool, act2BossPool } = require("../src/enemies");
 const { resolveNode } = require("../src/nodeResolver");
+
+const ACT1_BOSS_IDS = act1BossPool.map((f) => f().id);
+const ACT2_BOSS_IDS = act2BossPool.map((f) => f().id);
 
 describe("Act 2 transition", () => {
   it("startAct2 sets act to 2", () => {
@@ -87,39 +90,56 @@ describe("Act 2 enemy routing", () => {
     expect(eliteIds).not.toContain("bone_colossus");
   });
 
-  it("act 2 boss is void_sovereign", () => {
+  it("act 2 boss comes from the act 2 boss pool", () => {
     const boss = createEnemyForNode(bossNode(), 2);
-    expect(boss.id).toBe("void_sovereign");
-    expect(boss.health).toBe(95);
+    expect(ACT2_BOSS_IDS).toContain(boss.id);
+    expect(boss.health).toBeGreaterThan(90);
   });
 
-  it("act 1 boss is spire_guardian", () => {
+  it("act 1 boss comes from the act 1 boss pool", () => {
     const boss = createEnemyForNode(bossNode(), 1);
-    expect(boss.id).toBe("spire_guardian");
+    expect(ACT1_BOSS_IDS).toContain(boss.id);
   });
 
   it("void_sovereign has phaseThreshold and phase2Intents", () => {
-    const boss = createEnemyForNode(bossNode(), 2);
-    expect(boss.phaseThreshold).toBe(47);
-    expect(boss.phase).toBe(1);
-    expect(Array.isArray(boss.phase2Intents)).toBe(true);
-    expect(boss.phase2Intents.length).toBeGreaterThan(0);
+    const voidSov = act2BossPool.find((f) => f().id === "void_sovereign")();
+    expect(voidSov.phaseThreshold).toBe(47);
+    expect(voidSov.phase).toBe(1);
+    expect(Array.isArray(voidSov.phase2Intents)).toBe(true);
+    expect(voidSov.phase2Intents.length).toBeGreaterThan(0);
   });
 
-  it("nodeResolver passes act to createEnemyForNode", () => {
+  it("nodeResolver passes act to createEnemyForNode and returns an act 2 boss", () => {
     const node = { id: "n1", type: "boss", row: 4, col: 1 };
     const player = { health: 80, maxHealth: 80, deck: [], gold: 100 };
     const result = resolveNode({ node, player, act: 2 });
     expect(result.state).toBe("combat");
-    expect(result.combat.enemy.id).toBe("void_sovereign");
+    expect(ACT2_BOSS_IDS).toContain(result.combat.enemy.id);
   });
 });
 
 describe("Phase shift mechanic", () => {
-  const { startCombatForNode } = require("../src/browserCombatActions");
   const { playCombatCard } = require("../src/browserCombatActions");
+  const { createEnemy } = require("../src/enemies");
 
-  const makeAct2Run = (overrideEnemy = {}) => {
+  // Build a run with a known void_sovereign-style enemy for phase shift tests
+  const makePhaseShiftRun = (overrideEnemy = {}) => {
+    const phase2Intents = [
+      { type: "multi_attack", value: 8, hits: 2, label: "Chaos Rend: 2x8" },
+      { type: "attack", value: 18, label: "Annihilate for 18" }
+    ];
+    const baseEnemy = createEnemy({
+      id: "void_sovereign",
+      name: "Void Sovereign",
+      health: 95,
+      damage: 14,
+      rewardGold: 75,
+      phaseThreshold: 47,
+      phase: 1,
+      phase2Strength: 2,
+      intents: [{ type: "attack", value: 14, label: "Void Slash for 14" }],
+      phase2Intents
+    });
     const run = {
       ...startNewRun(),
       act: 2,
@@ -128,19 +148,44 @@ describe("Phase shift mechanic", () => {
       pendingRewards: null,
       event: null
     };
-    const node = { id: "n1", type: "boss", row: 4, col: 0 };
-    let runWithCombat = { ...run, combat: null };
-    runWithCombat = { ...runWithCombat, combat: startCombatForNode(runWithCombat, node) };
-    // Override enemy fields for test control
-    runWithCombat = {
-      ...runWithCombat,
+    const baseRun = {
+      ...run,
       combat: {
-        ...runWithCombat.combat,
-        enemy: { ...runWithCombat.combat.enemy, ...overrideEnemy }
+        state: "active",
+        turn: "player",
+        nodeType: "boss",
+        enemyTurnNumber: 0,
+        firstTurn: true,
+        grimoire_used: false,
+        coal_pendant_used: false,
+        sigil_fired: false,
+        seal_used_this_turn: false,
+        flicker_used: false,
+        duelist_used_this_turn: false,
+        grave_wick_used: false,
+        mirror_used: false,
+        black_prism_fired: false,
+        hex_lantern_used: false,
+        exhaustTotal: 0,
+        doom_engine_active: false,
+        returnPile: [],
+        player: { health: 80, block: 0, energy: 3, charged: false, strength: 0, dexterity: 0, weak: 0, poison: 0, burn: 0 },
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        exhaustedThisTurn: 0,
+        combatLog: [],
+        powers: [],
+        enemy: { ...baseEnemy, ...overrideEnemy },
+        enemyIntent: baseEnemy.intents[0]
       }
     };
-    return runWithCombat;
+    return baseRun;
   };
+
+  // Legacy alias for tests that don't test phase2Intents field name
+  const makeAct2Run = makePhaseShiftRun;
 
   it("void_sovereign does not phase shift when above threshold", () => {
     const run = makeAct2Run({ health: 80, phase: 1, phaseThreshold: 47 });

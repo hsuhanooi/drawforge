@@ -1,4 +1,4 @@
-const { createEnemyForNode, resolveEnemyIntent } = require("../src/enemies");
+const { createEnemyForNode, resolveEnemyIntent, selectBossForAct, act1BossPool, act2BossPool, act3BossPool } = require("../src/enemies");
 
 describe("enemy selection", () => {
   it("creates deterministic basic enemies for combat nodes", () => {
@@ -12,7 +12,8 @@ describe("enemy selection", () => {
 
   it("creates stronger enemies for elite and boss nodes", () => {
     const elite = createEnemyForNode({ row: 3, col: 0, type: "elite" });
-    const boss = createEnemyForNode({ row: 4, col: 1, type: "boss" });
+    // Use act 2 boss to ensure pool boss is clearly stronger than act 1 elites
+    const boss = createEnemyForNode({ row: 4, col: 1, type: "boss" }, 2);
 
     expect(elite.health).toBeGreaterThan(30);
     expect(boss.health).toBeGreaterThan(elite.health);
@@ -56,5 +57,51 @@ describe("enemy selection", () => {
     expect(ascBoss.health).toBeGreaterThan(baseBoss.health);
     expect(ascBoss.damage).toBeGreaterThan(baseBoss.damage);
     expect(ascBoss.phase).toBe(2);
+  });
+});
+
+describe("boss pool randomization", () => {
+  it("Act 1 boss pool has 3 entries", () => {
+    expect(act1BossPool).toHaveLength(3);
+    const names = act1BossPool.map((f) => f().name);
+    expect(names).toContain("Spire Guardian");
+    expect(names).toContain("Crypt Warden");
+    expect(names).toContain("Stone Idol");
+  });
+
+  it("Act 2 boss pool has 3 entries", () => {
+    expect(act2BossPool).toHaveLength(3);
+    const names = act2BossPool.map((f) => f().name);
+    expect(names).toContain("Void Sovereign");
+    expect(names).toContain("Hex Lord");
+    expect(names).toContain("Bone Emperor");
+  });
+
+  it("Act 3 boss pool always returns The Undying", () => {
+    expect(act3BossPool).toHaveLength(1);
+    expect(selectBossForAct(3, "seed_a").name).toBe("The Undying");
+    expect(selectBossForAct(3, "seed_b").name).toBe("The Undying");
+  });
+
+  it("selectBossForAct is deterministic for the same seed", () => {
+    const boss1 = selectBossForAct(1, "run-42");
+    const boss2 = selectBossForAct(1, "run-42");
+    expect(boss1.name).toBe(boss2.name);
+  });
+
+  it("different seeds can produce different Act 1 bosses", () => {
+    const names = new Set();
+    for (let i = 0; i < 50; i++) {
+      names.add(selectBossForAct(1, `seed-${i}`).name);
+    }
+    expect(names.size).toBeGreaterThan(1);
+  });
+
+  it("different seeds can produce different Act 2 bosses", () => {
+    const names = new Set();
+    for (let i = 0; i < 50; i++) {
+      names.add(selectBossForAct(2, `seed-${i}`).name);
+    }
+    expect(names.size).toBeGreaterThan(1);
   });
 });

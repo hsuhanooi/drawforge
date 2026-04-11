@@ -8,7 +8,8 @@ const { clampAscensionLevel, applyAscensionToDeck } = require("./ascension");
 const ARCHETYPE_RELICS = {
   hex_witch: "hex_crown",
   ashen_knight: "ashen_idol",
-  static_duelist: "storm_diadem"
+  static_duelist: "storm_diadem",
+  poison_vanguard: "plague_sigil"
 };
 
 const ARCHETYPES = {
@@ -29,6 +30,12 @@ const ARCHETYPES = {
     name: "Static Duelist",
     deck: ["strike", "strike", "strike", "defend", "defend",
       "charge_up", "arc_lash", "static_guard", "capacitor", "guarded_pulse"]
+  },
+  poison_vanguard: {
+    id: "poison_vanguard",
+    name: "Poison Vanguard",
+    deck: ["strike", "strike", "strike", "defend", "defend",
+      "venom_strike", "toxic_cloud", "creeping_blight", "septic_touch", "infectious_wound"]
   }
 };
 
@@ -109,7 +116,7 @@ const enterBrowserNode = (run, nodeId) => {
   };
 
   if (node.type === "event") {
-    nextRun.event = createEventForNode(node);
+    nextRun.event = createEventForNode(node, run.runFlags || {}, run.usedChainFlags || []);
   }
 
   return {

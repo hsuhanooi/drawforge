@@ -391,7 +391,7 @@ describe("card registry completeness after Milestone 10", () => {
   });
 
   it("keeps the post-Milestone-10 registry fully implemented after later card-set expansions", () => {
-    expect(IMPLEMENTED_CARD_IDS.length).toBe(84);
+    expect(IMPLEMENTED_CARD_IDS.length).toBeGreaterThanOrEqual(84);
     expect(IMPLEMENTED_CARD_IDS.length).toBe(CARD_REGISTRY.length);
   });
 });

@@ -84,6 +84,18 @@
           "Run targeted tests and lint"
         ],
         "passes": true
+      },
+      {
+        "category": "verification",
+        "description": "Fix failing GitHub CI so remote verification matches local green runs",
+        "steps": [
+          "Inspect the latest failing GitHub Actions run and identify the exact failing command or environment mismatch",
+          "Reproduce the CI failure locally as closely as practical",
+          "Fix the underlying test, lint, workflow, or environment issue without masking real failures",
+          "Re-run the relevant local verification and then the full gate if the fix touches shared surfaces",
+          "Update progress.txt with the CI failure cause and resolution"
+        ],
+        "passes": true
       }
     ]
   }

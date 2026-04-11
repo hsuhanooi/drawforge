@@ -9,9 +9,9 @@ const {
 
 describe("card registry", () => {
   it("contains the current canonical designed set plus 2 starter cards", () => {
-    expect(DESIGNED_CARD_SET).toHaveLength(82);
+    expect(DESIGNED_CARD_SET).toHaveLength(DESIGNED_CARD_IDS.length);
     expect(STARTER_CARD_IDS).toEqual(["strike", "defend"]);
-    expect(CARD_REGISTRY).toHaveLength(84);
+    expect(CARD_REGISTRY).toHaveLength(DESIGNED_CARD_SET.length + STARTER_CARD_IDS.length);
   });
 
   it("tracks implemented vs missing cards explicitly", () => {

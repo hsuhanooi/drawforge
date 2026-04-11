@@ -1,6 +1,7 @@
 const { createBrowserRun, chooseArchetype } = require("../src/browserRunActions");
 const { startCombatForNode, playCombatCard, endCombatTurn } = require("../src/browserCombatActions");
 const { createCardCatalog } = require("../src/cardCatalog");
+const { MAX_POISON_STACKS } = require("../src/constants");
 
 const CARD_CATALOG = createCardCatalog();
 
@@ -83,15 +84,15 @@ describe("browser combat actions", () => {
     const toxicCloud = { ...CARD_CATALOG.toxic_cloud };
     combat.hand = [toxicCloud];
     combat.player.energy = 3;
-    combat.enemy.poison = 9;
+    combat.enemy.poison = MAX_POISON_STACKS - toxicCloud.applyPoison + 1;
     combat.enemy.burn = 9;
     combat.enemyIntent = { type: "debuff_burn", value: 3, label: "Scorch" };
 
     const afterPlay = playCombatCard({ ...run, combat }, 0);
-    expect(afterPlay.combat.enemy.poison).toBe(10);
+    expect(afterPlay.combat.enemy.poison).toBe(MAX_POISON_STACKS);
 
     const afterTurn = endCombatTurn(afterPlay);
     expect(afterTurn.combat.player.burn).toBe(3);
-    expect(afterTurn.combat.enemy.poison).toBeLessThanOrEqual(10);
+    expect(afterTurn.combat.enemy.poison).toBeLessThanOrEqual(MAX_POISON_STACKS);
   });
 });

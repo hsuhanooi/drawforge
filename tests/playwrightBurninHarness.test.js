@@ -105,9 +105,16 @@ describe('playwright burn-in harness combat prioritization', () => {
 
   it('claims reward choices and affordable shop items before falling back to continue or leave controls', () => {
     expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = false } = {}) {');
+    expect(burninSource).toContain('const rewardStateBeforeAction = await collectState(page).catch(() => null);');
     expect(burninSource).toContain('if (shouldPreferContinue) {');
     expect(burninSource).toContain("const preferRewardContinue = false;");
     expect(burninSource).toContain("let action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });");
+    expect(burninSource).toContain("if (!clicked && rewardTarget === '#removal-cards > *') {");
+    expect(burninSource).toContain("return `dom:#removal-cards > *:${removalCard.dataset.cardId || removalCard.textContent?.trim() || 'card'}`;");
+    expect(burninSource).toContain("const previousDeckSize = rewardStateBeforeAction?.runSummary?.deckSize || 0;");
+    expect(burninSource).toContain("const removalResolved = await page.evaluate((expectedDeckSize) => {");
+    expect(burninSource).toContain("const fallback = await clickFirst(page, ['#removal-skip-btn', '#reward-continue-btn']);");
+    expect(burninSource).toContain("clicked = `${clicked}|fallback:${fallback}`;");
     expect(burninSource).toContain('async function actOnShopScreen(page) {');
     expect(burninSource).toContain("const gold = parsePrice(document.querySelector('#shop-gold')?.textContent || '0');");
     expect(burninSource).toContain("const affordableService = Array.from(document.querySelectorAll('#shop-services-row .shop-service-btn'))");

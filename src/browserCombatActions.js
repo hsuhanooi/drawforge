@@ -215,6 +215,7 @@ const playCombatCard = (run, handIndex) => {
   if (combat.player.energy < effectiveCost) throw new Error("Not enough energy");
 
   let next = normalizeStatusStacks(clone(combat));
+  let nextPhoenixUsed = run.phoenix_used || false;
   next.triggeredRelics = [];
   if (hasRelic(run, "time_locked_seal") && !next.seal_used_this_turn && card.cost <= 1) {
     next.seal_used_this_turn = true;
@@ -504,6 +505,19 @@ const playCombatCard = (run, handIndex) => {
 
   next = checkPhaseShift(next);
 
+  if (next.player.health <= 0) {
+    if (hasRelic(run, "phoenix_ash") && !nextPhoenixUsed) {
+      next.player.health = 1;
+      nextPhoenixUsed = true;
+      next.triggeredRelics.push("phoenix_ash");
+    } else {
+      next.player.health = 0;
+      next.state = "defeat";
+      next.turn = null;
+      next.enemyIntent = null;
+    }
+  }
+
   if (next.enemy.health <= 0) {
     next.enemy.health = 0;
     next.state = "victory";
@@ -530,6 +544,9 @@ const playCombatCard = (run, handIndex) => {
   if (next.state === "victory") {
     next = appendCombatLog(next, `${next.enemy.name} was defeated.`, "system");
   }
+  if (next.state === "defeat") {
+    next = appendCombatLog(next, "You were defeated.", "system");
+  }
 
   // Stat tracking
   const hpDamageDealt = Math.max(0, enemyHpBefore - next.enemy.health);
@@ -555,8 +572,9 @@ const playCombatCard = (run, handIndex) => {
     stats: newStats,
     combat: normalizeStatusStacks(next),
     player: { ...run.player, health: next.player.health },
-    phoenix_used: run.phoenix_used || false,
-    carryoverPoison
+    phoenix_used: nextPhoenixUsed,
+    carryoverPoison,
+    state: next.state === "defeat" ? "lost" : run.state
   };
 };
 

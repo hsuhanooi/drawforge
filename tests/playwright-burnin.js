@@ -235,6 +235,7 @@ async function clickCombatCard(page) {
 }
 
 async function actOnRewardScreen(page, { preferContinue = false } = {}) {
+  const rewardStateBeforeAction = await collectState(page).catch(() => null);
   const rewardTarget = await page.evaluate((shouldPreferContinue) => {
     const isShown = (selector) => {
       const el = document.querySelector(selector);
@@ -268,6 +269,24 @@ async function actOnRewardScreen(page, { preferContinue = false } = {}) {
 
   if (!rewardTarget) return null;
   let clicked = await clickFirst(page, [rewardTarget]);
+  if (!clicked && rewardTarget === '#removal-cards > *') {
+    clicked = await page.evaluate(() => {
+      const removalCard = Array.from(document.querySelectorAll('#removal-cards > *')).find((el) => {
+        const style = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        return !el.classList.contains('hidden')
+          && style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && rect.width > 0
+          && rect.height > 0
+          && !el.closest('.hidden');
+      });
+      if (!removalCard) return null;
+      removalCard.scrollIntoView({ block: 'center', inline: 'center' });
+      removalCard.click();
+      return `dom:#removal-cards > *:${removalCard.dataset.cardId || removalCard.textContent?.trim() || 'card'}`;
+    }).catch(() => null);
+  }
   if (!clicked) {
     // Target exists in DOM but may not have finished layout — wait for settle then retry
     await sleep(REWARD_SETTLE_DELAY_MS);
@@ -284,6 +303,7 @@ async function actOnRewardScreen(page, { preferContinue = false } = {}) {
     }
   }
   if (clicked && /reward-cards-row|removal-cards/.test(rewardTarget)) {
+    const previousDeckSize = rewardStateBeforeAction?.runSummary?.deckSize || 0;
     await page.waitForFunction(() => {
       const isShown = (selector) => {
         const el = document.querySelector(selector);
@@ -296,6 +316,45 @@ async function actOnRewardScreen(page, { preferContinue = false } = {}) {
         || isShown('#screen-end')
         || !isShown('#screen-reward');
     }, { timeout: 1500 }).catch(() => {});
+
+    if (rewardTarget === '#removal-cards > *') {
+      const removalResolved = await page.evaluate((expectedDeckSize) => {
+        const isShown = (selector) => {
+          const el = document.querySelector(selector);
+          if (!el) return false;
+          const style = window.getComputedStyle(el);
+          return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+        };
+        let savedRun = null;
+        try {
+          savedRun = JSON.parse(localStorage.getItem('drawforge.v1') || 'null');
+        } catch {
+          savedRun = null;
+        }
+        return !isShown('#screen-reward')
+          || !isShown('#removal-panel')
+          || ((savedRun?.player?.deck?.length || 0) < expectedDeckSize);
+      }, previousDeckSize).catch(() => false);
+
+      if (!removalResolved) {
+        const fallback = await clickFirst(page, ['#removal-skip-btn', '#reward-continue-btn']);
+        if (fallback) {
+          clicked = `${clicked}|fallback:${fallback}`;
+          await page.waitForFunction(() => {
+            const isShown = (selector) => {
+              const el = document.querySelector(selector);
+              if (!el) return false;
+              const style = window.getComputedStyle(el);
+              return !el.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
+            };
+            return isShown('#screen-map')
+              || isShown('#screen-combat')
+              || isShown('#screen-end')
+              || !isShown('#screen-reward');
+          }, { timeout: 1500 }).catch(() => {});
+        }
+      }
+    }
   }
   return clicked ? `reward:${clicked}` : null;
 }

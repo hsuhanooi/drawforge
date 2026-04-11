@@ -95,4 +95,21 @@ describe("browser combat actions", () => {
     expect(afterTurn.combat.player.burn).toBe(3);
     expect(afterTurn.combat.enemy.poison).toBeLessThanOrEqual(MAX_POISON_STACKS);
   });
+
+  it("marks the run lost when self-damage drops the player to zero during card play", () => {
+    const run = makeRun();
+    const combat = startCombatForNode(run, combatNode);
+    combat.hand = [{ ...CARD_CATALOG.blood_pact }];
+    combat.player.energy = 3;
+    combat.player.health = 2;
+    combat.enemyIntent = { type: "block", value: 0, label: "Wait" };
+
+    const result = playCombatCard({ ...run, combat }, 0);
+
+    expect(result.player.health).toBe(0);
+    expect(result.combat.player.health).toBe(0);
+    expect(result.combat.state).toBe("defeat");
+    expect(result.state).toBe("lost");
+    expect(result.combat.turn).toBeNull();
+  });
 });

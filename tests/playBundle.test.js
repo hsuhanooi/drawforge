@@ -316,7 +316,9 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('if (nextCombat.reshuffled) {');
     expect(playJs).toContain('window.AnimEngine.onShuffle(pp.x, pp.y);');
     expect(playJs).toContain('const effectiveDelay = arePresentationEffectsEnabled() ? durationMs : 0;');
-    expect(playJs).toContain('const updated = await api("/run/play-card.json", { run: currentRun, handIndex });');
+    expect(playJs).toContain('updated = await api("/run/play-card.json", { run: currentRun, handIndex });');
+    expect(playJs).toContain('setCombatStateMessage(error.message || "Card could not be played", "enemy");');
+    expect(playJs).toContain('saveRun(currentRun);');
     expect(playJs).toContain('currentRun = await api("/run/end-turn.json", { run: currentRun });');
     expect(playJs).toContain('currentRun = await api("/run/claim-card.json", { run: currentRun, cardId: card.id });');
   });

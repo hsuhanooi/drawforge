@@ -16,6 +16,8 @@ describe('playwright burn-in harness combat prioritization', () => {
   it('waits for combat controls and still resolves selected attacks before reselecting cards', () => {
     expect(burninSource).toContain('async function waitForCombatControls(page) {');
     expect(burninSource).toContain("const playableCard = document.querySelector('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)');");
+    expect(burninSource).toContain("const currentCombatScreen = await visibleScreen(page).catch(() => 'unknown');");
+    expect(burninSource).toContain("return 'combat:await-ready';");
     expect(burninSource).toContain("const selectedAttack = await page.evaluate(() => {");
     expect(burninSource).toContain("if (selectedAttack) {");
     expect(burninSource).toContain("const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);");

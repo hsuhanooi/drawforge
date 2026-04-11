@@ -2583,7 +2583,15 @@
     const prevHex        = prevCombat?.enemy?.hex        || 0;
     const prevCharged    = !!prevCombat?.player?.charged;
     const prevHand = prevCombat?.hand || [];
-    const updated = await api("/run/play-card.json", { run: currentRun, handIndex });
+    let updated;
+    try {
+      updated = await api("/run/play-card.json", { run: currentRun, handIndex });
+    } catch (error) {
+      setCombatStateMessage(error.message || "Card could not be played", "enemy");
+      saveRun(currentRun);
+      render();
+      return;
+    }
     currentRun = updated;
     flashTriggeredRelics(updated.combat?.triggeredRelics);
 

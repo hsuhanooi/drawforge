@@ -302,7 +302,12 @@ async function actOnCombatScreen(page) {
 
   for (let microStep = 0; microStep < 8; microStep += 1) {
     const combatState = await collectState(page).catch(() => null);
-    if (!combatState || await visibleScreen(page).catch(() => 'combat') !== 'combat') {
+    const currentCombatScreen = await visibleScreen(page).catch(() => 'unknown');
+    if (!combatState || currentCombatScreen !== 'combat') {
+      if (!actions.length && (currentCombatScreen === 'unknown' || currentCombatScreen === 'map' || currentCombatScreen === 'reward')) {
+        await sleep(Math.max(COMBAT_MICRO_DELAY_MS * 3, 120));
+        return 'combat:await-ready';
+      }
       return actions.length ? `combat:${actions.join('|')}` : null;
     }
 
@@ -448,6 +453,12 @@ async function actOnCombatScreen(page) {
     actions.push('key-end-turn');
     return `combat:${actions.join('|')}`;
   } catch {
+    const readyState = await collectState(page).catch(() => null);
+    if (readyState?.combatSummary?.playableCards > 0 && readyState?.combatSummary?.endTurnDisabled === false) {
+      await sleep(Math.max(COMBAT_MICRO_DELAY_MS * 4, 180));
+      actions.push('await-ready');
+      return `combat:${actions.join('|')}`;
+    }
     return actions.length ? `combat:${actions.join('|')}` : null;
   }
 }

@@ -318,12 +318,14 @@ const playCombatCard = (run, handIndex) => {
       next.hex_lantern_used = true;
       next.triggeredRelics.push("hex_lantern");
     }
-    if (remainingDamage > 0 && (next.powers || []).some((p) => p.id === "vampiric_aura")) {
+    const vampiricAura = (next.powers || []).find((p) => p.healOnAttack);
+    if (remainingDamage > 0 && vampiricAura) {
       const maxHealth = run.player.maxHealth || run.player.health;
-      next.player.health = Math.min(next.player.health + 2, maxHealth);
+      next.player.health = Math.min(next.player.health + (vampiricAura.healOnAttack || 2), maxHealth);
     }
-    if (card.type === "attack" && (next.powers || []).some((p) => p.id === "noxious_presence")) {
-      next.enemy.poison = clampStacks((next.enemy.poison || 0) + 1, MAX_POISON_STACKS);
+    const noxiousPresence = (next.powers || []).find((p) => p.poisonOnAttack);
+    if (card.type === "attack" && noxiousPresence) {
+      next.enemy.poison = clampStacks((next.enemy.poison || 0) + (noxiousPresence.poisonOnAttack || 1), MAX_POISON_STACKS);
     }
     // repeatIfHexed: deal damage a second time if enemy had hex (no_mercy)
     if (card.repeatIfHexed && hexStacks > 0) {
@@ -691,34 +693,47 @@ const endCombatTurn = (run) => {
   next.hand = [...next.hand, ...pendingReturn];
   // Apply power turn_start effects
   for (const power of (next.powers || [])) {
-    if (power.id === "iron_will") {
-      next.player.dexterity = (next.player.dexterity || 0) + 1;
-    } else if (power.id === "creeping_blight" || power.id === "virulent_aura") {
-      next.enemy.poison = clampStacks((next.enemy.poison || 0) + 1, MAX_POISON_STACKS);
-    } else if (power.id === "kindle" || power.id === "inferno_aura") {
-      next.enemy.burn = clampStacks((next.enemy.burn || 0) + 1, MAX_BURN_STACKS);
-    } else if (power.id === "burning_aura") {
-      const thornBlocked = Math.min(next.enemy.block || 0, 3);
+    if (power.dexPerTurn) {
+      next.player.dexterity = (next.player.dexterity || 0) + power.dexPerTurn;
+    }
+    if (power.poisonPerTurn) {
+      next.enemy.poison = clampStacks((next.enemy.poison || 0) + power.poisonPerTurn, MAX_POISON_STACKS);
+    }
+    if (power.burnPerTurn) {
+      next.enemy.burn = clampStacks((next.enemy.burn || 0) + power.burnPerTurn, MAX_BURN_STACKS);
+    }
+    if (power.auraDamage) {
+      const auraDamage = power.auraDamage;
+      const thornBlocked = Math.min(next.enemy.block || 0, auraDamage);
       next.enemy.block = (next.enemy.block || 0) - thornBlocked;
-      next.enemy.health = Math.max(0, next.enemy.health - (3 - thornBlocked));
-    } else if (power.id === "hex_resonance") {
-      next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + 1);
-    } else if (power.id === "storm_call") {
+      next.enemy.health = Math.max(0, next.enemy.health - (auraDamage - thornBlocked));
+    }
+    if (power.hexPerTurn) {
+      next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + power.hexPerTurn);
+    }
+    if (power.damagePerHex) {
       const hexCount = next.enemy.hex || 0;
       if (hexCount > 0) {
-        const stormDmg = hexCount * 2;
+        const stormDmg = hexCount * power.damagePerHex;
         const stormBlocked = Math.min(next.enemy.block || 0, stormDmg);
         next.enemy.block = (next.enemy.block || 0) - stormBlocked;
         next.enemy.health = Math.max(0, next.enemy.health - (stormDmg - stormBlocked));
       }
-    } else if (power.id === "exhaust_engine") {
-      const energyGain = Math.min((next.exhaustPile || []).length, 3);
+    }
+    if (power.maxExhaustEnergy) {
+      const energyGain = Math.min((next.exhaustPile || []).length, power.maxExhaustEnergy);
       next.player.energy += energyGain;
-    } else if (power.id === "weak_field") {
-      next.enemy.weak = (next.enemy.weak || 0) + 1;
-    } else if (power.id === "dark_pact") {
-      next.player.health = Math.max(1, next.player.health - 2);
-      next.player.energy += 1;
+    }
+    if (power.weakPerTurn) {
+      next.enemy.weak = (next.enemy.weak || 0) + power.weakPerTurn;
+    }
+    if (power.id === "charged_field") {
+      next.player.charged = true;
+      next = drawCards(next, power.drawPerTurn || 1);
+    }
+    if (power.energyPerTurn) {
+      next.player.health = Math.max(1, next.player.health - (power.hpLossPerTurn || 0));
+      next.player.energy += power.energyPerTurn;
     }
   }
   if (next.player.health <= 0) {

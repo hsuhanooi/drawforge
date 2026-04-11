@@ -162,7 +162,8 @@ const createVictoryRewards = (nodeType = "combat", run = null, balanceOverrides 
   const cards = createVictoryCardRewards(nodeType, run, balanceOverrides, rng);
   const currentPotions = run ? (run.potions || []) : [];
   const canReceivePotion = currentPotions.length < MAX_POTIONS;
-  const potionDrops = nodeType === "elite" ? POTION_DROP_CHANCE : 0;
+  const combatPotionChance = POTION_DROP_CHANCE * 0.4; // 16% for regular combat
+  const potionDrops = nodeType === "elite" ? POTION_DROP_CHANCE : nodeType === "combat" ? combatPotionChance : 0;
   const potion = canReceivePotion && rng() < potionDrops ? createRandomPotion(rng) : null;
   /** @type {{ cards: Card[], gold: number, relic: RelicReward | null, relics: RelicReward[], removeCard: boolean, potion: object | null }} */
   const rewards = {

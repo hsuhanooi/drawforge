@@ -746,7 +746,20 @@
     });
   }
 
-  const POTION_ICONS = { healing_potion: "🧪", strength_potion: "💪", hex_vial: "☠️" };
+  const POTION_ICONS = {
+    healing_potion: "🧪",
+    strength_potion: "💪",
+    hex_vial: "☠️",
+    block_potion: "🛡️",
+    energy_potion: "⚡",
+    swift_potion: "🃏",
+    vulnerable_potion: "🎯",
+    weak_potion: "😵",
+    antidote_potion: "💊",
+    poison_vial: "🐍",
+    burn_vial: "🔥",
+    charged_vial: "⚡🔵"
+  };
 
   function renderPotionStrip(potions) {
     let strip = $id("potion-strip");

@@ -140,8 +140,8 @@ describe("Curse sources", () => {
 });
 
 describe("Potions", () => {
-  it("POTIONS array has 9 entries", () => {
-    expect(POTIONS).toHaveLength(9);
+  it("POTIONS array has 12 entries (includes archetype-themed potions)", () => {
+    expect(POTIONS).toHaveLength(12);
   });
 
   it("createRandomPotion returns a valid potion", () => {

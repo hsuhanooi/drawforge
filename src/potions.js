@@ -52,6 +52,24 @@ const POTIONS = [
     name: "Antidote Potion",
     description: "Remove Weak from yourself. Restore 5 HP.",
     rarity: "common"
+  },
+  {
+    id: "poison_vial",
+    name: "Poison Vial",
+    description: "Apply Poison 3 to the enemy.",
+    rarity: "uncommon"
+  },
+  {
+    id: "burn_vial",
+    name: "Burn Vial",
+    description: "Apply Burn 3 to the enemy.",
+    rarity: "uncommon"
+  },
+  {
+    id: "charged_vial",
+    name: "Charged Vial",
+    description: "Become Charged. Gain 1 Energy this turn.",
+    rarity: "uncommon"
   }
 ];
 
@@ -129,6 +147,24 @@ const applyPotion = (combat, potionId) => {
         weak: 0,
         health: Math.min(combat.player.health + 5, maxHealth)
       }
+    };
+  }
+  if (potionId === "poison_vial") {
+    return {
+      ...combat,
+      enemy: { ...combat.enemy, poison: Math.min((combat.enemy.poison || 0) + 3, 20) }
+    };
+  }
+  if (potionId === "burn_vial") {
+    return {
+      ...combat,
+      enemy: { ...combat.enemy, burn: Math.min((combat.enemy.burn || 0) + 3, 20) }
+    };
+  }
+  if (potionId === "charged_vial") {
+    return {
+      ...combat,
+      player: { ...combat.player, charged: true, energy: combat.player.energy + 1 }
     };
   }
   throw new Error(`Unknown potion: ${potionId}`);

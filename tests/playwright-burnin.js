@@ -234,7 +234,7 @@ async function clickCombatCard(page) {
   return domClicked;
 }
 
-async function actOnRewardScreen(page, { preferContinue = true } = {}) {
+async function actOnRewardScreen(page, { preferContinue = false } = {}) {
   const rewardTarget = await page.evaluate((shouldPreferContinue) => {
     const isShown = (selector) => {
       const el = document.querySelector(selector);
@@ -546,6 +546,62 @@ async function waitForDeckChoiceActions(page) {
   }, { timeout: 1200 }).catch(() => {});
 }
 
+async function actOnShopScreen(page) {
+  const action = await page.evaluate(() => {
+    const isVisible = (el) => {
+      if (!el || el.disabled || el.closest('.hidden')) return false;
+      const style = window.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return !el.classList.contains('hidden')
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && rect.width > 0
+        && rect.height > 0;
+    };
+    const parsePrice = (text) => Number(String(text || '').replace(/[^0-9]/g, '')) || 0;
+    const gold = parsePrice(document.querySelector('#shop-gold')?.textContent || '0');
+
+    const affordableService = Array.from(document.querySelectorAll('#shop-services-row .shop-service-btn'))
+      .find((button) => isVisible(button) && !button.disabled && parsePrice(button.querySelector('.shop-service-cost')?.textContent) <= gold);
+    if (affordableService) {
+      affordableService.click();
+      return 'service';
+    }
+
+    const affordableCard = Array.from(document.querySelectorAll('#shop-cards-row > *')).find((wrap) => {
+      if (!isVisible(wrap)) return false;
+      const card = wrap.querySelector('.card-component, .card');
+      const price = parsePrice(wrap.lastElementChild?.textContent);
+      return card && isVisible(card) && !card.classList.contains('unplayable') && price <= gold;
+    });
+    if (affordableCard) {
+      affordableCard.querySelector('.card-component, .card')?.click();
+      return 'card';
+    }
+
+    const affordableRelic = Array.from(document.querySelectorAll('#shop-relic-row > *')).find((wrap) => {
+      if (!isVisible(wrap)) return false;
+      const relic = wrap.querySelector('.relic-card');
+      const price = parsePrice(wrap.lastElementChild?.textContent);
+      return relic && isVisible(relic) && price <= gold;
+    });
+    if (affordableRelic) {
+      affordableRelic.querySelector('.relic-card')?.click();
+      return 'relic';
+    }
+
+    const leave = document.querySelector('#shop-leave-btn');
+    if (isVisible(leave)) {
+      leave.click();
+      return 'leave';
+    }
+
+    return null;
+  }).catch(() => null);
+
+  return action ? `shop:${action}` : null;
+}
+
 async function waitForCombatControls(page) {
   await page.waitForFunction(() => {
     const isShown = (selector) => {
@@ -630,10 +686,8 @@ async function actOnScreen(page, screen, options = {}) {
       const choice = await clickFirst(page, ['#event-choices > * button', '#event-choices > *']);
       return choice ? `event:${choice}` : null;
     }
-    case 'shop': {
-      const leave = await clickFirst(page, ['#shop-leave-btn']);
-      return leave ? 'shop:leave' : null;
-    }
+    case 'shop':
+      return actOnShopScreen(page);
     case 'rest': {
       const option = await clickFirst(page, ['#rest-options-row .rest-option-btn', '#upgrade-cancel-btn']);
       return option ? `rest:${option}` : null;
@@ -733,7 +787,7 @@ async function runSingle(browser, runIndex) {
         lastProgressAt = Date.now();
       }
 
-      const preferRewardContinue = screen === 'reward';
+      const preferRewardContinue = false;
       let action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });
       if (!action && (screen === 'combat' || screen === 'map')) {
         await sleep(screen === 'combat' ? Math.max(COMBAT_MICRO_DELAY_MS, 80) : 180);

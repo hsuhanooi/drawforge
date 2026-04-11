@@ -378,9 +378,11 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain("window.SoundEngine?.onMapMove()");
   });
 
-  it("re-enables end-turn button on API failure so combat cannot dead-end", () => {
+  it("applies victory rewards after end-turn kills and re-enables end-turn on API failure", () => {
     expect(playJs).toContain("currentRun = await api(\"/run/end-turn.json\", { run: currentRun });");
-    // try/finally wrapping the end-turn API call
+    expect(playJs).toContain('if (currentRun.combat?.state === "victory") {');
+    expect(playJs).toContain('currentRun = await api("/run/apply-victory.json", { run: currentRun, combat: currentRun.combat });');
+    expect(playJs).toContain('await waitForPresentationBeat(nodeType === "boss" ? 900 : 500);');
     const endTurnIndex = playJs.indexOf('currentRun = await api("/run/end-turn.json"');
     const tryIndex = playJs.lastIndexOf('try {', endTurnIndex);
     const catchIndex = playJs.indexOf('} catch {', endTurnIndex);

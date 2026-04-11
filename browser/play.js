@@ -3447,6 +3447,29 @@
         return;
       }
 
+      if (currentRun.combat?.state === "victory") {
+        const nodeType = currentRun.combat.nodeType || "combat";
+        showKillFlash();
+        screenShake();
+        spawnKillConfetti($id("enemy-panel"), nodeType === "boss" ? 55 : nodeType === "elite" ? 35 : 20);
+        if (nodeType === "boss") {
+          showKillTextOverlay("BOSS DEFEATED", "#f0c040");
+          spawnConfetti();
+        } else if (nodeType === "elite") {
+          showKillTextOverlay("ELITE DEFEATED", "#e07830");
+        }
+        stopEnemyIdle();
+        stopAmbientParticles();
+        const epVic = getEnemyAnimPos();
+        if (epVic && window.AnimEngine) window.AnimEngine.onVictory(epVic.x, epVic.y);
+        window.SoundEngine?.onVictory();
+        await waitForPresentationBeat(nodeType === "boss" ? 900 : 500);
+        currentRun = await api("/run/apply-victory.json", { run: currentRun, combat: currentRun.combat });
+        saveRun(currentRun);
+        render();
+        return;
+      }
+
       syncAnimBattleState();
       showTurnBanner("YOUR TURN", false);
       const ppTurn = getPlayerAnimPos();

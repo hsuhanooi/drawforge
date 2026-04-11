@@ -103,11 +103,17 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('completedRuns');
   });
 
-  it('prefers continue or skip controls on reward screens before slower choice clicks', () => {
-    expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = true } = {}) {');
+  it('claims reward choices and affordable shop items before falling back to continue or leave controls', () => {
+    expect(burninSource).toContain('async function actOnRewardScreen(page, { preferContinue = false } = {}) {');
     expect(burninSource).toContain('if (shouldPreferContinue) {');
-    expect(burninSource).toContain("const preferRewardContinue = screen === 'reward';");
+    expect(burninSource).toContain("const preferRewardContinue = false;");
     expect(burninSource).toContain("let action = await actOnScreen(page, screen, { preferContinue: preferRewardContinue });");
+    expect(burninSource).toContain('async function actOnShopScreen(page) {');
+    expect(burninSource).toContain("const gold = parsePrice(document.querySelector('#shop-gold')?.textContent || '0');");
+    expect(burninSource).toContain("const affordableService = Array.from(document.querySelectorAll('#shop-services-row .shop-service-btn'))");
+    expect(burninSource).toContain("const affordableCard = Array.from(document.querySelectorAll('#shop-cards-row > *')).find((wrap) => {");
+    expect(burninSource).toContain("const affordableRelic = Array.from(document.querySelectorAll('#shop-relic-row > *')).find((wrap) => {");
+    expect(burninSource).toContain("return action ? `shop:${action}` : null;");
     expect(burninSource).toContain("if (!action && (screen === 'combat' || screen === 'map')) {");
     expect(burninSource).toContain("bug: screen === 'combat'");
     expect(burninSource).toContain("'Reward action loop repeated without state change'");

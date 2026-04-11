@@ -293,6 +293,19 @@ const buyShopItem = (run, type, itemId, price) => {
     return addRelicToRun({ ...run, stats: nextStats, player: nextPlayer }, relic);
   }
 
+  if (type === "potion") {
+    const currentPotions = run.potions || [];
+    const { MAX_POTIONS: maxPotions } = require("./potions");
+    if (currentPotions.length >= maxPotions) {
+      throw new Error("Potion slots full");
+    }
+    const potion = (run.shop?.potions || []).find((p) => p.id === itemId);
+    if (!potion) {
+      throw new Error("Potion not found in shop");
+    }
+    return { ...run, stats: nextStats, player: nextPlayer, potions: [...currentPotions, { ...potion }] };
+  }
+
   if (type === "service") {
     const service = (run.shop?.services || []).find((item) => item.id === itemId);
     if (itemId === "heal") {

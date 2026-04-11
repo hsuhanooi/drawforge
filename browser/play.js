@@ -3227,6 +3227,64 @@
         hide("shop-relic-section");
       }
     }
+
+    // Potion section
+    let potionSection = $id("shop-potion-section");
+    if (!potionSection) {
+      potionSection = document.createElement("div");
+      potionSection.id = "shop-potion-section";
+      potionSection.innerHTML = "<h3 class='shop-section-header'>Potions</h3><div id='shop-potion-row' class='shop-potion-row'></div>";
+      const shopPanel = $id("shop-panel") || $id("screen-shop");
+      if (shopPanel) shopPanel.appendChild(potionSection);
+    }
+    const potionRow = $id("shop-potion-row");
+    if (potionRow) {
+      clearEl(potionRow);
+      const shopPotions = shop.potions || [];
+      const currentPotionCount = currentRun.potions?.length || 0;
+      if (shopPotions.length) {
+        shopPotions.forEach((potion) => {
+          const canAfford = currentRun.player.gold >= potion.price;
+          const slotsAvailable = currentPotionCount < 2;
+          const canBuy = canAfford && slotsAvailable;
+          const wrap = document.createElement("div");
+          wrap.className = "shop-potion-wrap";
+          wrap.style.display = "flex";
+          wrap.style.flexDirection = "column";
+          wrap.style.alignItems = "center";
+          wrap.style.gap = "6px";
+          const btn = document.createElement("button");
+          btn.className = "potion-btn shop-potion-btn";
+          btn.disabled = !canBuy;
+          if (!canBuy) btn.style.opacity = "0.45";
+          btn.title = `${potion.name}: ${potion.description}${!slotsAvailable ? " (Potion slots full)" : ""}`;
+          const icon = document.createElement("span");
+          icon.textContent = POTION_ICONS[potion.id] || "🫧";
+          const label = document.createElement("span");
+          label.className = "potion-name";
+          label.textContent = potion.name;
+          btn.appendChild(icon);
+          btn.appendChild(label);
+          btn.addEventListener("click", async () => {
+            try {
+              currentRun = await api("/run/buy-shop-item.json", { run: currentRun, type: "potion", itemId: potion.id, price: potion.price });
+              saveRun(currentRun);
+              render();
+            } catch (e) { /* not enough gold or slots full */ }
+          });
+          const priceTag = document.createElement("div");
+          priceTag.style.color = canAfford ? "var(--gold)" : "var(--text-dim)";
+          priceTag.style.fontWeight = "700";
+          priceTag.textContent = `${potion.price}g`;
+          wrap.appendChild(btn);
+          wrap.appendChild(priceTag);
+          potionRow.appendChild(wrap);
+        });
+        potionSection.style.display = "";
+      } else {
+        potionSection.style.display = "none";
+      }
+    }
   }
 
   // ─── Screen: End State ────────────────────────────────────────────

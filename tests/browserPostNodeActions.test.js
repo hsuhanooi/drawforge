@@ -197,6 +197,41 @@ describe("browser post-node actions", () => {
     expect(result.usedChainFlags).toContain("ferryman_paid");
   });
 
+  it("buyShopItem potion adds the potion to run.potions", () => {
+    const potion = { id: "healing_potion", name: "Healing Potion", rarity: "common" };
+    const run = {
+      ...baseRun,
+      player: { ...baseRun.player, gold: 99 },
+      potions: [],
+      shop: { cards: [], relics: [], potions: [potion], services: [] }
+    };
+    const result = buyShopItem(run, "potion", "healing_potion", 32);
+    expect(result.potions).toHaveLength(1);
+    expect(result.potions[0].id).toBe("healing_potion");
+    expect(result.player.gold).toBe(67);
+  });
+
+  it("buyShopItem potion throws when potion slots are full", () => {
+    const potion = { id: "healing_potion", name: "Healing Potion", rarity: "common" };
+    const run = {
+      ...baseRun,
+      player: { ...baseRun.player, gold: 99 },
+      potions: [potion, potion],
+      shop: { cards: [], relics: [], potions: [potion], services: [] }
+    };
+    expect(() => buyShopItem(run, "potion", "healing_potion", 32)).toThrow("Potion slots full");
+  });
+
+  it("buyShopItem potion throws if potion not in shop", () => {
+    const run = {
+      ...baseRun,
+      player: { ...baseRun.player, gold: 99 },
+      potions: [],
+      shop: { cards: [], relics: [], potions: [], services: [] }
+    };
+    expect(() => buyShopItem(run, "potion", "healing_potion", 32)).toThrow("Potion not found in shop");
+  });
+
   it("uses enemy-specific gold rewards instead of the old flat combat gold", () => {
     const run = applyVictoryToRun(baseRun, {
       nodeType: "combat",

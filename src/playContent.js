@@ -3,6 +3,7 @@ const { RELICS } = require("./relics");
 const { toRenderableCards } = require("./cardCatalog");
 const { createCampfireEvent } = require("./events");
 const { scaleShopPrice } = require("./ascension");
+const { POTIONS, MAX_POTIONS } = require("./potions");
 
 const RARITY_SCORE = {
   common: 1,
@@ -64,6 +65,19 @@ const createPlayEventState = async (node, run = null) => {
   return null;
 };
 
+const createPlayShopPotions = (run, count = 2) => {
+  const currentPotions = run?.potions || [];
+  const canBuy = currentPotions.length < MAX_POTIONS;
+  if (!canBuy) return [];
+  const pool = [...POTIONS];
+  const chosen = [];
+  while (pool.length > 0 && chosen.length < count) {
+    const index = Math.floor(Math.random() * pool.length);
+    chosen.push(pool.splice(index, 1)[0]);
+  }
+  return chosen;
+};
+
 const createPlayShopState = async (run) => {
   const ascensionLevel = run?.ascensionLevel || 0;
   const act = run?.act || 1;
@@ -75,9 +89,14 @@ const createPlayShopState = async (run) => {
     ...relic,
     price: scaleShopPrice(relic.rarity === "rare" ? 112 : relic.rarity === "uncommon" ? 92 : 72, ascensionLevel)
   }));
+  const potions = createPlayShopPotions(run, 2).map((potion) => ({
+    ...potion,
+    price: scaleShopPrice(potion.rarity === "uncommon" ? 48 : 32, ascensionLevel)
+  }));
   return {
     cards,
     relics,
+    potions,
     services: [
       { id: "heal", label: act >= 2 ? "Restore 20 HP" : "Restore 15 HP", amount: act >= 2 ? 20 : 15, price: scaleShopPrice(act >= 2 ? 30 : 24, ascensionLevel) },
       { id: "remove", label: "Remove a card", price: scaleShopPrice(55, ascensionLevel) }

@@ -79,9 +79,9 @@ describe("upgraded card catalog entries", () => {
     }
   });
 
-  it("covers the expanded power, defense, and remaining upgrade sweep", () => {
-    expect(Object.keys(UPGRADE_ID_MAP)).toHaveLength(71);
-    expect(UPGRADED_CARD_ENTRIES).toHaveLength(71);
+  it("covers the expanded power, defense, remaining upgrade sweep, and cross-archetype cards", () => {
+    expect(Object.keys(UPGRADE_ID_MAP)).toHaveLength(76);
+    expect(UPGRADED_CARD_ENTRIES).toHaveLength(76);
   });
 
   it("strike_plus deals more damage than strike", () => {
@@ -135,6 +135,12 @@ describe("upgraded card catalog entries", () => {
     expect(catalog["final_draft_plus"].draw).toBe(3);
     expect(catalog["doom_engine_plus"].cost).toBe(0);
     expect(catalog["plan_ahead_plus"].draw).toBe(3);
+    // Cross-archetype upgrades
+    expect(catalog["caustic_inferno_plus"].bonusVsPoisonAndBurn).toBe(12);
+    expect(catalog["volatile_compound_plus"].applyPoison).toBe(3);
+    expect(catalog["charged_toxin_plus"].damage).toBe(8);
+    expect(catalog["hex_blight_plus"].hex).toBe(2);
+    expect(catalog["shocking_brand_plus"].damage).toBe(7);
   });
 });
 

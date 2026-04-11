@@ -75,7 +75,12 @@ const UPGRADE_ID_MAP = {
   scorch_nerves: "scorch_nerves_plus",
   final_draft: "final_draft_plus",
   doom_engine: "doom_engine_plus",
-  plan_ahead: "plan_ahead_plus"
+  plan_ahead: "plan_ahead_plus",
+  caustic_inferno: "caustic_inferno_plus",
+  volatile_compound: "volatile_compound_plus",
+  charged_toxin: "charged_toxin_plus",
+  hex_blight: "hex_blight_plus",
+  shocking_brand: "shocking_brand_plus"
 };
 
 const createUpgrade = (baseId, patch) => ({
@@ -160,7 +165,12 @@ const UPGRADED_CARD_ENTRIES = [
   createUpgrade("scorch_nerves", { name: "Scorch Nerves+", cost: 2, type: "attack", rarity: "common", archetype: "Exhaust", effectText: "Dmg 20. Exhaust.", damage: 20, exhaust: true }),
   createUpgrade("final_draft", { name: "Final Draft+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Exhaust", effectText: "Draw 3. Exhaust 1 random card from your hand.", draw: 3, exhaustFromHand: true }),
   createUpgrade("doom_engine", { name: "Doom Engine+", cost: 0, type: "skill", rarity: "rare", archetype: "Hex / Exhaust", effectText: "Whenever you Exhaust a card this turn, apply Hex 1 to a random enemy.", activateDoomEngine: true }),
-  createUpgrade("plan_ahead", { name: "Plan Ahead+", cost: 0, type: "skill", rarity: "common", archetype: "Neutral", effectText: "Draw 3. Exhaust.", draw: 3, exhaust: true })
+  createUpgrade("plan_ahead", { name: "Plan Ahead+", cost: 0, type: "skill", rarity: "common", archetype: "Neutral", effectText: "Draw 3. Exhaust.", draw: 3, exhaust: true }),
+  createUpgrade("caustic_inferno", { name: "Caustic Inferno+", cost: 1, type: "attack", rarity: "rare", archetype: "Poison / Burn", effectText: "Dmg 8. If enemy has both Poison and Burn, deal +12 damage.", damage: 8, bonusVsPoisonAndBurn: 12 }),
+  createUpgrade("volatile_compound", { name: "Volatile Compound+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Poison / Burn", effectText: "Apply Poison 3 and Burn 3.", applyPoison: 3, applyBurn: 3 }),
+  createUpgrade("charged_toxin", { name: "Charged Toxin+", cost: 1, type: "attack", rarity: "uncommon", archetype: "Poison / Charged", effectText: "Dmg 8. If Charged, apply Poison 4.", damage: 8, applyPoisonIfCharged: 4 }),
+  createUpgrade("hex_blight", { name: "Hex Blight+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Hex / Poison", effectText: "Apply Hex 2 and Poison equal to resulting Hex stacks.", hex: 2, poisonPerHex: 1 }),
+  createUpgrade("shocking_brand", { name: "Shocking Brand+", cost: 1, type: "attack", rarity: "uncommon", archetype: "Burn / Charged", effectText: "Dmg 7. Become Charged. Apply Burn 2.", damage: 7, setCharged: true, applyBurn: 2 })
 ];
 
 /**

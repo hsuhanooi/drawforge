@@ -847,7 +847,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Add addCurseToDeck(run, curseId) helper in browserPostNodeActions.js",
     "Add curse cards to tests/curses.test.js covering self-damage, block decay, and play effects"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -861,7 +861,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Add boss penalty: Void Sovereign phase 2 adds Wound to deck on phase shift",
     "Add tests covering curse-inflict intent and curse event option"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -877,7 +877,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Add /run/use-potion.json and /run/discard-potion.json server endpoints",
     "Add potions.test.js covering potion effects, slot limits, drop rates"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -891,7 +891,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Show curse count badge on deck button in combat HUD",
     "Show 'Contains X curses' warning in reward card selection screen when deck has curses"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -908,7 +908,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Increment enemiesKilled and goldEarned in applyVictoryToRun",
     "Add stats.test.js covering all tracked fields across a simulated run"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -921,7 +921,7 @@ A separate, visually engaging game page (browser/play.html) built on top of the 
     "Show: enemies killed, damage dealt, damage taken, cards played, turns played, gold earned, highest single hit, most-played card name",
     "Style stats panel to match existing end-screen theme"
   ],
-  "passes": false
+  "passes": true
 }
 
 ### Milestone 14: Visual Immersion & Feel
@@ -941,7 +941,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "In reward/shop/deck views: preview appears to the right or left with smart positioning",
     "Animate preview in with a 80ms scale+fade (transform: scale(0.9)→1, opacity 0→1)"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -956,7 +956,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "After play animation completes (250ms), trigger the server call and re-render",
     "Cards deal in from the draw pile position (bottom-left) with staggered slide-in on each turn start"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -971,7 +971,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Idle animation: enemy canvas bobs ±3px on a 2s sine loop using requestAnimationFrame",
     "Phase shift: Void Sovereign art switches to darker/more intense color palette on phase 2"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -985,7 +985,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Act 2 transition: full white flash + 'ACT 2' centered text overlay (700ms) before map renders",
     "Defeat: red-tinted overlay (rgba(200,0,0,0.4)) fades in over 400ms before screen-end appears"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -1000,7 +1000,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Backgrounds are spawned in renderCombat() by checking combat.nodeType, cleared on each render",
     "All effects use only CSS keyframe animations on spawned divs — no canvas, no images required"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -1015,7 +1015,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "All effects are CSS-only (no JS), applied via rarity class selectors in play.css",
     "Shimmer overlay has low opacity (0.18) so it does not obscure card text or art"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -1030,7 +1030,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Block shatter: when player block drops to 0 after enemy attack, spawn a brief 'BLOCK BROKEN' text float at the player panel",
     "Weak badge dims (opacity 0.6) on the source that applied it"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -1046,7 +1046,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Boss node: animated gold border-glow (box-shadow keyframe), larger size than normal nodes",
     "Available nodes: CSS glow pulse to draw the player's eye"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -1061,7 +1061,7 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Kill flash: white semi-transparent overlay on enemy panel (opacity 0.8 → 0, 200ms) at moment of kill",
     "All overlays are spawned divs, non-blocking, auto-removed via animationend"
   ],
-  "passes": false
+  "passes": true
 }
 
 {
@@ -1076,5 +1076,5 @@ Transform the UI from functional to genuinely exciting. Every task targets a spe
     "Intent warning glow: when enemy intent is attack ≥10 damage, intent box gets a pulsing red border glow",
     "Exhaust counter: on exhaust, counter value scales up briefly (scale 1→1.4→1) with a CSS keyframe"
   ],
-  "passes": false
+  "passes": true
 }

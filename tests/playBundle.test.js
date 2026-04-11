@@ -242,10 +242,11 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('const box = $id("intent-box");');
     expect(playJs).toContain('const actionEl = $id("intent-action");');
     expect(playJs).toContain('const icon = ICONS[intent.type] || "❓";');
-    expect(playJs).toContain('$id("enemy-hp-current").textContent = Math.max(0, combat.enemy.health);');
-    expect(playJs).toContain('renderBadgesAnimated("enemy-badges", [');
-    expect(playJs).toContain('value: combat.enemy.poison || 0');
-    expect(playJs).toContain('value: combat.enemy.burn || 0');
+    expect(playJs).toContain('function renderEnemyPanels(combat)');
+    expect(playJs).toContain('const enemies = combat.enemies || [combat.enemy]');
+    expect(playJs).toContain('function buildEnemyBadges(enemy)');
+    expect(playJs).toContain('value: enemy.poison || 0');
+    expect(playJs).toContain('value: enemy.burn || 0');
     expect(playJs).toContain('renderIntent(combat.enemyIntent);');
   });
 

@@ -84,22 +84,34 @@
       <div id="turn-state-chip" aria-live="polite">Your turn · play cards or end turn</div>
     </div>
 
-    <!-- Enemy panel -->
-    <div class="combatant-panel" id="enemy-panel">
-      <div class="intent-box" id="intent-box">
-        <div class="intent-label">Next Action</div>
-        <div class="intent-action" id="intent-action">—</div>
-      </div>
-      <canvas id="enemy-canvas" width="160" height="180"></canvas>
-      <div class="combatant-name" id="enemy-name">Enemy</div>
-      <div class="hp-bar-wrap">
-        <div class="hp-bar-label">
-          <span class="hp-current" id="enemy-hp-current">—</span>
-          <span class="hp-max" id="enemy-hp-max">—</span>
+    <!-- Enemy panels (supports multiple enemies) -->
+    <div class="enemy-panels-row" id="enemy-panels">
+      <div class="combatant-panel" id="enemy-panel" data-enemy-index="0">
+        <div class="intent-box" id="intent-box">
+          <div class="intent-label">Next Action</div>
+          <div class="intent-action" id="intent-action">—</div>
         </div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill" id="enemy-hp-bar" style="width:100%"></div></div>
+        <canvas id="enemy-canvas" width="160" height="180"></canvas>
+        <div class="combatant-name" id="enemy-name">Enemy</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar-label">
+            <span class="hp-current" id="enemy-hp-current">—</span>
+            <span class="hp-max" id="enemy-hp-max">—</span>
+          </div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill" id="enemy-hp-bar" style="width:100%"></div></div>
+        </div>
+        <div class="status-badges" id="enemy-badges"></div>
       </div>
-      <div class="status-badges" id="enemy-badges"></div>
+    </div>
+  </div>
+
+  <!-- Boss intro overlay -->
+  <div id="boss-intro-overlay" class="hidden">
+    <div id="boss-intro-card">
+      <canvas id="boss-intro-canvas" width="240" height="280"></canvas>
+      <div id="boss-intro-name"></div>
+      <div id="boss-intro-trait"></div>
+      <button id="boss-intro-begin" type="button">Begin</button>
     </div>
   </div>
 
@@ -132,6 +144,7 @@
         <span class="pile-label">Exhaust</span>
       </button>
     </div>
+    <div id="potion-belt" class="potion-belt"></div>
     <div id="hand-area"></div>
     <button id="end-turn-btn">End Turn</button>
   </div>

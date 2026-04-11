@@ -1,4 +1,4 @@
-const { createEnemyForNode, resolveEnemyIntent } = require("./enemies");
+const { createEncounterForNode, resolveEnemyIntent } = require("./enemies");
 const { createCardCatalog } = require("./cardCatalog");
 const { getCombatEnergyBonus } = require("./relics");
 const { applyPotion } = require("./potions");
@@ -148,8 +148,9 @@ const checkPhaseShift = (combat) => {
 };
 
 const startCombatForNode = (run, node) => {
-  const enemy = { ...createEnemyForNode(node, run.act || 1, run.ascensionLevel || 0, run.seed) };
-  enemy.maxHp = enemy.health;
+  const encounterEnemies = createEncounterForNode(node, run.act || 1, run.ascensionLevel || 0, run.seed);
+  const enemy = { ...encounterEnemies[0] };
+  if (!enemy.maxHp) enemy.maxHp = enemy.health;
   const energyBonus = getCombatEnergyBonus(run, node.type);
   const ashenBonus = hasRelic(run, "ashen_idol") ? 1 : 0;
   let drawCount = hasRelic(run, "quickened_loop") ? 6 : 5;
@@ -195,14 +196,14 @@ const startCombatForNode = (run, node) => {
     powers: [],
     exhaustedThisTurn: 0,
     enemiesKilledThisCombat: 0,
-    enemies: [{
-      ...enemy,
-      vulnerable: hasRelic(run, "cracked_lens") ? 1 : 0,
-      hex: hasRelic(run, "hex_crown") ? 1 : 0,
-      poison: run.carryoverPoison || 0,
+    enemies: encounterEnemies.map((e, i) => ({
+      ...e,
+      vulnerable: i === 0 && hasRelic(run, "cracked_lens") ? 1 : 0,
+      hex: i === 0 && hasRelic(run, "hex_crown") ? 1 : 0,
+      poison: i === 0 ? (run.carryoverPoison || 0) : 0,
       burn: 0,
       turnIndex: 0
-    }],
+    })),
     targetIndex: 0,
     enemy: {
       ...enemy,

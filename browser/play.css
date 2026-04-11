@@ -955,7 +955,7 @@ body[data-theme-panel="venom"] #combat-topbar {
 
 /* ─── Powers Strip ───────────────────────────────────────────────── */
 #powers-strip {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
@@ -982,6 +982,17 @@ body[data-theme-panel="venom"] #combat-topbar {
 }
 .power-chip-icon { font-size: 14px; line-height: 1; }
 .power-chip-name { font-weight: 600; letter-spacing: 0.02em; }
+.power-chip-empty {
+  opacity: 0.28;
+  border-style: dashed;
+  border-color: rgba(155, 89, 182, 0.35);
+  background: transparent;
+  color: rgba(155, 89, 182, 0.6);
+  font-size: 14px;
+  padding: 4px 10px;
+  cursor: default;
+}
+.power-chip-empty:hover { background: transparent; border-color: rgba(155, 89, 182, 0.35); }
 
 /* ─── Card Component ─────────────────────────────────────────────── */
 .card-component {
@@ -2253,7 +2264,8 @@ canvas.card-art-canvas {
 }
 
 /* ─── Enemy Canvas Avatar ─────────────────────────────────────────── */
-#enemy-canvas {
+#enemy-canvas,
+.enemy-canvas-multi {
   border-radius: 20px;
   border: 2px solid rgba(224,80,80,0.35);
   box-shadow:
@@ -2611,6 +2623,145 @@ canvas.card-art-canvas {
   color: #cc44cc;
   margin-left: 6px;
   font-weight: 700;
+}
+
+/* ─── Multi-enemy panels row ─────────────────────────────────────── */
+.enemy-panels-row {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: flex-start;
+}
+.enemy-panel.targeted .combatant-avatar {
+  border-color: var(--orange) !important;
+  box-shadow: 0 0 14px var(--orange) !important;
+}
+.enemy-panel.defeated {
+  opacity: 0.3;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+.enemy-panel.defeated .combatant-avatar {
+  animation: none !important;
+}
+
+/* ─── Boss intro overlay ─────────────────────────────────────────── */
+#boss-intro-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+#boss-intro-overlay.hidden { display: none; }
+#boss-intro-card {
+  background: var(--bg2);
+  border: 2px solid #b03040;
+  border-radius: 18px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 340px;
+  box-shadow: 0 0 60px rgba(200,30,50,0.4);
+  animation: boss-intro-enter 600ms ease-out;
+}
+@keyframes boss-intro-enter {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+#boss-intro-canvas {
+  border-radius: 12px;
+  border: 1px solid rgba(180,40,60,0.4);
+}
+#boss-intro-name {
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ff6070;
+  text-shadow: 0 0 18px rgba(255,60,70,0.5);
+}
+#boss-intro-trait {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 260px;
+}
+#boss-intro-begin {
+  margin-top: 8px;
+  padding: 10px 28px;
+  background: #b03040;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+#boss-intro-begin:hover { background: #cc3050; transform: translateY(-2px); }
+
+/* ─── Persistent potion belt (combat HUD) ───────────────────────── */
+.potion-belt {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 6px 0;
+}
+.potion-slot {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  user-select: none;
+}
+.potion-slot.empty {
+  border: 2px dashed var(--border);
+  opacity: 0.35;
+  cursor: default;
+}
+.potion-slot.filled {
+  border: 2px solid var(--green);
+  background: var(--bg3);
+}
+.potion-slot.filled:hover {
+  border-color: #66ffaa;
+  box-shadow: 0 0 12px rgba(80,220,120,0.3);
+  transform: translateY(-2px);
+}
+.potion-slot.selected {
+  border-color: var(--orange);
+  box-shadow: 0 0 16px var(--orange);
+  animation: potion-pulse 0.8s ease-in-out infinite;
+}
+@keyframes potion-pulse {
+  0%,100% { box-shadow: 0 0 10px var(--orange); }
+  50%      { box-shadow: 0 0 22px var(--orange); }
+}
+.potion-slot-name {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.2;
+  margin-top: 2px;
+  max-width: 46px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Act 2 visual identity ──────────────────────────────────────── */
@@ -3318,4 +3469,12 @@ canvas.card-art-canvas {
 
   /* ── End screen ── */
   #end-stats { font-size: 12px; }
+
+  /* ── Multi-enemy panels ── */
+  .enemy-panels-row { gap: 12px; }
+  .combatant-panel { min-width: 160px; }
+
+  /* ── Potion belt ── */
+  .potion-belt { gap: 8px; }
+  .potion-slot { width: 42px; height: 42px; font-size: 20px; }
 }

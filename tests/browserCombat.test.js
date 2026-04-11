@@ -7,6 +7,13 @@ const {
   resolveEndTurn
 } = require("../src/browserCombat");
 
+// Use a fixed deck of cards known to be in browserCombat.js's factory list,
+// so tests don't fail when startNewRun() randomly picks a cross-archetype bonus card.
+const makeRun = () => {
+  const run = startNewRun();
+  return { ...run, player: { ...run.player, deck: ["strike", "strike", "defend", "defend", "bash"] } };
+};
+
 describe("browser combat helpers", () => {
   it("creates card instances from card ids", () => {
     const strike = createCardFromId("strike");
@@ -20,7 +27,7 @@ describe("browser combat helpers", () => {
   });
 
   it("starts combat with a drawn opening hand and energy", () => {
-    const run = startNewRun();
+    const run = makeRun();
 
     const combat = startCombatForRun(run);
 
@@ -31,7 +38,7 @@ describe("browser combat helpers", () => {
   });
 
   it("plays a card from hand by index", () => {
-    const run = startNewRun();
+    const run = makeRun();
     const combat = startCombatForRun(run);
 
     const result = playCardAtIndex(combat, 0);
@@ -42,7 +49,7 @@ describe("browser combat helpers", () => {
   });
 
   it("rejects invalid hand indexes", () => {
-    const run = startNewRun();
+    const run = makeRun();
     const combat = startCombatForRun(run);
 
     const result = playCardAtIndex(combat, 99);
@@ -52,7 +59,7 @@ describe("browser combat helpers", () => {
   });
 
   it("resolves end turn into enemy attack and a new player turn", () => {
-    const run = startNewRun();
+    const run = makeRun();
     const combat = startCombatForRun(run);
 
     const next = resolveEndTurn(combat);

@@ -2330,30 +2330,41 @@
     const strip = $id("powers-strip");
     if (!strip) return;
     clearEl(strip);
-    if (!powers || powers.length === 0) {
-      strip.style.display = "none";
-      return;
-    }
+    const MAX_SLOTS = 3;
+    const filledCount = (powers || []).length;
+
+    // Always show exactly MAX_SLOTS slots
     strip.style.display = "flex";
-    powers.forEach((power) => {
-      const chip = document.createElement("div");
-      chip.className = "power-chip";
-      chip.title = power.effectText || power.name || power.id;
+    strip.title = `${filledCount}/${MAX_SLOTS} Power Slots`;
 
-      const iconEl = document.createElement("span");
-      iconEl.className = "power-chip-icon";
-      iconEl.textContent = getPowerIcon(power.id);
+    for (let i = 0; i < MAX_SLOTS; i++) {
+      const power = (powers || [])[i];
+      if (power) {
+        const chip = document.createElement("div");
+        chip.className = "power-chip";
+        chip.title = power.effectText || power.name || power.id;
 
-      const nameEl = document.createElement("span");
-      nameEl.className = "power-chip-name";
-      nameEl.textContent = power.name || power.id;
+        const iconEl = document.createElement("span");
+        iconEl.className = "power-chip-icon";
+        iconEl.textContent = getPowerIcon(power.id);
 
-      chip.appendChild(iconEl);
-      chip.appendChild(nameEl);
-      chip.addEventListener("mouseenter", () => showCardPreview(power, chip));
-      chip.addEventListener("mouseleave", hideCardPreview);
-      strip.appendChild(chip);
-    });
+        const nameEl = document.createElement("span");
+        nameEl.className = "power-chip-name";
+        nameEl.textContent = power.name || power.id;
+
+        chip.appendChild(iconEl);
+        chip.appendChild(nameEl);
+        chip.addEventListener("mouseenter", () => showCardPreview(power, chip));
+        chip.addEventListener("mouseleave", hideCardPreview);
+        strip.appendChild(chip);
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "power-chip power-chip-empty";
+        empty.title = `Empty power slot (${i + 1}/${MAX_SLOTS})`;
+        empty.textContent = "⬡";
+        strip.appendChild(empty);
+      }
+    }
   }
 
   function getPowerIcon(id) {
@@ -2365,6 +2376,190 @@
     return icons[id] || "✨";
   }
 
+  // ─── Multi-enemy panel rendering ─────────────────────────────────
+  function renderEnemyPanels(combat) {
+    const enemies = combat.enemies || [combat.enemy];
+    const targetIndex = combat.targetIndex || 0;
+    const panelsRow = $id("enemy-panels");
+    if (!panelsRow) return;
+
+    // Single-enemy fast path: update the static panel in place
+    if (enemies.length === 1) {
+      const panel = panelsRow.querySelector(".combatant-panel") || $id("enemy-panel");
+      if (panel) {
+        panel.classList.remove("targeted", "defeated");
+        if (enemies[0].health <= 0) panel.classList.add("defeated");
+      }
+      const enemyMaxHp = enemies[0].maxHp || enemies[0].health;
+      const nameEl = $id("enemy-name");
+      if (nameEl) nameEl.textContent = enemies[0].name || "Enemy";
+      const hpCur = $id("enemy-hp-current");
+      if (hpCur) hpCur.textContent = Math.max(0, enemies[0].health);
+      const hpMax = $id("enemy-hp-max");
+      if (hpMax) hpMax.textContent = enemyMaxHp;
+      updateHPBar("enemy-hp-bar", enemies[0].health, enemyMaxHp);
+      renderBadgesAnimated("enemy-badges", buildEnemyBadges(enemies[0]));
+      const enemyCanvas = $id("enemy-canvas");
+      if (enemyCanvas) { drawEnemyArt(enemyCanvas, enemies[0]); startEnemyIdle(); }
+      return;
+    }
+
+    // Multi-enemy: rebuild panels
+    panelsRow.innerHTML = "";
+    enemies.forEach((enemy, idx) => {
+      const isTargeted = idx === targetIndex;
+      const isDead = enemy.health <= 0;
+      const enemyMaxHp = enemy.maxHp || enemy.health;
+
+      const panel = document.createElement("div");
+      panel.className = "combatant-panel enemy-panel";
+      if (isTargeted && !isDead) panel.classList.add("targeted");
+      if (isDead) panel.classList.add("defeated");
+      panel.dataset.enemyIndex = idx;
+
+      // Intent box
+      const intent = enemy.currentIntent || combat.enemyIntent;
+      const intentBox = document.createElement("div");
+      intentBox.className = "intent-box";
+      intentBox.innerHTML = `<div class="intent-label">Next Action</div><div class="intent-action">${intent ? (intent.label || intent.type) : "—"}</div>`;
+      panel.appendChild(intentBox);
+
+      // Canvas for art
+      const canvas = document.createElement("canvas");
+      canvas.width = 160; canvas.height = 180;
+      canvas.className = "enemy-canvas-multi";
+      panel.appendChild(canvas);
+      drawEnemyArt(canvas, enemy);
+
+      // Name
+      const nameEl = document.createElement("div");
+      nameEl.className = "combatant-name";
+      nameEl.textContent = enemy.name || "Enemy";
+      panel.appendChild(nameEl);
+
+      // HP bar
+      const hpWrap = document.createElement("div");
+      hpWrap.className = "hp-bar-wrap";
+      hpWrap.innerHTML = `
+        <div class="hp-bar-label">
+          <span class="hp-current">${Math.max(0, enemy.health)}</span>
+          <span class="hp-max">${enemyMaxHp}</span>
+        </div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${Math.max(0, (enemy.health / enemyMaxHp) * 100)}%"></div></div>`;
+      panel.appendChild(hpWrap);
+
+      // Status badges
+      const badgesEl = document.createElement("div");
+      badgesEl.className = "status-badges";
+      buildEnemyBadges(enemy).forEach(({ label, value }) => {
+        if (!value) return;
+        const b = document.createElement("span");
+        b.className = "status-badge";
+        b.textContent = `${label}${value}`;
+        badgesEl.appendChild(b);
+      });
+      panel.appendChild(badgesEl);
+
+      // Click to target (only alive enemies)
+      if (!isDead) {
+        panel.style.cursor = "pointer";
+        panel.addEventListener("click", () => {
+          if (combat.turn !== "player") return;
+          currentRun = { ...currentRun, combat: { ...currentRun.combat, targetIndex: idx, enemy: currentRun.combat.enemies[idx] } };
+          if (selectedHandCardIndex !== null) {
+            const cardEl = $id("hand-area")?.querySelectorAll(".card-component")?.[selectedHandCardIndex];
+            playCard(selectedHandCardIndex, cardEl || null);
+          } else {
+            renderCombat();
+          }
+        });
+      }
+
+      panelsRow.appendChild(panel);
+    });
+  }
+
+  function buildEnemyBadges(enemy) {
+    return [
+      { label: "🛡️", cls: "block",      value: enemy.block || 0,      key: "block" },
+      { label: "☠️",  cls: "hex",        value: enemy.hex || 0,        key: "hex" },
+      { label: "🎯",  cls: "vulnerable", value: enemy.vulnerable || 0, key: "vulnerable" },
+      { label: "😵",  cls: "weak",       value: enemy.weak || 0,       key: "weak" },
+      { label: "☣️", cls: "poison",     value: enemy.poison || 0,     key: "poison" },
+      { label: "🔥", cls: "burn",       value: enemy.burn || 0,       key: "burn" }
+    ];
+  }
+
+  // ─── Boss intro overlay ───────────────────────────────────────────
+  function showBossIntro(enemy) {
+    const overlay = $id("boss-intro-overlay");
+    if (!overlay) return;
+    const nameEl = $id("boss-intro-name");
+    if (nameEl) nameEl.textContent = enemy.name || "Boss";
+    const traitEl = $id("boss-intro-trait");
+    if (traitEl) traitEl.textContent = enemy.trait || "";
+    const canvas = $id("boss-intro-canvas");
+    if (canvas) drawEnemyArt(canvas, enemy);
+    overlay.classList.remove("hidden");
+
+    // Auto-dismiss after 1800ms
+    const dismiss = () => { overlay.classList.add("hidden"); };
+    const timer = setTimeout(dismiss, 1800);
+    const beginBtn = $id("boss-intro-begin");
+    if (beginBtn) {
+      beginBtn.onclick = () => { clearTimeout(timer); dismiss(); };
+    }
+  }
+
+  // ─── Persistent potion belt (combat) ─────────────────────────────
+  let potionBeltSelected = null;
+
+  function renderPotionBelt(potions) {
+    const belt = $id("potion-belt");
+    if (!belt) return;
+    clearEl(belt);
+    const MAX_SLOTS = 3;
+    for (let i = 0; i < MAX_SLOTS; i++) {
+      const potion = potions[i] || null;
+      const slot = document.createElement("div");
+      slot.className = "potion-slot " + (potion ? "filled" : "empty");
+      if (potion && potionBeltSelected === potion.id) slot.classList.add("selected");
+      if (potion) {
+        slot.title = `${potion.name}: ${potion.description || ""}`;
+        const iconEl = document.createElement("span");
+        iconEl.textContent = POTION_ICONS[potion.id] || "🫧";
+        slot.appendChild(iconEl);
+        const nameLabel = document.createElement("div");
+        nameLabel.className = "potion-slot-name";
+        nameLabel.textContent = potion.name;
+        slot.appendChild(nameLabel);
+        slot.addEventListener("click", async () => {
+          if (potionBeltSelected === potion.id) {
+            // Second click: use it
+            potionBeltSelected = null;
+            currentRun = await api("/run/use-potion.json", { run: currentRun, potionId: potion.id });
+            saveRun(currentRun);
+            render();
+          } else {
+            potionBeltSelected = potion.id;
+            renderPotionBelt(currentRun.potions || []);
+          }
+        });
+        slot.addEventListener("contextmenu", async (e) => {
+          e.preventDefault();
+          potionBeltSelected = null;
+          currentRun = await api("/run/discard-potion.json", { run: currentRun, potionId: potion.id });
+          saveRun(currentRun);
+          render();
+        });
+      } else {
+        slot.setAttribute("aria-label", "Empty potion slot");
+        slot.innerHTML = "<span>🫧</span>";
+      }
+      belt.appendChild(slot);
+    }
+  }
+
   // ─── Screen: Combat ───────────────────────────────────────────────
   function setActiveHandCard(handArea, activeEl = null) {
     if (!handArea) return;
@@ -2374,6 +2569,7 @@
   }
 
   let lastEnemyIntentFxKey = null;
+  let bossIntroShown = false;
 
   function renderCombat() {
     if (!currentRun?.combat) return;
@@ -2386,7 +2582,6 @@
 
     const { combat } = currentRun;
     const maxHp = currentRun.player.maxHealth || 80;
-    const enemyMaxHp = combat.enemy.maxHp || combat.enemy.health;
     const isCombatResolved = combat.state === "victory" || combat.state === "defeat";
 
     // Topbar
@@ -2414,6 +2609,7 @@
     renderRelicStrip("combat-relic-strip", currentRun.relics || []);
     // Only re-render background and start particles when entering combat
     if (enteringCombat) {
+      bossIntroShown = false;
       renderCombatBg(nodeType);
       startAmbientParticles(nodeType);
       // Position player character on AnimEngine canvas after layout settles
@@ -2445,28 +2641,16 @@
       { label: "🔥", cls: "burn",      value: combat.player.burn || 0,          key: "burn" }
     ]);
 
-    // Enemy panel
-    $id("enemy-name").textContent = combat.enemy.name || "Enemy";
-    $id("enemy-hp-current").textContent = Math.max(0, combat.enemy.health);
-    $id("enemy-hp-max").textContent = enemyMaxHp;
-    updateHPBar("enemy-hp-bar", combat.enemy.health, enemyMaxHp);
-    renderBadgesAnimated("enemy-badges", [
-      { label: "🛡️", cls: "block",      value: combat.enemy.block || 0,      key: "block" },
-      { label: "☠️",  cls: "hex",        value: combat.enemy.hex || 0,        key: "hex" },
-      { label: "🎯",  cls: "vulnerable", value: combat.enemy.vulnerable || 0, key: "vulnerable" },
-      { label: "😵",  cls: "weak",       value: combat.enemy.weak || 0,       key: "weak" },
-      { label: "☣️", cls: "poison",     value: combat.enemy.poison || 0,     key: "poison" },
-      { label: "🔥", cls: "burn",       value: combat.enemy.burn || 0,       key: "burn" }
-    ]);
+    // Enemy panels (multi-enemy support)
+    renderEnemyPanels(combat);
 
-    // Enemy avatar art
-    const enemyCanvas = $id("enemy-canvas");
-    if (enemyCanvas) {
-      drawEnemyArt(enemyCanvas, combat.enemy);
-      startEnemyIdle();
+    // Boss intro overlay (shown once when entering boss combat)
+    if (enteringCombat && nodeType === "boss" && !bossIntroShown) {
+      bossIntroShown = true;
+      showBossIntro(combat.enemy);
     }
 
-    // Intent with icon system
+    // Intent with icon system (targeted enemy)
     renderIntent(combat.enemyIntent);
     const enemyIntentKey = combat.enemyIntent ? `${combat.enemyIntent.type || "unknown"}:${combat.enemyIntent.value || combat.enemyIntent.label || ""}` : null;
     if (enemyIntentKey && enemyIntentKey !== lastEnemyIntentFxKey) {
@@ -2494,8 +2678,9 @@
     pileSetup("discard-pile-btn", "discard-count", combat.discardPile || [], "Discard Pile");
     pileSetup("exhaust-pile-btn", "exhaust-count", combat.exhaustPile || [], "Exhaust Pile");
 
-    // Potion slots
+    // Potion slots (topbar strip + persistent combat belt)
     renderPotionStrip(currentRun.potions || []);
+    renderPotionBelt(currentRun.potions || []);
 
     // Powers strip
     renderPowersStrip(combat.powers || []);

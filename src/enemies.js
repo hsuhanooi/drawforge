@@ -42,6 +42,7 @@ const act1BossPool = [
     health: 70,
     damage: 12,
     rewardGold: 50,
+    trait: "Barrage: Strikes 3 times each turn for 4 damage each",
     intents: [
       { type: "attack", value: 12, label: "Crush for 12" },
       { type: "block", value: 10, label: "Fortify: gain 10 block" },
@@ -54,6 +55,7 @@ const act1BossPool = [
     health: 75,
     damage: 11,
     rewardGold: 55,
+    trait: "Wail: Applies Vulnerable, then crushes for heavy damage",
     intents: [
       { type: "attack", value: 11, label: "Bone Crush for 11" },
       { type: "block", value: 12, label: "Fortify: gain 12 block" },
@@ -67,6 +69,7 @@ const act1BossPool = [
     health: 85,
     damage: 10,
     rewardGold: 55,
+    trait: "Regenerate: Builds block every other turn, then Pulverizes",
     intents: [
       { type: "attack", value: 10, label: "Slam for 10" },
       { type: "block", value: 8, label: "Regenerate: gain 8 block" },
@@ -83,6 +86,7 @@ const act2BossPool = [
     health: 95,
     damage: 14,
     rewardGold: 75,
+    trait: "Phase Shift: Grows stronger below half health, gaining +2 Strength",
     phaseThreshold: 47,
     phase: 1,
     phase2Strength: 2,
@@ -103,6 +107,7 @@ const act2BossPool = [
     health: 105,
     damage: 13,
     rewardGold: 70,
+    trait: "Hex Pulse: Curses you with Hex on every strike, amplifying all damage",
     startHex: 2,
     intents: [
       { type: "debuff_hex_attack", hex: 2, value: 9, label: "Hex Pulse: apply Hex 2 + 9 dmg" },
@@ -117,6 +122,7 @@ const act2BossPool = [
     health: 115,
     damage: 14,
     rewardGold: 70,
+    trait: "Imperial Wrath: Below half health, enters a frenzied phase with triple strikes",
     phaseThresholds: [55],
     phaseIntents: [
       [
@@ -140,6 +146,7 @@ const act3BossPool = [
     health: 180,
     damage: 18,
     rewardGold: 100,
+    trait: "Undying: Four escalating phases — each threshold passed grants new strength and fury",
     phaseThresholds: [150, 100, 50],
     phase2Strength: 2,
     phase3Strength: 3,
@@ -633,9 +640,123 @@ const createEnemyForNode = (node, act = 1, ascensionLevel = 0, runSeed = undefin
   return scaleEnemyForAscension(pool[index], ascensionLevel, node.type);
 };
 
+// Deterministic hash from a string (used for encounter seeding)
+const hashString = (str) => {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h;
+};
+
+// Two-enemy encounter pair definitions. Each entry is a factory pair [() => enemy, () => enemy].
+// HP is pre-reduced by 20% in the factory to compensate for double threat.
+const act1EncounterPairs = [
+  // [slime, slime] — pure damage check
+  [
+    () => createEnemy({ id: "slime", name: "Slime", health: 24, damage: 6, rewardGold: 6,
+      intents: [{ type: "attack", value: 6, label: "Slam for 6" }, { type: "block", value: 6, label: "Harden: gain 6 block" }] }),
+    () => createEnemy({ id: "slime", name: "Slime", health: 24, damage: 6, rewardGold: 6,
+      intents: [{ type: "block", value: 6, label: "Harden: gain 6 block" }, { type: "attack", value: 6, label: "Slam for 6" }] })
+  ],
+  // [fangling, hexbat] — fast attacker + debuffer
+  [
+    () => createEnemy({ id: "fangling", name: "Fangling", health: 21, damage: 7, rewardGold: 6,
+      intents: [{ type: "multi_attack", value: 3, hits: 2, label: "Flurry: 2x3" }, { type: "attack", value: 8, label: "Pounce for 8" }] }),
+    () => createEnemy({ id: "hexbat", name: "Hexbat", health: 18, damage: 7, rewardGold: 6,
+      intents: [{ type: "debuff_weak", value: 1, label: "Screech: apply Weak 1" }, { type: "attack", value: 7, label: "Dive for 7" }] })
+  ],
+  // [mossling, thornling] — buffer + blocker pressure
+  [
+    () => createEnemy({ id: "mossling", name: "Mossling", health: 27, damage: 5, rewardGold: 6,
+      intents: [{ type: "buff", value: 2, label: "Grow: gain +2 damage" }, { type: "attack", value: 7, label: "Vine Lash for 7" }] }),
+    () => createEnemy({ id: "thornling", name: "Thornling", health: 22, damage: 5, rewardGold: 6,
+      intents: [{ type: "block", value: 5, label: "Bristle: gain 5 block" }, { type: "attack", value: 8, label: "Thorn Lash for 8" }] })
+  ],
+  // [plague_rat, cinder_shade] — poison + burn cross-pressure
+  [
+    () => createEnemy({ id: "plague_rat", name: "Plague Rat", health: 22, damage: 5, rewardGold: 7,
+      intents: [{ type: "debuff_poison", value: 2, label: "Toxic Spit: apply Poison 2" }, { type: "attack", value: 7, label: "Bite for 7" }] }),
+    () => createEnemy({ id: "cinder_shade", name: "Cinder Shade", health: 23, damage: 6, rewardGold: 7,
+      intents: [{ type: "debuff_burn", value: 2, label: "Scorching Whisper: apply Burn 2" }, { type: "attack", value: 8, label: "Ash Swipe for 8" }] })
+  ],
+  // [hex_cultist, shield_crawler] — hex + block
+  [
+    () => createEnemy({ id: "hex_cultist", name: "Hex Cultist", health: 22, damage: 6, rewardGold: 7,
+      intents: [{ type: "debuff_hex", value: 2, label: "Hex Chant: apply Hex 2" }, { type: "attack", value: 8, label: "Dark Slash for 8" }] }),
+    () => createEnemy({ id: "shield_crawler", name: "Shield Crawler", health: 29, damage: 7, rewardGold: 7,
+      intents: [{ type: "block", value: 8, label: "Curl Up: gain 8 block" }, { type: "attack", value: 10, label: "Crush for 10" }] })
+  ],
+  // [venomfang, phantom_thief] — multi-hit + debuff
+  [
+    () => createEnemy({ id: "venomfang", name: "Venomfang", health: 25, damage: 7, rewardGold: 7,
+      intents: [{ type: "attack_poison", value: 6, poison: 1, label: "Venom Bite for 6 + Poison 1" }, { type: "multi_attack", value: 3, hits: 2, label: "Rake: 2x3" }] }),
+    () => createEnemy({ id: "phantom_thief", name: "Phantom Thief", health: 19, damage: 5, rewardGold: 7,
+      intents: [{ type: "multi_attack", value: 4, hits: 3, label: "Pick Pocket: 3x4" }, { type: "debuff_weak", value: 2, label: "Smoke Bomb: apply Weak 2" }] })
+  ]
+];
+
+const act2EncounterPairs = [
+  // [hex_fiend, plague_rat] — hex + poison
+  [
+    () => createEnemy({ id: "hex_fiend", name: "Hex Fiend", health: 38, damage: 9, rewardGold: 8,
+      intents: [{ type: "debuff_hex", value: 2, label: "Hex Bolt: apply Hex 2" }, { type: "attack", value: 9, label: "Cursed Strike for 9" }] }),
+    () => createEnemy({ id: "plague_rat", name: "Plague Rat", health: 26, damage: 5, rewardGold: 8,
+      intents: [{ type: "debuff_poison", value: 2, label: "Plague Bite: apply Poison 2" }, { type: "attack", value: 7, label: "Gnaw for 7" }] })
+  ],
+  // [void_specter, cinder_shade] — void + burn
+  [
+    () => createEnemy({ id: "void_specter", name: "Void Specter", health: 32, damage: 11, rewardGold: 8,
+      intents: [{ type: "multi_attack", value: 5, hits: 2, label: "Void Slash: 2x5" }, { type: "debuff_hex", value: 1, label: "Void Taint: apply Hex 1" }] }),
+    () => createEnemy({ id: "cinder_shade", name: "Cinder Shade", health: 27, damage: 6, rewardGold: 8,
+      intents: [{ type: "debuff_burn", value: 2, label: "Ashen Touch: apply Burn 2" }, { type: "attack", value: 8, label: "Ember Lash for 8" }] })
+  ],
+  // [fangling x2 upgraded] — speed check
+  [
+    () => createEnemy({ id: "fangling", name: "Fangling", health: 32, damage: 8, rewardGold: 8,
+      intents: [{ type: "multi_attack", value: 4, hits: 2, label: "Flurry: 2x4" }, { type: "attack", value: 10, label: "Pounce for 10" }] }),
+    () => createEnemy({ id: "phantom_thief", name: "Phantom Thief", health: 30, damage: 7, rewardGold: 8,
+      intents: [{ type: "multi_attack", value: 5, hits: 3, label: "Pick Pocket: 3x5" }, { type: "debuff_weak", value: 2, label: "Smoke Bomb: apply Weak 2" }] })
+  ]
+];
+
+/**
+ * Returns an array of 1 or 2 enemies for a node.
+ * - 30% chance of a two-enemy encounter for `combat` nodes in Acts 1–2 (deterministic by seed + node id).
+ * - Elites and bosses always return a single enemy.
+ * - Two-enemy encounter HP is pre-reduced 20% in the pair definitions.
+ */
+const createEncounterForNode = (node, act, ascensionLevel, runSeed) => {
+  const singleEnemy = createEnemyForNode(node, act, ascensionLevel, runSeed);
+
+  // Only combat nodes in Acts 1-2 can spawn pairs
+  if (node.type !== "combat" || act >= 3) {
+    return [{ ...singleEnemy, maxHp: singleEnemy.health, turnIndex: 0 }];
+  }
+
+  const hash = hashString(`${runSeed || "x"}:${node.id || `${node.row}:${node.col}`}`);
+  const isTwoEnemy = (hash % 10) < 3; // 30% chance
+
+  if (!isTwoEnemy) {
+    return [{ ...singleEnemy, maxHp: singleEnemy.health, turnIndex: 0 }];
+  }
+
+  const pairs = act === 2 ? act2EncounterPairs : act1EncounterPairs;
+  const pairIndex = hash % pairs.length;
+  const [makeA, makeB] = pairs[pairIndex];
+  const eA = { ...scaleEnemyForAscension(makeA(), ascensionLevel, "combat"), maxHp: undefined };
+  const eB = { ...scaleEnemyForAscension(makeB(), ascensionLevel, "combat"), maxHp: undefined };
+  eA.maxHp = eA.health;
+  eB.maxHp = eB.health;
+  eA.turnIndex = 0;
+  eB.turnIndex = 0;
+  return [eA, eB];
+};
+
 module.exports = {
   createEnemy,
   createEnemyForNode,
+  createEncounterForNode,
   resolveEnemyIntent,
   selectBossForAct,
   act1BossPool,

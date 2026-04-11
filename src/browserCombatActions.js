@@ -258,12 +258,12 @@ const playCombatCard = (run, handIndex) => {
   } else if (card.returnToHand) {
     next.returnPile = [...(next.returnPile || []), card];
   } else if (card.type === "power") {
-    next.powers = [...(next.powers || []), { id: card.id, label: card.name }];
+    next.powers = [...(next.powers || []), { id: card.id, label: card.name, ...card }];
   } else {
     next.discardPile = [...(next.discardPile || []), card];
   }
 
-  if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted || card.bonusVsVulnerable || card.bonusPerStrength || card.bonusDmgPerHex || card.bonusDmgPerExhausted || card.bonusIfLastCard || card.consumeHexBonus || card.repeatIfHexed || (card.type === "attack" && (next.player.strength || 0) > 0)) {
+  if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted || card.bonusVsVulnerable || card.bonusPerStrength || card.bonusDmgPerHex || card.bonusDmgPerExhausted || card.bonusIfLastCard || card.consumeHexBonus || card.consumePoisonBonus || card.consumeBurnBonus || card.hitCount || card.hitCountIfCharged || card.repeatIfHexed || (card.type === "attack" && (next.player.strength || 0) > 0)) {
     const hexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHex ? card.bonusVsHex : 0;
     const exhaustBonus = (next.exhaustPile || []).length > 0 && card.bonusVsExhaust ? card.bonusVsExhaust : 0;
     const harvesterHexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHexedOrExhausted ? card.bonusVsHexedOrExhausted : 0;
@@ -282,19 +282,35 @@ const playCombatCard = (run, handIndex) => {
     const burnStackBonus = card.bonusDmgPerBurn ? (next.enemy.burn || 0) * card.bonusDmgPerBurn : 0;
     const exhaustedStackBonus = card.bonusDmgPerExhausted ? (next.exhaustedThisTurn || 0) * card.bonusDmgPerExhausted : 0;
     const lastCardBonus = card.bonusIfLastCard && next.hand.length === 0 ? card.bonusIfLastCard : 0;
-    // consumeHexBonus: consume all hex stacks, deal bonus per stack consumed
+    // consume bonuses: consume all status stacks, deal bonus per stack consumed
     const hexStacks = next.enemy.hex || 0;
+    const poisonStacks = next.enemy.poison || 0;
+    const burnStacks = next.enemy.burn || 0;
     const hexConsumedBonus = card.consumeHexBonus ? hexStacks * card.consumeHexBonus : 0;
+    const poisonConsumedBonus = card.consumePoisonBonus ? poisonStacks * card.consumePoisonBonus : 0;
+    const burnConsumedBonus = card.consumeBurnBonus ? burnStacks * card.consumeBurnBonus : 0;
     if (card.consumeHexBonus) next.enemy.hex = 0;
-    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus;
+    if (card.consumePoisonBonus) next.enemy.poison = 0;
+    if (card.consumeBurnBonus) next.enemy.burn = 0;
+    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus + poisonConsumedBonus + burnConsumedBonus;
     // Weak on player reduces outgoing attack damage by 25%
     if (card.type === "attack" && (next.player.weak || 0) > 0) totalDamage = Math.floor(totalDamage * 0.75);
     // Vulnerable on enemy amplifies incoming damage by 50%
     if ((next.enemy.vulnerable || 0) > 0) totalDamage = Math.floor(totalDamage * 1.5);
-    const blocked = Math.min(next.enemy.block || 0, totalDamage);
-    const remainingDamage = totalDamage - blocked;
-    next.enemy.block = (next.enemy.block || 0) - blocked;
-    next.enemy.health -= remainingDamage;
+    const hitCount = card.hitCountIfCharged && next.player.charged
+      ? card.hitCountIfCharged
+      : (card.hitCount || 1);
+    let remainingDamage = 0;
+    for (let hit = 0; hit < hitCount; hit += 1) {
+      const blocked = Math.min(next.enemy.block || 0, totalDamage);
+      const hitDamage = totalDamage - blocked;
+      next.enemy.block = (next.enemy.block || 0) - blocked;
+      next.enemy.health -= hitDamage;
+      remainingDamage += hitDamage;
+      if (card.applyPoisonPerHit) {
+        next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoisonPerHit, MAX_POISON_STACKS);
+      }
+    }
     if (flickerBonus > 0) { next.flicker_used = true; next.triggeredRelics.push("flicker_charm"); }
     if (duelistBonus > 0) { next.duelist_used_this_turn = true; next.triggeredRelics.push("duelists_thread"); }
     if (hasRelic(run, "hex_lantern") && !next.hex_lantern_used && remainingDamage > 0) {
@@ -305,6 +321,9 @@ const playCombatCard = (run, handIndex) => {
     if (remainingDamage > 0 && (next.powers || []).some((p) => p.id === "vampiric_aura")) {
       const maxHealth = run.player.maxHealth || run.player.health;
       next.player.health = Math.min(next.player.health + 2, maxHealth);
+    }
+    if (card.type === "attack" && (next.powers || []).some((p) => p.id === "noxious_presence")) {
+      next.enemy.poison = clampStacks((next.enemy.poison || 0) + 1, MAX_POISON_STACKS);
     }
     // repeatIfHexed: deal damage a second time if enemy had hex (no_mercy)
     if (card.repeatIfHexed && hexStacks > 0) {
@@ -341,6 +360,7 @@ const playCombatCard = (run, handIndex) => {
     }
   }
   if (card.applyPoison) next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoison, MAX_POISON_STACKS);
+  if (card.doublePoison) next.enemy.poison = clampStacks((next.enemy.poison || 0) * 2, MAX_POISON_STACKS);
   if (card.applyBurn) next.enemy.burn = clampStacks((next.enemy.burn || 0) + card.applyBurn, MAX_BURN_STACKS);
   if (card.applyStrength) {
     const bonus = hasRelic(run, "warlords_brand") ? card.applyStrength + 1 : card.applyStrength;
@@ -670,7 +690,7 @@ const endCombatTurn = (run) => {
   for (const power of (next.powers || [])) {
     if (power.id === "iron_will") {
       next.player.dexterity = (next.player.dexterity || 0) + 1;
-    } else if (power.id === "creeping_blight") {
+    } else if (power.id === "creeping_blight" || power.id === "virulent_aura") {
       next.enemy.poison = clampStacks((next.enemy.poison || 0) + 1, MAX_POISON_STACKS);
     } else if (power.id === "kindle") {
       next.enemy.burn = clampStacks((next.enemy.burn || 0) + 1, MAX_BURN_STACKS);

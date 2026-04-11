@@ -93,6 +93,11 @@ const implementedOverrides = {
   creeping_blight: { damage: 7, applyPoison: 3 },
   septic_touch: { applyPoison: 2, applyWeak: 1 },
   infectious_wound: { damage: 4, applyPoison: 2, draw: 1 },
+  plague_burst: { damage: 5, consumePoisonBonus: 3 },
+  toxic_barrage: { damage: 3, hitCount: 3, applyPoisonPerHit: 1 },
+  virulent_aura: {},
+  contagion: { doublePoison: true },
+  fetid_wound: { damage: 4, applyPoison: 2, block: 3 },
   ember_throw: { damage: 5, applyBurn: 2 },
   kindle: { applyBurn: 3 },
   scorch: { damage: 8, applyBurn: 2 },
@@ -142,13 +147,13 @@ const deriveKeywords = (card) => {
 
   const keys = [];
   if (card.hex || card.bonusVsHex || card.costReduceIfHexed || card.ifHexedExhaustFromHand || card.ifHexedEnergyGain || card.consumeHexBonus) keys.push("Hex");
-  if (card.poison || card.applyPoison) keys.push("Poison");
+  if (card.poison || card.applyPoison || card.applyPoisonPerHit || card.consumePoisonBonus || card.doublePoison) keys.push("Poison");
   if (card.burn || card.applyBurn) keys.push("Burn");
   if (card.setCharged || card.drawIfCharged || card.energyIfCharged || card.costReduceIfCharged || card.bonusBlockIfCharged) keys.push("Charged");
   if (card.exhaust || card.exhaustFromHand || card.exhaustHand || card.exhaustSkillsFromHand || card.exhaustFromHandCount || card.energyPerExhausted || card.bonusVsExhaust || card.bonusDmgPerExhausted) keys.push("Exhaust");
   if (card.draw || card.drawIfCharged) keys.push("Draw");
   if (card.energyGain || card.energyPerExhausted || card.energyIfCharged || card.ifHexedEnergyGain) keys.push("Energy");
-  if (card.consumeHexBonus) keys.push("Consume");
+  if (card.consumeHexBonus || card.consumePoisonBonus || card.consumeBurnBonus) keys.push("Consume");
   return [...new Set(keys)].map((key) => ({ key, label: key }));
 };
 

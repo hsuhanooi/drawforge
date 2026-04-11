@@ -7,7 +7,7 @@
 const { createCard } = require("./card");
 const { createCardCatalog } = require("./cardCatalog");
 const { CARD_REGISTRY } = require("./cardRegistry");
-const { MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("./constants");
+const { MAX_HEX_STACKS, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("./constants");
 
 const STRIKE_DAMAGE = 6;
 const DEFEND_BLOCK = 6;
@@ -101,6 +101,11 @@ const FACTORY_EXPORT_NAMES = {
   creeping_blight: "creepingBlightCardDefinition",
   septic_touch: "septicTouchCardDefinition",
   infectious_wound: "infectiousWoundCardDefinition",
+  plague_burst: "plagueBurstCardDefinition",
+  toxic_barrage: "toxicBarrageCardDefinition",
+  virulent_aura: "virulentAuraCardDefinition",
+  contagion: "contagionCardDefinition",
+  fetid_wound: "fetidWoundCardDefinition",
   ember_throw: "emberThrowCardDefinition",
   kindle: "kindleCardDefinition",
   scorch: "scorchCardDefinition",
@@ -161,6 +166,14 @@ const computeDamage = (card, state, next) => {
     damage += enemyHex * card.consumeHexBonus;
     next.enemy.hex = 0;
   }
+  if (card.consumePoisonBonus && (next.enemy?.poison || 0) > 0) {
+    damage += (next.enemy.poison || 0) * card.consumePoisonBonus;
+    next.enemy.poison = 0;
+  }
+  if (card.consumeBurnBonus && (next.enemy?.burn || 0) > 0) {
+    damage += (next.enemy.burn || 0) * card.consumeBurnBonus;
+    next.enemy.burn = 0;
+  }
   if (card.type === "attack") damage += playerStrength;
   if ((next.player?.weak || 0) > 0 && card.type === "attack") damage = Math.floor(damage * 0.75);
   if ((next.enemy?.vulnerable || 0) > 0 && damage > 0) damage = Math.floor(damage * 1.5);
@@ -187,8 +200,16 @@ const buildRuntimeEffect = (card) => {
       enemy: { ...(state.enemy || {}) }
     };
 
+    const hitCount = card.hitCountIfCharged && next.player?.charged
+      ? card.hitCountIfCharged
+      : (card.hitCount || 1);
     const damage = computeDamage(card, state, next);
-    applyDamage(next, damage);
+    for (let hit = 0; hit < hitCount; hit += 1) {
+      applyDamage(next, damage);
+      if (card.applyPoisonPerHit) {
+        next.enemy.poison = Math.min(MAX_POISON_STACKS, (next.enemy.poison || 0) + card.applyPoisonPerHit);
+      }
+    }
     if (card.repeatIfHexed && ((state.enemy?.hex || 0) > 0)) {
       applyDamage(next, damage);
     }
@@ -215,12 +236,11 @@ const buildRuntimeEffect = (card) => {
     if (card.ifHexedEnergyGain && (next.enemy?.hex || 0) > 0) next.player.energy = (next.player.energy || 0) + card.ifHexedEnergyGain;
 
     if (card.hex) next.enemy.hex = Math.min(MAX_HEX_STACKS, (next.enemy.hex || 0) + card.hex);
-    if (card.applyPoison) next.enemy.poison = (next.enemy.poison || 0) + card.applyPoison;
-    if (card.applyBurn) next.enemy.burn = (next.enemy.burn || 0) + card.applyBurn;
+    if (card.applyPoison) next.enemy.poison = Math.min(MAX_POISON_STACKS, (next.enemy.poison || 0) + card.applyPoison);
+    if (card.applyBurn) next.enemy.burn = Math.min(MAX_BURN_STACKS, (next.enemy.burn || 0) + card.applyBurn);
     if (card.applyWeak) next.enemy.weak = (next.enemy.weak || 0) + card.applyWeak;
     if (card.applyVulnerable) next.enemy.vulnerable = (next.enemy.vulnerable || 0) + card.applyVulnerable;
-    if (card.applyPoison) next.enemy.poison = (next.enemy.poison || 0) + card.applyPoison;
-    if (card.applyBurn) next.enemy.burn = (next.enemy.burn || 0) + card.applyBurn;
+    if (card.doublePoison) next.enemy.poison = Math.min(MAX_POISON_STACKS, (next.enemy.poison || 0) * 2);
     if (card.applyStrength) next.player.strength = (next.player.strength || 0) + card.applyStrength;
     if (card.applyDexterity) next.player.dexterity = (next.player.dexterity || 0) + card.applyDexterity;
 

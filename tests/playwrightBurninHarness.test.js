@@ -20,9 +20,13 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("if (selectedAttack) {");
     expect(burninSource).toContain("const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);");
     expect(burninSource).toContain("actions.push(`target:${target}`);");
+    expect(burninSource).toContain("const domClicked = await page.evaluate(() => {");
+    expect(burninSource).toContain("return `dom:${selector}`;");
     expect(burninSource).toContain("const combatFallback = await page.evaluate(() => {");
     expect(burninSource).toContain("return 'selected-attack-target-dom';");
     expect(burninSource).toContain("return 'play-skill-dom';");
+    expect(burninSource).toContain("await page.keyboard.press('1');");
+    expect(burninSource).toContain("actions.push('key-1-double');");
     expect(burninSource).toContain("return 'end-turn-dom';");
   });
 
@@ -53,6 +57,8 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain('async function waitForDeckChoiceActions(page) {');
     expect(burninSource).toContain("document.querySelectorAll('#deck-choice-row .archetype-select-btn')");
     expect(burninSource).toContain("'#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn'");
+    expect(burninSource).toContain("return 'dom:#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn';");
+    expect(burninSource).toContain("return 'dom:#deck-choice-row .archetype-select-btn';");
   });
 
   it('waits briefly for available map nodes before failing the map step', () => {

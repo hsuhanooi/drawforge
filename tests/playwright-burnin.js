@@ -177,8 +177,8 @@ async function collectState(page) {
         playerHp: document.querySelector('#player-hp-current')?.textContent || null,
         enemyHp: document.querySelector('#enemy-hp-current')?.textContent || null,
         intent: document.querySelector('#enemy-intent-label')?.textContent || null,
-        playableCards: document.querySelectorAll('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)').length,
-        selectedCards: document.querySelectorAll('#hand-area .card-component.is-selected, #hand-area .card.is-selected').length,
+        playableCards: countVisible('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)'),
+        selectedCards: countVisible('#hand-area .card-component.is-selected, #hand-area .card.is-selected'),
         endTurnDisabled: document.querySelector('#end-turn-btn')?.disabled ?? null
       }
     };
@@ -186,7 +186,7 @@ async function collectState(page) {
 }
 
 async function clickCombatCard(page) {
-  return clickFirst(page, [
+  const clicked = await clickFirst(page, [
     '#hand-area .card-component.is-selected',
     '#hand-area .card.is-selected',
     '#hand-area .card-component.type-attack:not(.unplayable)',
@@ -194,6 +194,41 @@ async function clickCombatCard(page) {
     '#hand-area .card-component:not(.unplayable)',
     '#hand-area .card:not(.unplayable)'
   ]);
+  if (clicked) return clicked;
+
+  const domClicked = await page.evaluate(() => {
+    const isVisible = (el) => {
+      if (!el || el.disabled || el.closest('.hidden')) return false;
+      const style = window.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return !el.classList.contains('hidden')
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && rect.width > 0
+        && rect.height > 0;
+    };
+
+    const selectors = [
+      '#hand-area .card-component.is-selected',
+      '#hand-area .card.is-selected',
+      '#hand-area .card-component.type-attack:not(.unplayable)',
+      '#hand-area .card.type-attack:not(.unplayable)',
+      '#hand-area .card-component:not(.unplayable)',
+      '#hand-area .card:not(.unplayable)'
+    ];
+
+    for (const selector of selectors) {
+      const card = Array.from(document.querySelectorAll(selector)).find(isVisible);
+      if (!card) continue;
+      card.scrollIntoView({ block: 'center', inline: 'center' });
+      card.click();
+      return `dom:${selector}`;
+    }
+
+    return null;
+  }).catch(() => null);
+
+  return domClicked;
 }
 
 async function actOnRewardScreen(page, { preferContinue = true } = {}) {
@@ -394,6 +429,21 @@ async function actOnCombatScreen(page) {
   }
 
   try {
+    await page.keyboard.press('1');
+    await sleep(COMBAT_MICRO_DELAY_MS);
+    const selectedAfterOne = await page.evaluate(() => Boolean(
+      document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected')
+    )).catch(() => false);
+    if (selectedAfterOne) {
+      await page.keyboard.press('1');
+      actions.push('key-1-double');
+      return `combat:${actions.join('|')}`;
+    }
+  } catch {
+    // fall through to end-turn shortcut
+  }
+
+  try {
     await page.keyboard.press('e');
     actions.push('key-end-turn');
     return `combat:${actions.join('|')}`;
@@ -515,10 +565,35 @@ async function actOnScreen(page, screen, options = {}) {
       return 'start:new-run';
     case 'deck-choice': {
       await waitForDeckChoiceActions(page);
-      const choice = await clickFirst(page, [
+      let choice = await clickFirst(page, [
         '#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn',
         '#deck-choice-row .archetype-select-btn'
       ]);
+      if (!choice) {
+        choice = await page.evaluate(() => {
+          const isVisible = (el) => {
+            if (!el || el.disabled || el.closest('.hidden')) return false;
+            const style = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return !el.classList.contains('hidden')
+              && style.display !== 'none'
+              && style.visibility !== 'hidden'
+              && rect.width > 0
+              && rect.height > 0;
+          };
+          const preferred = document.querySelector('#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn');
+          if (isVisible(preferred)) {
+            preferred.click();
+            return 'dom:#deck-choice-row .archetype-panel:nth-child(2) .archetype-select-btn';
+          }
+          const fallback = Array.from(document.querySelectorAll('#deck-choice-row .archetype-select-btn')).find(isVisible);
+          if (fallback) {
+            fallback.click();
+            return 'dom:#deck-choice-row .archetype-select-btn';
+          }
+          return null;
+        }).catch(() => null);
+      }
       return choice ? `deck-choice:${choice}` : null;
     }
     case 'map': {

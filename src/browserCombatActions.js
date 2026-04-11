@@ -2,7 +2,7 @@ const { createEnemyForNode, resolveEnemyIntent } = require("./enemies");
 const { createCardCatalog } = require("./cardCatalog");
 const { getCombatEnergyBonus } = require("./relics");
 const { applyPotion } = require("./potions");
-const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("./constants");
+const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN, MAX_POWERS } = require("./constants");
 const CARD_CATALOG = createCardCatalog();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -12,6 +12,23 @@ const clampStacks = (value, max) => Math.max(0, Math.min(max, value || 0));
 
 const normalizeStatusStacks = (combat) => {
   if (!combat) return combat;
+  const tIdx = combat.targetIndex || 0;
+  // combat.enemy is always the source of truth for the targeted enemy
+  const normalizedEnemy = combat.enemy ? {
+    ...(combat.enemy),
+    poison: clampStacks(combat.enemy.poison, MAX_POISON_STACKS),
+    burn: clampStacks(combat.enemy.burn, MAX_BURN_STACKS)
+  } : {};
+  // Normalize all enemies; keep enemies[tIdx] in sync with the enemy alias
+  const enemiesRaw = combat.enemies || [normalizedEnemy];
+  const normalizedEnemies = enemiesRaw.map((e, i) => {
+    if (i === tIdx) return normalizedEnemy;
+    return {
+      ...(e || {}),
+      poison: clampStacks(e?.poison, MAX_POISON_STACKS),
+      burn: clampStacks(e?.burn, MAX_BURN_STACKS)
+    };
+  });
   return {
     ...combat,
     player: {
@@ -19,11 +36,8 @@ const normalizeStatusStacks = (combat) => {
       poison: clampStacks(combat.player?.poison, MAX_POISON_STACKS),
       burn: clampStacks(combat.player?.burn, MAX_BURN_STACKS)
     },
-    enemy: {
-      ...(combat.enemy || {}),
-      poison: clampStacks(combat.enemy?.poison, MAX_POISON_STACKS),
-      burn: clampStacks(combat.enemy?.burn, MAX_BURN_STACKS)
-    }
+    enemies: normalizedEnemies,
+    enemy: normalizedEnemy
   };
 };
 
@@ -180,12 +194,23 @@ const startCombatForNode = (run, node) => {
     combatLog: [],
     powers: [],
     exhaustedThisTurn: 0,
+    enemiesKilledThisCombat: 0,
+    enemies: [{
+      ...enemy,
+      vulnerable: hasRelic(run, "cracked_lens") ? 1 : 0,
+      hex: hasRelic(run, "hex_crown") ? 1 : 0,
+      poison: run.carryoverPoison || 0,
+      burn: 0,
+      turnIndex: 0
+    }],
+    targetIndex: 0,
     enemy: {
       ...enemy,
       vulnerable: hasRelic(run, "cracked_lens") ? 1 : 0,
       hex: hasRelic(run, "hex_crown") ? 1 : 0,
       poison: run.carryoverPoison || 0,
-      burn: 0
+      burn: 0,
+      turnIndex: 0
     }
   }, drawCount), `Combat started against ${enemy.name}.`, "system");
   return normalizeStatusStacks(combatState);
@@ -259,7 +284,15 @@ const playCombatCard = (run, handIndex) => {
   } else if (card.returnToHand) {
     next.returnPile = [...(next.returnPile || []), card];
   } else if (card.type === "power") {
-    next.powers = [...(next.powers || []), { id: card.id, label: card.name, ...card }];
+    if ((next.powers || []).length >= MAX_POWERS) {
+      // Power slots full — exhaust the card instead
+      next.exhaustPile = [...(next.exhaustPile || []), card];
+      next.exhaustedThisTurn = (next.exhaustedThisTurn || 0) + 1;
+      next.exhaustTotal = (next.exhaustTotal || 0) + 1;
+      next = appendCombatLog(next, `Power slots full — ${card.name} exhausted.`, "system");
+    } else {
+      next.powers = [...(next.powers || []), { id: card.id, label: card.name, ...card }];
+    }
   } else {
     next.discardPile = [...(next.discardPile || []), card];
   }
@@ -511,7 +544,17 @@ const playCombatCard = (run, handIndex) => {
     next.player.energy += card.ifHexedEnergyGain;
   }
 
+  // Sync targeted enemy back to enemies array before phase/victory checks
+  const tIdxPlay = next.targetIndex || 0;
+  if (next.enemies) {
+    next.enemies = next.enemies.map((e, i) => (i === tIdxPlay ? { ...next.enemy } : e));
+  }
+
   next = checkPhaseShift(next);
+  // Sync phase-shifted enemy back to enemies array
+  if (next.enemies) {
+    next.enemies = next.enemies.map((e, i) => (i === tIdxPlay ? { ...next.enemy } : e));
+  }
 
   if (next.player.health <= 0) {
     if (hasRelic(run, "phoenix_ash") && !nextPhoenixUsed) {
@@ -526,8 +569,17 @@ const playCombatCard = (run, handIndex) => {
     }
   }
 
-  if (next.enemy.health <= 0) {
-    next.enemy.health = 0;
+  // Track individual enemy kill and clamp health to 0
+  if (next.enemy.health <= 0 && (combat.enemies ? combat.enemies[tIdxPlay]?.health : combat.enemy?.health) > 0) {
+    next.enemy = { ...next.enemy, health: 0 };
+    next.enemiesKilledThisCombat = (next.enemiesKilledThisCombat || 0) + 1;
+    if (next.enemies) next.enemies = next.enemies.map((e, i) => (i === tIdxPlay ? { ...next.enemy } : e));
+  }
+  // Victory when ALL enemies dead
+  const allEnemiesDead = (next.enemies || [next.enemy]).every((e) => e.health <= 0);
+  if (allEnemiesDead && next.state !== "defeat") {
+    next.enemy = { ...next.enemy, health: 0 };
+    if (next.enemies) next.enemies = next.enemies.map((e) => ({ ...e, health: 0 }));
     next.state = "victory";
     next.turn = null;
   }
@@ -655,23 +707,63 @@ const applyEnemyIntent = (combat, intent) => {
 const endCombatTurn = (run) => {
   const combat = normalizeStatusStacks(run.combat);
   if (combat.state !== "active") return run;
-  let next = applyStatusTicks(combat, "enemy", "end");
-  next = applyStatusTicks(next, "enemy", "start");
-  if (next.enemy.health <= 0) {
-    next.enemy.health = 0;
+  const isMultiEnemy = (combat.enemies || []).length > 1;
+
+  // --- Status ticks: apply to each living enemy ---
+  let next = clone(combat);
+  if (isMultiEnemy) {
+    for (let i = 0; i < next.enemies.length; i++) {
+      if (next.enemies[i].health <= 0) continue;
+      next.enemy = next.enemies[i];
+      next = applyStatusTicks(next, "enemy", "end");
+      next = applyStatusTicks(next, "enemy", "start");
+      next.enemies[i] = { ...next.enemy };
+    }
+    next.enemy = next.enemies[next.targetIndex || 0];
+  } else {
+    next = applyStatusTicks(combat, "enemy", "end");
+    next = applyStatusTicks(next, "enemy", "start");
+    if (next.enemies) next.enemies = [{ ...next.enemy }];
+  }
+  const allDeadFromStatus = (next.enemies || [next.enemy]).every((e) => e.health <= 0);
+  if (allDeadFromStatus) {
+    next.enemy = { ...next.enemy, health: 0 };
+    if (next.enemies) next.enemies = next.enemies.map((e) => ({ ...e, health: 0 }));
     next.state = "victory";
     next.turn = null;
     next.enemyIntent = null;
     next = appendCombatLog(next, `${next.enemy.name} collapsed from status damage.`, "status");
     return { ...run, combat: normalizeStatusStacks(next), player: { ...run.player, health: next.player.health } };
   }
+
+  // --- Enemy intents: each living enemy acts ---
   const healthBeforeIntent = next.player.health;
-  next = applyEnemyIntent(next, next.enemyIntent);
   next.triggeredRelics = [];
+  if (isMultiEnemy) {
+    for (let i = 0; i < next.enemies.length; i++) {
+      const e = next.enemies[i];
+      if (!e || e.health <= 0) continue;
+      const eTurnIdx = typeof e.turnIndex === "number" ? e.turnIndex : (combat.enemyTurnNumber || 0);
+      const intent = resolveEnemyIntent(e, eTurnIdx);
+      next.enemy = { ...e };
+      next = applyEnemyIntent(next, intent);
+      next.enemies[i] = { ...next.enemy, turnIndex: eTurnIdx + 1 };
+      if (intent?.label) {
+        next = appendCombatLog(next, `${e.name}: ${intent.label}`, "enemy");
+      }
+      if (next.player.health <= 0) break;
+    }
+    next.enemy = next.enemies[next.targetIndex || 0];
+  } else {
+    next = applyEnemyIntent(next, next.enemyIntent);
+    if (next.enemies) next.enemies = [{ ...next.enemy }];
+  }
+
   if (hasRelic(run, "thorn_crest") && next.player.health < healthBeforeIntent) {
     const thornBlocked = Math.min(next.enemy.block || 0, 3);
     next.enemy.block = (next.enemy.block || 0) - thornBlocked;
     next.enemy.health = Math.max(0, next.enemy.health - (3 - thornBlocked));
+    if (next.enemies) next.enemies[next.targetIndex || 0] = { ...next.enemy };
     next.triggeredRelics.push("thorn_crest");
   }
   next.player.block = 0;
@@ -700,24 +792,41 @@ const endCombatTurn = (run) => {
   if (decayCount > 0) {
     next.player.block = Math.max(0, next.player.block - decayCount);
   }
-  // Decay status effects at turn boundary
+  // Decay status effects at turn boundary — for all living enemies
   next.player.weak = Math.max(0, (next.player.weak || 0) - 1);
-  next.enemy.vulnerable = Math.max(0, (next.enemy.vulnerable || 0) - 1);
-  next.enemy.weak = Math.max(0, (next.enemy.weak || 0) - 1);
+  if (isMultiEnemy) {
+    next.enemies = next.enemies.map((e) => e.health > 0 ? {
+      ...e,
+      vulnerable: Math.max(0, (e.vulnerable || 0) - 1),
+      weak: Math.max(0, (e.weak || 0) - 1)
+    } : e);
+    next.enemy = next.enemies[next.targetIndex || 0];
+  } else {
+    next.enemy.vulnerable = Math.max(0, (next.enemy.vulnerable || 0) - 1);
+    next.enemy.weak = Math.max(0, (next.enemy.weak || 0) - 1);
+    if (next.enemies) next.enemies = [{ ...next.enemy }];
+  }
   next.discardPile = [...(next.discardPile || []), ...(next.hand || [])];
   next.hand = [];
   const pendingReturn = [...(next.returnPile || [])];
   next.returnPile = [];
   next.turn = "player";
-  next.enemyTurnNumber = (combat.enemyTurnNumber || 0) + 1;
-  next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemyTurnNumber);
+  // Advance per-enemy turn indices; keep backward-compat enemyTurnNumber for single-enemy
+  if (isMultiEnemy) {
+    next.enemyTurnNumber = (next.enemies[0]?.turnIndex || 0);
+    next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemy.turnIndex || 0);
+  } else {
+    next.enemyTurnNumber = (combat.enemyTurnNumber || 0) + 1;
+    if (next.enemies) next.enemies = [{ ...next.enemy, turnIndex: next.enemyTurnNumber }];
+    next.enemyIntent = resolveEnemyIntent(next.enemy, next.enemyTurnNumber);
+  }
   next = applyStatusTicks(next, "player", "end");
   next = applyStatusTicks(next, "player", "start");
-  // empty_throne: draw 1 fewer on turn 2 (enemyTurnNumber was just incremented to 1 after first enemy turn)
+  // empty_throne: draw 1 fewer on turn 2
   const drawCount = (hasRelic(run, "empty_throne") && next.enemyTurnNumber === 1) ? 4 : 5;
   next = drawCards(next, drawCount);
   next.hand = [...next.hand, ...pendingReturn];
-  // Apply power turn_start effects
+  // Apply power turn_start effects (always target the current targeted enemy)
   for (const power of (next.powers || [])) {
     if (power.dexPerTurn) {
       next.player.dexterity = (next.player.dexterity || 0) + power.dexPerTurn;
@@ -762,6 +871,10 @@ const endCombatTurn = (run) => {
       next.player.energy += power.energyPerTurn;
     }
   }
+  // Sync power effects on targeted enemy back to enemies array
+  if (next.enemies) {
+    next.enemies = next.enemies.map((e, i) => (i === (next.targetIndex || 0) ? { ...next.enemy } : e));
+  }
   if (next.player.health <= 0) {
     if (hasRelic(run, "phoenix_ash") && !nextRun.phoenix_used) {
       next.player.health = 1;
@@ -774,20 +887,29 @@ const endCombatTurn = (run) => {
     }
   }
   next = checkPhaseShift(next);
-  if (next.enemy.health <= 0) {
-    next.enemy.health = 0;
+  // Sync phase-shifted targeted enemy back to enemies array
+  if (next.enemies) {
+    next.enemies = next.enemies.map((e, i) => (i === (next.targetIndex || 0) ? { ...next.enemy } : e));
+  }
+  // Victory when all enemies dead
+  const allDeadAfterPowers = (next.enemies || [next.enemy]).every((e) => e.health <= 0);
+  if (allDeadAfterPowers) {
+    next.enemy = { ...next.enemy, health: 0 };
+    if (next.enemies) next.enemies = next.enemies.map((e) => ({ ...e, health: 0 }));
     next.state = "victory";
     next.turn = null;
   }
 
   // Stat tracking for turn end
   const hpLostThisTurn = Math.max(0, healthBeforeIntent - next.player.health);
-  const enemyIntentLabel = combat.enemyIntent?.label || "Enemy acted";
-  if (combat.enemyIntent) {
+  if (!isMultiEnemy && combat.enemyIntent) {
+    const enemyIntentLabel = combat.enemyIntent?.label || "Enemy acted";
     const logText = hpLostThisTurn > 0
       ? `${enemyIntentLabel}, dealing ${hpLostThisTurn} damage.`
       : `${enemyIntentLabel}.`;
     next = appendCombatLog(next, logText, "enemy");
+  } else if (isMultiEnemy && hpLostThisTurn > 0) {
+    next = appendCombatLog(next, `Enemies dealt ${hpLostThisTurn} damage total.`, "enemy");
   }
   if (next.state === "defeat") {
     next = appendCombatLog(next, "You were defeated.", "system");

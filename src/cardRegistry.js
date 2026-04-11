@@ -94,6 +94,12 @@ const CARD_REGISTRY = [
   { id: "weak_field", name: "Weak Field", cost: 1, type: "power", effectText: "At start of each turn, apply Weak 1 to the enemy.", rarity: "uncommon", archetype: "Power / Debuff", status: "implemented" },
   { id: "dark_pact", name: "Dark Pact", cost: 1, type: "power", effectText: "At start of each turn, lose 2 HP and gain 1 Energy.", rarity: "uncommon", archetype: "Power / Risk", status: "implemented" },
   { id: "vampiric_aura", name: "Vampiric Aura", cost: 2, type: "power", effectText: "Whenever you deal attack damage, heal 2.", rarity: "rare", archetype: "Power / Lifesteal", status: "implemented" },
+  // Cross-archetype synergy cards
+  { id: "caustic_inferno", name: "Caustic Inferno", cost: 2, type: "attack", effectText: "Dmg 8. If enemy has both Poison and Burn, deal +10 damage.", rarity: "rare", archetype: "Poison / Burn", status: "implemented" },
+  { id: "volatile_compound", name: "Volatile Compound", cost: 1, type: "skill", effectText: "Apply Poison 2 and Burn 2.", rarity: "uncommon", archetype: "Poison / Burn", status: "implemented" },
+  { id: "charged_toxin", name: "Charged Toxin", cost: 1, type: "attack", effectText: "Dmg 6. If Charged, apply Poison 3.", rarity: "uncommon", archetype: "Poison / Charged", status: "implemented" },
+  { id: "hex_blight", name: "Hex Blight", cost: 1, type: "skill", effectText: "Apply Hex 1 and Poison 1 per current Hex stack (min 1).", rarity: "uncommon", archetype: "Hex / Poison", status: "implemented" },
+  { id: "shocking_brand", name: "Shocking Brand", cost: 1, type: "attack", effectText: "Dmg 5. Become Charged. Apply Burn 2.", rarity: "uncommon", archetype: "Burn / Charged", status: "implemented" },
   // Curse cards — inflicted as penalties, never rewarded
   { id: "wound", name: "Wound", cost: 1, type: "curse", effectText: "When drawn, deal 1 damage to yourself.", rarity: "curse", archetype: "Curse", status: "implemented" },
   { id: "decay", name: "Decay", cost: 1, type: "curse", effectText: "At end of turn, lose 1 block for each Decay in hand.", rarity: "curse", archetype: "Curse", status: "implemented" },

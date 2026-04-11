@@ -149,7 +149,12 @@ const FACTORY_EXPORT_NAMES = {
   flurry_of_blows: "flurryOfBlowsCardDefinition",
   wound: "woundCardDefinition",
   decay: "decayCardDefinition",
-  parasite: "parasiteCardDefinition"
+  parasite: "parasiteCardDefinition",
+  caustic_inferno: "causticInfernoCardDefinition",
+  volatile_compound: "volatileCompoundCardDefinition",
+  charged_toxin: "chargedToxinCardDefinition",
+  hex_blight: "hexBlightCardDefinition",
+  shocking_brand: "shockingBrandCardDefinition"
 };
 
 const computeDamage = (card, state, next) => {
@@ -182,6 +187,9 @@ const computeDamage = (card, state, next) => {
   if (card.consumeBurnBonus && (next.enemy?.burn || 0) > 0) {
     damage += (next.enemy.burn || 0) * card.consumeBurnBonus;
     next.enemy.burn = 0;
+  }
+  if (card.bonusVsPoisonAndBurn && (next.enemy?.poison || 0) > 0 && (next.enemy?.burn || 0) > 0) {
+    damage += card.bonusVsPoisonAndBurn;
   }
   if (card.type === "attack") damage += playerStrength;
   if ((next.player?.weak || 0) > 0 && card.type === "attack") damage = Math.floor(damage * 0.75);

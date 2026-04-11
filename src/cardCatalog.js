@@ -121,6 +121,12 @@ const implementedOverrides = {
   warding_circle: { block: 12, costReduceIfHexed: 1 },
   last_word: { damage: 8, bonusIfLastCard: 8 },
   flurry_of_blows: { damage: 3, hitCount: 4 },
+  // Cross-archetype synergy
+  caustic_inferno: { damage: 8, bonusVsPoisonAndBurn: 10 },
+  volatile_compound: { applyPoison: 2, applyBurn: 2 },
+  charged_toxin: { damage: 6, applyPoisonIfCharged: 3 },
+  hex_blight: { hex: 1, poisonPerHex: 1 },
+  shocking_brand: { damage: 5, setCharged: true, applyBurn: 2 },
   // Curses
   wound: { curseOnDraw: 1 },
   decay: { curseDecayBlock: true },
@@ -156,9 +162,10 @@ const deriveKeywords = (card) => {
 
   const keys = [];
   if (card.hex || card.bonusVsHex || card.costReduceIfHexed || card.ifHexedExhaustFromHand || card.ifHexedEnergyGain || card.consumeHexBonus) keys.push("Hex");
-  if (card.poison || card.applyPoison || card.applyPoisonPerHit || card.consumePoisonBonus || card.doublePoison) keys.push("Poison");
-  if (card.burn || card.applyBurn) keys.push("Burn");
-  if (card.setCharged || card.drawIfCharged || card.energyIfCharged || card.costReduceIfCharged || card.bonusBlockIfCharged) keys.push("Charged");
+  if (card.poison || card.applyPoison || card.applyPoisonPerHit || card.applyPoisonIfCharged || card.poisonPerHex || card.consumePoisonBonus || card.doublePoison || card.bonusVsPoisonAndBurn) keys.push("Poison");
+  if (card.burn || card.applyBurn || card.bonusVsPoisonAndBurn) keys.push("Burn");
+  if (card.setCharged || card.drawIfCharged || card.energyIfCharged || card.costReduceIfCharged || card.bonusBlockIfCharged || card.applyPoisonIfCharged) keys.push("Charged");
+  if (card.poisonPerHex) keys.push("Hex");
   if (card.exhaust || card.exhaustFromHand || card.exhaustHand || card.exhaustSkillsFromHand || card.exhaustFromHandCount || card.energyPerExhausted || card.bonusVsExhaust || card.bonusDmgPerExhausted) keys.push("Exhaust");
   if (card.draw || card.drawIfCharged) keys.push("Draw");
   if (card.energyGain || card.energyPerExhausted || card.energyIfCharged || card.ifHexedEnergyGain) keys.push("Energy");

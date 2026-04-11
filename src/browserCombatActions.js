@@ -264,7 +264,7 @@ const playCombatCard = (run, handIndex) => {
     next.discardPile = [...(next.discardPile || []), card];
   }
 
-  if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted || card.bonusVsVulnerable || card.bonusPerStrength || card.bonusDmgPerHex || card.bonusDmgPerExhausted || card.bonusIfLastCard || card.consumeHexBonus || card.consumePoisonBonus || card.consumeBurnBonus || card.hitCount || card.hitCountIfCharged || card.repeatIfHexed || (card.type === "attack" && (next.player.strength || 0) > 0)) {
+  if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted || card.bonusVsVulnerable || card.bonusPerStrength || card.bonusDmgPerHex || card.bonusDmgPerExhausted || card.bonusIfLastCard || card.consumeHexBonus || card.consumePoisonBonus || card.consumeBurnBonus || card.bonusVsPoisonAndBurn || card.hitCount || card.hitCountIfCharged || card.repeatIfHexed || (card.type === "attack" && (next.player.strength || 0) > 0)) {
     const hexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHex ? card.bonusVsHex : 0;
     const exhaustBonus = (next.exhaustPile || []).length > 0 && card.bonusVsExhaust ? card.bonusVsExhaust : 0;
     const harvesterHexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHexedOrExhausted ? card.bonusVsHexedOrExhausted : 0;
@@ -293,7 +293,9 @@ const playCombatCard = (run, handIndex) => {
     if (card.consumeHexBonus) next.enemy.hex = 0;
     if (card.consumePoisonBonus) next.enemy.poison = 0;
     if (card.consumeBurnBonus) next.enemy.burn = 0;
-    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus + poisonConsumedBonus + burnConsumedBonus;
+    // Cross-archetype bonus: deals extra damage when enemy has BOTH poison and burn
+    const poisonAndBurnBonus = card.bonusVsPoisonAndBurn && poisonStacks > 0 && burnStacks > 0 ? card.bonusVsPoisonAndBurn : 0;
+    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus + poisonConsumedBonus + burnConsumedBonus + poisonAndBurnBonus;
     // Weak on player reduces outgoing attack damage by 25%
     if (card.type === "attack" && (next.player.weak || 0) > 0) totalDamage = Math.floor(totalDamage * 0.75);
     // Vulnerable on enemy amplifies incoming damage by 50%
@@ -366,6 +368,12 @@ const playCombatCard = (run, handIndex) => {
     }
   }
   if (card.applyPoison) next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoison, MAX_POISON_STACKS);
+  if (card.applyPoisonIfCharged && next.player.charged) next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoisonIfCharged, MAX_POISON_STACKS);
+  if (card.poisonPerHex) {
+    // Apply poison equal to current hex stacks, minimum 1
+    const hexForPoison = Math.max(1, next.enemy.hex || 0);
+    next.enemy.poison = clampStacks((next.enemy.poison || 0) + hexForPoison, MAX_POISON_STACKS);
+  }
   if (card.doublePoison) next.enemy.poison = clampStacks((next.enemy.poison || 0) * 2, MAX_POISON_STACKS);
   if (card.applyBurn) next.enemy.burn = clampStacks((next.enemy.burn || 0) + card.applyBurn, MAX_BURN_STACKS);
   if (card.applyStrength) {

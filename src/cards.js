@@ -106,6 +106,11 @@ const FACTORY_EXPORT_NAMES = {
   virulent_aura: "virulentAuraCardDefinition",
   contagion: "contagionCardDefinition",
   fetid_wound: "fetidWoundCardDefinition",
+  immolate: "immolateCardDefinition",
+  backdraft: "backdraftCardDefinition",
+  inferno_aura: "infernoAuraCardDefinition",
+  heat_shield: "heatShieldCardDefinition",
+  flash_fire: "flashFireCardDefinition",
   ember_throw: "emberThrowCardDefinition",
   kindle: "kindleCardDefinition",
   scorch: "scorchCardDefinition",
@@ -225,6 +230,9 @@ const buildRuntimeEffect = (card) => {
     }
     if (card.bonusBlockIfCharged && next.player?.charged) {
       next.player.block = (next.player.block || 0) + card.bonusBlockIfCharged;
+    }
+    if (card.blockPerBurn) {
+      next.player.block = (next.player.block || 0) + ((next.enemy?.burn || 0) * card.blockPerBurn);
     }
 
     if (card.draw) next.drawCount = (next.drawCount || 0) + card.draw;

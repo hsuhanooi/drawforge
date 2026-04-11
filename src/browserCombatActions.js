@@ -332,15 +332,18 @@ const playCombatCard = (run, handIndex) => {
       next.enemy.health -= (totalDamage - blocked2);
     }
   }
-  if (card.block || card.bonusBlockIfHexed || card.bonusBlockIfCharged) {
+  if (card.block || card.bonusBlockIfHexed || card.bonusBlockIfCharged || card.blockPerBurn) {
     // Dexterity adds to all block-generating card plays
-    const dexBonus = (card.block || card.bonusBlockIfCharged) ? (next.player.dexterity || 0) : 0;
+    const dexBonus = (card.block || card.bonusBlockIfCharged || card.blockPerBurn) ? (next.player.dexterity || 0) : 0;
     next.player.block += (card.block || 0) + dexBonus + (((next.player.energy ?? 0) >= 2 && card.bonusBlockIfHighEnergy) ? card.bonusBlockIfHighEnergy : 0);
     if (card.bonusBlockIfHexed && (next.enemy.hex || 0) > 0) {
       next.player.block += card.bonusBlockIfHexed;
     }
     if (card.bonusBlockIfCharged && next.player.charged) {
       next.player.block += card.bonusBlockIfCharged;
+    }
+    if (card.blockPerBurn) {
+      next.player.block += (next.enemy.burn || 0) * card.blockPerBurn;
     }
   }
   if (card.energyGain) next.player.energy += card.energyGain;
@@ -692,7 +695,7 @@ const endCombatTurn = (run) => {
       next.player.dexterity = (next.player.dexterity || 0) + 1;
     } else if (power.id === "creeping_blight" || power.id === "virulent_aura") {
       next.enemy.poison = clampStacks((next.enemy.poison || 0) + 1, MAX_POISON_STACKS);
-    } else if (power.id === "kindle") {
+    } else if (power.id === "kindle" || power.id === "inferno_aura") {
       next.enemy.burn = clampStacks((next.enemy.burn || 0) + 1, MAX_BURN_STACKS);
     } else if (power.id === "burning_aura") {
       const thornBlocked = Math.min(next.enemy.block || 0, 3);

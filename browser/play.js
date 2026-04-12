@@ -321,6 +321,12 @@
       archEl.textContent = card.archetype;
       body.appendChild(archEl);
     }
+    if (card.exhaust) {
+      const exhaustBadge = document.createElement("div");
+      exhaustBadge.className = "card-exhaust-badge";
+      exhaustBadge.textContent = "Exhaust";
+      body.appendChild(exhaustBadge);
+    }
     popup.appendChild(body);
 
     // Smart positioning
@@ -556,6 +562,14 @@
     descDiv.className = "card-desc";
     renderRulesText(descDiv, describeCard(card));
     div.appendChild(descDiv);
+
+    // Exhaust badge
+    if (card.exhaust) {
+      const exhaustBadge = document.createElement("div");
+      exhaustBadge.className = "card-exhaust-badge";
+      exhaustBadge.textContent = "Exhaust";
+      div.appendChild(exhaustBadge);
+    }
 
     // Shine overlay (mouse-tilt highlight)
     const shine = document.createElement("div");
@@ -1441,7 +1455,8 @@
     const enemyPanel = $id("enemy-panel");
     const selectedCard = getSelectedCombatCard();
     renderCardSelectionPreview(selectedCard, combat);
-    const enemyTargetingActive = combat?.turn === "player" && selectedCard?.type === "attack" && combat?.state === "active";
+    const isAoE = !!selectedCard?.targetAll;
+    const enemyTargetingActive = combat?.turn === "player" && selectedCard?.type === "attack" && !isAoE && combat?.state === "active";
     const targetingKey = enemyTargetingActive ? `${combat?.enemy?.id || combat?.enemy?.name || "enemy"}:${selectedCard?.id || selectedHandCardIndex}` : null;
 
     if (targetingKey && targetingKey !== lastTargetingFxKey) {
@@ -1450,9 +1465,18 @@
     }
     lastTargetingFxKey = targetingKey;
 
+    // AoE: mark all living enemy panels as targetable
+    if (isAoE && combat?.state === "active") {
+      const allPanels = document.querySelectorAll(".combatant-panel[data-enemy-index]");
+      allPanels.forEach((panel) => {
+        const isDead = panel.classList.contains("defeated");
+        panel.classList.toggle("targetable", !isDead);
+      });
+    }
+
     if (!enemyPanel) return;
 
-    enemyPanel.classList.toggle("targetable", enemyTargetingActive);
+    enemyPanel.classList.toggle("targetable", enemyTargetingActive || (isAoE && combat?.state === "active"));
     enemyPanel.classList.toggle("target-selected", enemyTargetingActive);
     enemyPanel.onclick = enemyTargetingActive
       ? () => {
@@ -1474,7 +1498,7 @@
       el.classList.toggle("is-selected", idx === handIndex);
     });
     syncCombatSelectionState(currentRun?.combat);
-    const mode = card?.type === "attack" ? "click the enemy to confirm" : "click again or drag upward to play";
+    const mode = card?.targetAll ? "click again to hit ALL enemies" : card?.type === "attack" ? "click the enemy to confirm" : "click again or drag upward to play";
     setCombatStateMessage(`Card ready · ${mode}`, "player");
   }
 
@@ -1740,6 +1764,18 @@
   }
 
   // ─── Deck Overlay ─────────────────────────────────────────────────
+  function appendDeckCard(container, card, mode) {
+    const el = makeCard(card, { dealDelay: -1 });
+    if (mode !== "library" && card.starter) {
+      const badge = document.createElement("div");
+      badge.className = "starter-badge";
+      badge.textContent = "Starter";
+      el.appendChild(badge);
+    }
+    container.appendChild(el);
+    return el;
+  }
+
   function openDeckOverlay(mode = "deck") {
     const container = $id("deck-panel-cards");
     if (!container) return;
@@ -1832,11 +1868,11 @@
           container.appendChild(divider);
           lastType = card.type;
         }
-        container.appendChild(makeCard(card, { dealDelay: -1 }));
+        appendDeckCard(container, card, mode);
       });
     } else {
       sorted.sort((a, b) => (a.cost || 0) - (b.cost || 0) || a.name.localeCompare(b.name));
-      sorted.forEach((card) => container.appendChild(makeCard(card, { dealDelay: -1 })));
+      sorted.forEach((card) => appendDeckCard(container, card, mode));
     }
 
     show("deck-overlay");
@@ -2529,6 +2565,12 @@
         const iconEl = document.createElement("span");
         iconEl.textContent = POTION_ICONS[potion.id] || "🫧";
         slot.appendChild(iconEl);
+        if (i === 0) {
+          const qHint = document.createElement("span");
+          qHint.className = "key-hint";
+          qHint.textContent = "Q";
+          slot.appendChild(qHint);
+        }
         const nameLabel = document.createElement("div");
         nameLabel.className = "potion-slot-name";
         nameLabel.textContent = potion.name;
@@ -2721,6 +2763,12 @@
           setActiveHandCard(handArea, cardEl);
         }
         bindHandCardInteraction({ handArea, cardEl, card, idx, canAfford });
+        if (idx < 5) {
+          const keyHint = document.createElement("span");
+          keyHint.className = "key-hint";
+          keyHint.textContent = idx + 1;
+          cardEl.appendChild(keyHint);
+        }
         handArea.appendChild(cardEl);
       });
       // Apply arc after layout
@@ -2741,6 +2789,12 @@
           ? "Defeat"
           : "End Turn";
       endBtn.setAttribute("aria-label", endBtn.textContent);
+      if (!endBtn.querySelector(".key-hint")) {
+        const eHint = document.createElement("span");
+        eHint.className = "key-hint";
+        eHint.textContent = "E";
+        endBtn.appendChild(eHint);
+      }
     }
   }
 
@@ -2812,10 +2866,18 @@
       const blockGained = (updated.combat.enemy?.block || 0) - prevEnemyBlock;
       if (dmg > 0 || blockGained > 0) {
         const ep = getEnemyAnimPos();
+        const cardHitCount = card?.hitCount || 1;
         if (ep && window.AnimEngine) {
-          window.AnimEngine.onEnemyHit(ep.x, ep.y, dmg > 0 ? dmg : blockGained, dmg === 0 && blockGained > 0);
+          if (cardHitCount > 1 && dmg > 0) {
+            window.AnimEngine.onMultiHit(ep.x, ep.y, Math.round(dmg / cardHitCount), cardHitCount);
+            window.SoundEngine?.onMultiHitSound(cardHitCount);
+          } else {
+            window.AnimEngine.onEnemyHit(ep.x, ep.y, dmg > 0 ? dmg : blockGained, dmg === 0 && blockGained > 0);
+            window.SoundEngine?.onEnemyHit(dmg, dmg === 0 && blockGained > 0);
+          }
+        } else {
+          window.SoundEngine?.onEnemyHit(dmg, dmg === 0 && blockGained > 0);
         }
-        window.SoundEngine?.onEnemyHit(dmg, dmg === 0 && blockGained > 0);
         if (!ep) {
           // DOM fallback
           if (dmg > 0) floatNum($id("enemy-panel"), dmg, dmg >= 8 ? "damage big" : "damage");
@@ -2930,9 +2992,103 @@
     }
   }
 
+  function renderRewardDeckSidebar(run) {
+    const sidebar = $id("reward-deck-sidebar");
+    if (!sidebar) return;
+    const rewards = run?.pendingRewards;
+    const isCardPick = rewards?.cards?.length > 0;
+    sidebar.classList.toggle("hidden", !isCardPick);
+    if (!isCardPick) return;
+
+    const deck = (run?.player?.deck || []).map((id) => {
+      const card = cardCatalog && cardCatalog[id];
+      return card ? { ...card } : { id, name: id, cost: 0, type: "skill", rarity: "common" };
+    });
+
+    // Stats: total + type breakdown
+    const attacks = deck.filter(c => c.type === "attack").length;
+    const skills = deck.filter(c => c.type === "skill").length;
+    const powers = deck.filter(c => c.type === "power").length;
+    const statsEl = $id("reward-deck-stats");
+    if (statsEl) statsEl.textContent = `${deck.length} cards · ⚔ ${attacks}  🛡 ${skills}  ✨ ${powers}`;
+
+    // Archetype distribution — top 3 non-Starter archetypes
+    const archetypeCounts = {};
+    deck.forEach((c) => {
+      const arch = c.archetype || "?";
+      if (arch === "Starter") return;
+      archetypeCounts[arch] = (archetypeCounts[arch] || 0) + 1;
+    });
+    const topArchetypes = Object.entries(archetypeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    const archRowEl = $id("reward-deck-archetypes");
+    if (archRowEl) {
+      clearEl(archRowEl);
+      topArchetypes.forEach(([arch, count]) => {
+        const tag = document.createElement("span");
+        tag.className = "archetype-tag";
+        tag.textContent = `${arch} ×${count}`;
+        archRowEl.appendChild(tag);
+      });
+    }
+
+    // Mana curve histogram
+    const curveBins = [0, 0, 0, 0]; // 0-cost, 1-cost, 2-cost, 3+-cost
+    deck.forEach((c) => {
+      const cost = c.cost !== undefined ? c.cost : 0;
+      curveBins[Math.min(cost, 3)]++;
+    });
+    const maxBin = Math.max(...curveBins, 1);
+    const curveEl = $id("reward-deck-curve");
+    if (curveEl) {
+      clearEl(curveEl);
+      curveBins.forEach((count, i) => {
+        const barWrap = document.createElement("div");
+        barWrap.className = "mana-curve-col";
+        const bar = document.createElement("div");
+        bar.className = "mana-curve-bar";
+        bar.style.height = `${Math.round((count / maxBin) * 28)}px`;
+        const label = document.createElement("div");
+        label.className = "mana-curve-label";
+        label.textContent = i < 3 ? i : "3+";
+        barWrap.appendChild(bar);
+        barWrap.appendChild(label);
+        curveEl.appendChild(barWrap);
+      });
+    }
+
+    // Mini card list
+    const listEl = $id("reward-deck-list");
+    if (!listEl) return;
+    clearEl(listEl);
+    deck.slice().sort((a, b) => (a.name || "").localeCompare(b.name || "")).forEach((card) => {
+      const row = document.createElement("div");
+      row.className = "deck-mini-row";
+      row.dataset.cardId = card.id;
+      row.dataset.cardType = card.type || "skill";
+      row.dataset.cardArchetype = card.archetype || "";
+      const costEl = document.createElement("span");
+      costEl.className = "deck-mini-cost";
+      costEl.textContent = card.cost !== undefined ? card.cost : 0;
+      row.appendChild(costEl);
+      const nameEl = document.createElement("span");
+      nameEl.textContent = card.name || card.id;
+      row.appendChild(nameEl);
+      if (card.starter) {
+        const starterEl = document.createElement("span");
+        starterEl.className = "deck-mini-starter";
+        starterEl.textContent = "starter";
+        row.appendChild(starterEl);
+      }
+      listEl.appendChild(row);
+    });
+  }
+
   function renderReward() {
     if (!currentRun?.pendingRewards) return;
     clearSelectedHandCard();
+    renderRewardDeckSidebar(currentRun);
     applySurfaceTheme({ run: currentRun, screen: "reward", nodeType: currentRun.currentNodeType || "combat" });
     const enteringReward = lastScreen !== "reward";
     showOnly("screen-reward");
@@ -3009,11 +3165,19 @@
       clearEl(removalCards);
       if (cardRow) {
         clearEl(cardRow);
+        // Compute player's top 3 archetypes for synergy hints
+        const playerDeck = (currentRun?.player?.deck || []).map((id) => cardCatalog?.[id]).filter(Boolean);
+        const archCounts = {};
+        playerDeck.forEach((c) => { const a = c.archetype || ""; if (a && a !== "Starter") archCounts[a] = (archCounts[a] || 0) + 1; });
+        const topArchSet = new Set(Object.entries(archCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([a]) => a));
+        const starterCount = playerDeck.filter((c) => c.starter).length;
         // Delay card insertion on first entry to let the victory fanfare play
         const cardInsertDelay = enteringReward ? 600 : 0;
         setTimeout(() => {
           if (!cardRow.isConnected) return;
           rewards.cards.forEach((card, i) => {
+            const wrap = document.createElement("div");
+            wrap.className = "reward-item-wrap";
             const el = makeCard(card, {
               large: true,
               dealDelay: i * 80,
@@ -3026,7 +3190,25 @@
               })
             });
             el.classList.add("reward-item");
-            cardRow.appendChild(el);
+            wrap.appendChild(el);
+            // Synergy hint chip
+            const cardArch = card.archetype || "";
+            const chip = document.createElement("div");
+            if (topArchSet.has(cardArch)) {
+              chip.className = "synergy-hint synergy-match";
+              chip.textContent = "Synergy ✓";
+            } else if (cardArch === "Neutral") {
+              chip.className = "synergy-hint synergy-neutral";
+              chip.textContent = "Any Build";
+            } else if (card.starter && starterCount >= 3) {
+              chip.className = "synergy-hint synergy-starter";
+              chip.textContent = "Replace me";
+            } else {
+              chip.className = "synergy-hint synergy-new";
+              chip.textContent = `${cardArch || "?"}`;
+            }
+            wrap.appendChild(chip);
+            cardRow.appendChild(wrap);
           });
         }, cardInsertDelay);
       }

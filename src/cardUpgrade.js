@@ -80,7 +80,12 @@ const UPGRADE_ID_MAP = {
   volatile_compound: "volatile_compound_plus",
   charged_toxin: "charged_toxin_plus",
   hex_blight: "hex_blight_plus",
-  shocking_brand: "shocking_brand_plus"
+  shocking_brand: "shocking_brand_plus",
+  calculated_risk: "calculated_risk_plus",
+  compress: "compress_plus",
+  momentum_card: "momentum_card_plus",
+  bulwark: "bulwark_plus",
+  desperation: "desperation_plus"
 };
 
 const createUpgrade = (baseId, patch) => ({
@@ -95,9 +100,9 @@ const createUpgrade = (baseId, patch) => ({
  * These are merged into cardCatalog but do not appear in the reward pool.
  */
 const UPGRADED_CARD_ENTRIES = [
-  createUpgrade("strike", { name: "Strike+", cost: 1, type: "attack", rarity: "common", archetype: "Starter", effectText: "Dmg 9.", damage: 9 }),
-  createUpgrade("defend", { name: "Defend+", cost: 1, type: "skill", rarity: "common", archetype: "Starter", effectText: "Block 8.", block: 8 }),
-  createUpgrade("bash", { name: "Bash+", cost: 1, type: "attack", rarity: "common", archetype: "Legacy", effectText: "Dmg 10.", damage: 10 }),
+  createUpgrade("strike", { name: "Strike+", cost: 1, type: "attack", rarity: "common", archetype: "Starter", effectText: "Dmg 7.", damage: 7 }),
+  createUpgrade("defend", { name: "Defend+", cost: 1, type: "skill", rarity: "common", archetype: "Starter", effectText: "Block 7.", block: 7 }),
+  createUpgrade("bash", { name: "Bash+", cost: 1, type: "attack", rarity: "common", archetype: "Legacy", effectText: "Dmg 9.", damage: 9 }),
   createUpgrade("barrier", { name: "Barrier+", cost: 2, type: "skill", rarity: "common", archetype: "Legacy", effectText: "Block 12.", block: 12 }),
   createUpgrade("quick_strike", { name: "Quick Strike+", cost: 0, type: "attack", rarity: "common", archetype: "Legacy", effectText: "Dmg 6.", damage: 6 }),
   createUpgrade("hex", { name: "Hex+", cost: 0, type: "skill", rarity: "uncommon", archetype: "Legacy", effectText: "Apply Hex 1. Exhaust.", hex: 1, exhaust: true }),
@@ -128,14 +133,14 @@ const UPGRADED_CARD_ENTRIES = [
   createUpgrade("static_guard", { name: "Static Guard+", cost: 1, type: "skill", rarity: "common", archetype: "Charged", effectText: "Block 8. If Charged, gain 2 Energy.", block: 8, energyIfCharged: 2 }),
   createUpgrade("arc_lash", { name: "Arc Lash+", cost: 1, type: "attack", rarity: "common", archetype: "Charged", effectText: "Dmg 9. If Charged, draw 2.", damage: 9, drawIfCharged: 2 }),
   createUpgrade("capacitor", { name: "Capacitor+", cost: 0, type: "skill", rarity: "common", archetype: "Charged", effectText: "Become Charged. Draw 1. Exhaust.", setCharged: true, draw: 1, exhaust: true }),
-  createUpgrade("release", { name: "Release+", cost: 2, type: "attack", rarity: "uncommon", archetype: "Charged", effectText: "Dmg 18. If Charged, costs 2 less and lose Charged.", damage: 18, costReduceIfCharged: 2, loseCharged: true }),
+  createUpgrade("release", { name: "Release+", cost: 2, type: "attack", rarity: "uncommon", archetype: "Charged", effectText: "Dmg 8. If Charged, deal 18 instead and lose Charged.", damage: 8, bonusDmgIfCharged: 10, loseCharged: true }),
   createUpgrade("pommel", { name: "Pommel+", cost: 1, type: "attack", rarity: "common", archetype: "Neutral", effectText: "Dmg 9. Draw 1.", damage: 9, draw: 1 }),
   createUpgrade("insight", { name: "Insight+", cost: 1, type: "skill", rarity: "common", archetype: "Neutral", effectText: "Draw 3.", draw: 3 }),
   createUpgrade("heavy_swing", { name: "Heavy Swing+", cost: 2, type: "attack", rarity: "common", archetype: "Neutral", effectText: "Dmg 16.", damage: 16 }),
   createUpgrade("recover", { name: "Recover+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Neutral", effectText: "Block 8. Draw 1.", block: 8, draw: 1 }),
-  createUpgrade("cataclysm_sigil", { name: "Cataclysm Sigil+", cost: 2, type: "attack", rarity: "rare", archetype: "Hex", effectText: "Dmg 20. +5 damage for each Hex on target.", damage: 20, bonusDmgPerHex: 5 }),
+  createUpgrade("cataclysm_sigil", { name: "Cataclysm Sigil+", cost: 2, type: "attack", rarity: "rare", archetype: "Hex", effectText: "Dmg 20. +4 damage for each Hex on target.", damage: 20, bonusDmgPerHex: 4 }),
   createUpgrade("no_mercy", { name: "No Mercy+", cost: 2, type: "attack", rarity: "rare", archetype: "Hex", effectText: "Dmg 12. Repeat against Hexed enemies.", damage: 12, repeatIfHexed: true }),
-  createUpgrade("hexburst", { name: "Hexburst+", cost: 2, type: "attack", rarity: "rare", archetype: "Hex Finisher", effectText: "Dmg 8. Consume all Hex on target. Deal 5 more for each Hex consumed.", damage: 8, consumeHexBonus: 5 }),
+  createUpgrade("hexburst", { name: "Hexburst+", cost: 2, type: "attack", rarity: "rare", archetype: "Hex Finisher", effectText: "Dmg 8. Consume all Hex on target. Deal 4 more for each Hex consumed.", damage: 8, consumeHexBonus: 4 }),
   createUpgrade("iron_will", { name: "Iron Will+", cost: 1, type: "power", rarity: "uncommon", archetype: "Power", effectText: "Gain 2 Dexterity at start of each turn.", dexPerTurn: 2 }),
   createUpgrade("burning_aura", { name: "Burning Aura+", cost: 1, type: "power", rarity: "uncommon", archetype: "Power", effectText: "Deal 5 damage to enemy at start of each turn.", auraDamage: 5 }),
   createUpgrade("hex_resonance", { name: "Hex Resonance+", cost: 0, type: "power", rarity: "uncommon", archetype: "Power", effectText: "Apply 2 Hex to enemy at start of each turn.", hexPerTurn: 2 }),
@@ -170,7 +175,12 @@ const UPGRADED_CARD_ENTRIES = [
   createUpgrade("volatile_compound", { name: "Volatile Compound+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Poison / Burn", effectText: "Apply Poison 3 and Burn 3.", applyPoison: 3, applyBurn: 3 }),
   createUpgrade("charged_toxin", { name: "Charged Toxin+", cost: 1, type: "attack", rarity: "uncommon", archetype: "Poison / Charged", effectText: "Dmg 8. If Charged, apply Poison 4.", damage: 8, applyPoisonIfCharged: 4 }),
   createUpgrade("hex_blight", { name: "Hex Blight+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Hex / Poison", effectText: "Apply Hex 2 and Poison equal to resulting Hex stacks.", hex: 2, poisonPerHex: 1 }),
-  createUpgrade("shocking_brand", { name: "Shocking Brand+", cost: 1, type: "attack", rarity: "uncommon", archetype: "Burn / Charged", effectText: "Dmg 7. Become Charged. Apply Burn 2.", damage: 7, setCharged: true, applyBurn: 2 })
+  createUpgrade("shocking_brand", { name: "Shocking Brand+", cost: 1, type: "attack", rarity: "uncommon", archetype: "Burn / Charged", effectText: "Dmg 7. Become Charged. Apply Burn 2.", damage: 7, setCharged: true, applyBurn: 2 }),
+  createUpgrade("calculated_risk", { name: "Calculated Risk+", cost: 0, type: "skill", rarity: "uncommon", archetype: "Neutral", effectText: "Gain 3 Energy. Lose 3 HP. Exhaust.", energyGain: 3, selfDamage: 3, exhaust: true }),
+  createUpgrade("compress", { name: "Compress+", cost: 1, type: "skill", rarity: "common", archetype: "Neutral", effectText: "Exhaust 2 cards from your hand. Draw 4.", exhaustFromHandCount: 2, draw: 4 }),
+  createUpgrade("momentum_card", { name: "Momentum+", cost: 0, type: "skill", rarity: "common", archetype: "Neutral", effectText: "Draw 1. If you've played 2+ cards this turn, draw 2 instead.", draw: 1, bonusDrawIfCardsPlayedThisTurn: 1, cardsPlayedThreshold: 2 }),
+  createUpgrade("bulwark", { name: "Bulwark+", cost: 1, type: "skill", rarity: "uncommon", archetype: "Neutral", effectText: "Block 6. Gain 3 Block for each active Power.", block: 6, bonusBlockPerPower: 3 }),
+  createUpgrade("desperation", { name: "Desperation+", cost: 1, type: "attack", rarity: "rare", archetype: "Neutral", effectText: "Dmg 7. Deal 16 instead if you are at 25 HP or below.", damage: 7, bonusDmgIfLowHp: 9, lowHpThreshold: 25 })
 ];
 
 /**

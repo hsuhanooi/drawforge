@@ -80,8 +80,8 @@ describe("upgraded card catalog entries", () => {
   });
 
   it("covers the expanded power, defense, remaining upgrade sweep, and cross-archetype cards", () => {
-    expect(Object.keys(UPGRADE_ID_MAP)).toHaveLength(76);
-    expect(UPGRADED_CARD_ENTRIES).toHaveLength(76);
+    expect(Object.keys(UPGRADE_ID_MAP)).toHaveLength(81);
+    expect(UPGRADED_CARD_ENTRIES).toHaveLength(81);
   });
 
   it("strike_plus deals more damage than strike", () => {

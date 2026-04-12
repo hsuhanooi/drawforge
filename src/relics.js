@@ -80,18 +80,6 @@ const addRelicToRun = (run, relic) => {
     nextPlayer.maxHealth = (nextPlayer.maxHealth || nextPlayer.health) + 5;
   }
 
-  if (relic.id === "feather_charm") {
-    nextPlayer.gold += 15;
-  }
-
-  if (relic.id === "lucky_coin") {
-    nextPlayer.gold += 10;
-  }
-
-  if (relic.id === "pilgrims_map") {
-    nextPlayer.gold += 10;
-  }
-
   if (relic.id === "golden_brand") {
     nextPlayer.gold += 25;
   }

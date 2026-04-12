@@ -2,7 +2,7 @@ const { createEncounterForNode, resolveEnemyIntent } = require("./enemies");
 const { createCardCatalog } = require("./cardCatalog");
 const { getCombatEnergyBonus } = require("./relics");
 const { applyPotion } = require("./potions");
-const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN, MAX_POWERS } = require("./constants");
+const { DEFAULT_PLAYER_ENERGY, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_HEX_STACKS, MAX_EXHAUST_ENERGY_PER_TURN, MAX_SACRIFICE_ENERGY_PER_TURN, MAX_POWERS } = require("./constants");
 const CARD_CATALOG = createCardCatalog();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -195,7 +195,14 @@ const startCombatForNode = (run, node) => {
     combatLog: [],
     powers: [],
     exhaustedThisTurn: 0,
+    sacrificeEnergyThisTurn: 0,
+    cardsPlayedThisTurn: 0,
     enemiesKilledThisCombat: 0,
+    convergence_attack: false,
+    convergence_skill: false,
+    convergence_power: false,
+    convergence_triggered: false,
+    plague_membrane_used: false,
     enemies: encounterEnemies.map((e, i) => ({
       ...e,
       vulnerable: i === 0 && hasRelic(run, "cracked_lens") ? 1 : 0,
@@ -256,6 +263,17 @@ const playCombatCard = (run, handIndex) => {
 
   next.player.energy -= effectiveCost;
   next.hand.splice(handIndex, 1);
+  next.cardsPlayedThisTurn = (next.cardsPlayedThisTurn || 0) + 1;
+  // Rift Shard: gain 2 Block whenever you play a card costing 2+
+  if (hasRelic(run, "rift_shard") && effectiveCost >= 2) {
+    next.player.block += 2;
+    next.triggeredRelics.push("rift_shard");
+  }
+  // Burnout Coil: gain 1 Energy when you play the last card in your hand
+  if (hasRelic(run, "burnout_coil") && next.hand.length === 0) {
+    next.player.energy += 1;
+    next.triggeredRelics.push("burnout_coil");
+  }
   const enemyHpBefore = next.enemy.health;
 
   // Route card to destination first so draw effects can reshuffle from discard
@@ -298,6 +316,18 @@ const playCombatCard = (run, handIndex) => {
     next.discardPile = [...(next.discardPile || []), card];
   }
 
+  // Convergence Stone: gain 2 Energy the first time each combat you play all 3 types
+  if (hasRelic(run, "convergence_stone") && !next.convergence_triggered) {
+    if (card.type === "attack") next.convergence_attack = true;
+    if (card.type === "skill") next.convergence_skill = true;
+    if (card.type === "power") next.convergence_power = true;
+    if (next.convergence_attack && next.convergence_skill && next.convergence_power) {
+      next.player.energy += 2;
+      next.convergence_triggered = true;
+      next.triggeredRelics.push("convergence_stone");
+    }
+  }
+
   if (card.damage || card.bonusVsHex || card.bonusVsExhaust || card.bonusVsHexedOrExhausted || card.bonusVsVulnerable || card.bonusPerStrength || card.bonusDmgPerHex || card.bonusDmgPerExhausted || card.bonusIfLastCard || card.consumeHexBonus || card.consumePoisonBonus || card.consumeBurnBonus || card.bonusVsPoisonAndBurn || card.hitCount || card.hitCountIfCharged || card.repeatIfHexed || (card.type === "attack" && (next.player.strength || 0) > 0)) {
     const hexBonus = (next.enemy.hex || 0) > 0 && card.bonusVsHex ? card.bonusVsHex : 0;
     const exhaustBonus = (next.exhaustPile || []).length > 0 && card.bonusVsExhaust ? card.bonusVsExhaust : 0;
@@ -329,7 +359,9 @@ const playCombatCard = (run, handIndex) => {
     if (card.consumeBurnBonus) next.enemy.burn = 0;
     // Cross-archetype bonus: deals extra damage when enemy has BOTH poison and burn
     const poisonAndBurnBonus = card.bonusVsPoisonAndBurn && poisonStacks > 0 && burnStacks > 0 ? card.bonusVsPoisonAndBurn : 0;
-    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus + poisonConsumedBonus + burnConsumedBonus + poisonAndBurnBonus;
+    const chargedDmgBonus = card.bonusDmgIfCharged && next.player.charged ? card.bonusDmgIfCharged : 0;
+    const lowHpBonus = card.bonusDmgIfLowHp && next.player.health <= (card.lowHpThreshold || 25) ? card.bonusDmgIfLowHp : 0;
+    let totalDamage = (card.damage || 0) + hexBonus + exhaustBonus + harvesterHexBonus + harvesterExhaustBonus + hexNailBonus + vulnerableBonus + flickerBonus + duelistBonus + furnaceBonus + strengthFlat + strengthScaling + hexPerStackBonus + poisonStackBonus + burnStackBonus + exhaustedStackBonus + lastCardBonus + hexConsumedBonus + poisonConsumedBonus + burnConsumedBonus + poisonAndBurnBonus + chargedDmgBonus + lowHpBonus;
     // Weak on player reduces outgoing attack damage by 25%
     if (card.type === "attack" && (next.player.weak || 0) > 0) totalDamage = Math.floor(totalDamage * 0.75);
     // Vulnerable on enemy amplifies incoming damage by 50%
@@ -364,11 +396,30 @@ const playCombatCard = (run, handIndex) => {
     if (card.type === "attack" && noxiousPresence) {
       next.enemy.poison = clampStacks((next.enemy.poison || 0) + (noxiousPresence.poisonOnAttack || 1), MAX_POISON_STACKS);
     }
+    // Plague Membrane: first time each turn you deal damage to a Poisoned enemy, gain Block = their Poison stacks
+    if (hasRelic(run, "plague_membrane") && !next.plague_membrane_used && remainingDamage > 0 && (next.enemy.poison || 0) > 0) {
+      next.player.block += (next.enemy.poison || 0);
+      next.plague_membrane_used = true;
+      next.triggeredRelics.push("plague_membrane");
+    }
     // repeatIfHexed: deal damage a second time if enemy had hex (no_mercy)
     if (card.repeatIfHexed && hexStacks > 0) {
       const blocked2 = Math.min(next.enemy.block || 0, totalDamage);
       next.enemy.block = (next.enemy.block || 0) - blocked2;
       next.enemy.health -= (totalDamage - blocked2);
+    }
+    // AoE: apply same base damage to all OTHER living enemies
+    if (card.targetAll && next.enemies) {
+      const tIdx = next.targetIndex || 0;
+      const aoeBaseDmg = card.damage || 0;
+      next.enemies = next.enemies.map((e, i) => {
+        if (i === tIdx || e.health <= 0) return e; // targeted already handled; skip dead
+        let dmg = aoeBaseDmg + strengthFlat + strengthScaling;
+        if (card.type === "attack" && (next.player.weak || 0) > 0) dmg = Math.floor(dmg * 0.75);
+        if ((e.vulnerable || 0) > 0) dmg = Math.floor(dmg * 1.5);
+        const blocked = Math.min(e.block || 0, dmg);
+        return { ...e, block: (e.block || 0) - blocked, health: e.health - (dmg - blocked) };
+      });
     }
   }
   if (card.block || card.bonusBlockIfHexed || card.bonusBlockIfCharged || card.blockPerBurn) {
@@ -384,8 +435,17 @@ const playCombatCard = (run, handIndex) => {
     if (card.blockPerBurn) {
       next.player.block += (next.enemy.burn || 0) * card.blockPerBurn;
     }
+    if (card.bonusBlockPerPower) {
+      next.player.block += card.bonusBlockPerPower * (next.powers || []).length;
+    }
   }
-  if (card.energyGain) next.player.energy += card.energyGain;
+  if (card.energyGain) {
+    const baseGain = card.energyGain;
+    const capRemaining = MAX_SACRIFICE_ENERGY_PER_TURN - (next.sacrificeEnergyThisTurn || 0);
+    const gain = Math.min(baseGain * (hasRelic(run, "blood_crucible") ? 2 : 1), capRemaining);
+    next.player.energy += gain;
+    next.sacrificeEnergyThisTurn = (next.sacrificeEnergyThisTurn || 0) + gain;
+  }
   if (card.energyPerExhausted) next.player.energy += Math.min(next.exhaustedThisTurn || 0, MAX_EXHAUST_ENERGY_PER_TURN);
   if (card.selfDamage) next.player.health = Math.max(0, next.player.health - card.selfDamage);
   if (card.hex) {
@@ -401,7 +461,16 @@ const playCombatCard = (run, handIndex) => {
       next.sigil_fired = true;
     }
   }
-  if (card.applyPoison) next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoison, MAX_POISON_STACKS);
+  if (card.applyPoison) {
+    next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoison, MAX_POISON_STACKS);
+    if (card.targetAll && next.enemies) {
+      const tIdx2 = next.targetIndex || 0;
+      next.enemies = next.enemies.map((e, i) => {
+        if (i === tIdx2 || e.health <= 0) return e;
+        return { ...e, poison: clampStacks((e.poison || 0) + card.applyPoison, MAX_POISON_STACKS) };
+      });
+    }
+  }
   if (card.applyPoisonIfCharged && next.player.charged) next.enemy.poison = clampStacks((next.enemy.poison || 0) + card.applyPoisonIfCharged, MAX_POISON_STACKS);
   if (card.poisonPerHex) {
     // Apply poison equal to current hex stacks, minimum 1
@@ -427,7 +496,12 @@ const playCombatCard = (run, handIndex) => {
       next.player.energy += 1;
     }
   }
-  if (card.draw) next = drawCards(next, card.draw);
+  if (card.draw) {
+    const drawCount = card.bonusDrawIfCardsPlayedThisTurn && (next.cardsPlayedThisTurn || 0) >= (card.cardsPlayedThreshold || 3)
+      ? card.draw + card.bonusDrawIfCardsPlayedThisTurn
+      : card.draw;
+    next = drawCards(next, drawCount);
+  }
   if (card.drawIfCharged && next.player.charged) next = drawCards(next, card.drawIfCharged);
   if (card.setChargedIfNotCharged && !next.player.charged) {
     next.player.charged = true;
@@ -771,6 +845,9 @@ const endCombatTurn = (run) => {
   next.player.energy = DEFAULT_PLAYER_ENERGY + getCombatEnergyBonus(run, combat.nodeType);
   next.player.charged = false;
   next.exhaustedThisTurn = 0;
+  next.sacrificeEnergyThisTurn = 0;
+  next.cardsPlayedThisTurn = 0;
+  next.plague_membrane_used = false;
   next.firstTurn = false;
   next.seal_used_this_turn = false;
   next.silencing_stone_used = false;
@@ -869,7 +946,11 @@ const endCombatTurn = (run) => {
     }
     if (power.energyPerTurn) {
       next.player.health = Math.max(1, next.player.health - (power.hpLossPerTurn || 0));
-      next.player.energy += power.energyPerTurn;
+      const baseGain = power.energyPerTurn;
+      const capRemaining = MAX_SACRIFICE_ENERGY_PER_TURN - (next.sacrificeEnergyThisTurn || 0);
+      const gain = Math.min(baseGain * (hasRelic(run, "blood_crucible") ? 2 : 1), capRemaining);
+      next.player.energy += gain;
+      next.sacrificeEnergyThisTurn = (next.sacrificeEnergyThisTurn || 0) + gain;
     }
   }
   // Sync power effects on targeted enemy back to enemies array

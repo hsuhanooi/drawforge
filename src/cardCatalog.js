@@ -3,9 +3,9 @@ const { UPGRADED_CARD_ENTRIES } = require("./cardUpgrade");
 const { makeAssetRef, buildPresentationAssets } = require("./assets");
 
 const implementedOverrides = {
-  strike: { damage: 6 },
-  defend: { block: 6 },
-  bash: { damage: 8 },
+  strike: { damage: 5 },
+  defend: { block: 5 },
+  bash: { damage: 7 },
   barrier: { block: 10 },
   quick_strike: { damage: 4 },
   focus: { energyGain: 1 },
@@ -45,7 +45,7 @@ const implementedOverrides = {
   expose_weakness: { applyVulnerable: 3, applyWeak: 2 },
   chain_cripple: { applyWeak: 1, exhaust: true },
   mark_for_death: { applyVulnerable: 4, exhaust: true },
-  reaping_strike: { damage: 5, bonusVsVulnerable: 12 },
+  reaping_strike: { damage: 5, bonusVsVulnerable: 8 },
   // Neutral utility
   pommel: { damage: 7, draw: 1 },
   brace: { block: 7 },
@@ -71,7 +71,7 @@ const implementedOverrides = {
   // Charged archetype
   static_guard: { block: 6, energyIfCharged: 1 },
   capacitor: { setCharged: true, exhaust: true },
-  release: { damage: 14, costReduceIfCharged: 1, loseCharged: true },
+  release: { damage: 8, bonusDmgIfCharged: 6, loseCharged: true },
   guarded_pulse: { block: 5, bonusBlockIfCharged: 5 },
   flashstep: { drawIfCharged: 2, setChargedIfNotCharged: true },
   volt_barrage: { damage: 3, hitCount: 3, hitCountIfCharged: 5 },
@@ -85,9 +85,9 @@ const implementedOverrides = {
   empty_the_chamber: { exhaustHand: true, exhaust: true },
   // Hex archetype
   curse_spiral: { hex: 2, draw: 1 },
-  cataclysm_sigil: { damage: 18, bonusDmgPerHex: 4 },
+  cataclysm_sigil: { damage: 18, bonusDmgPerHex: 3 },
   no_mercy: { damage: 10, repeatIfHexed: true },
-  hexburst: { damage: 6, consumeHexBonus: 4 },
+  hexburst: { damage: 6, consumeHexBonus: 3 },
   // Hex / Exhaust hybrids
   soul_rend: { damage: 9, ifHexedExhaustFromHand: true, ifHexedEnergyGain: 1 },
   venom_strike: { damage: 5, applyPoison: 2 },
@@ -121,12 +121,22 @@ const implementedOverrides = {
   warding_circle: { block: 12, costReduceIfHexed: 1 },
   last_word: { damage: 8, bonusIfLastCard: 8 },
   flurry_of_blows: { damage: 3, hitCount: 4 },
+  // AoE cards
+  whirlwind: { damage: 5, targetAll: true },
+  chain_lightning: { damage: 4, targetAll: true, bonusDmgIfCharged: 3 },
+  plague_wave: { applyPoison: 2, targetAll: true },
   // Cross-archetype synergy
   caustic_inferno: { damage: 8, bonusVsPoisonAndBurn: 10 },
   volatile_compound: { applyPoison: 2, applyBurn: 2 },
   charged_toxin: { damage: 6, applyPoisonIfCharged: 3 },
   hex_blight: { hex: 1, poisonPerHex: 1 },
   shocking_brand: { damage: 5, setCharged: true, applyBurn: 2 },
+  // Colorless utility cards
+  calculated_risk: { energyGain: 2, selfDamage: 4, exhaust: true },
+  compress: { exhaustFromHandCount: 2, draw: 3 },
+  momentum_card: { draw: 1, bonusDrawIfCardsPlayedThisTurn: 1, cardsPlayedThreshold: 3 },
+  bulwark: { block: 4, bonusBlockPerPower: 2 },
+  desperation: { damage: 5, bonusDmgIfLowHp: 7, lowHpThreshold: 25 },
   // Curses
   wound: { curseOnDraw: 1 },
   decay: { curseDecayBlock: true },
@@ -170,6 +180,7 @@ const deriveKeywords = (card) => {
   if (card.draw || card.drawIfCharged) keys.push("Draw");
   if (card.energyGain || card.energyPerExhausted || card.energyIfCharged || card.ifHexedEnergyGain) keys.push("Energy");
   if (card.consumeHexBonus || card.consumePoisonBonus || card.consumeBurnBonus) keys.push("Consume");
+  if (card.targetAll) keys.push("AoE");
   return [...new Set(keys)].map((key) => ({ key, label: key }));
 };
 

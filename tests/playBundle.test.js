@@ -4,6 +4,7 @@ const path = require("path");
 const playJs = fs.readFileSync(path.join(__dirname, "..", "browser", "play.js"), "utf8");
 const playCss = fs.readFileSync(path.join(__dirname, "..", "browser", "play.css"), "utf8");
 const soundEngineJs = fs.readFileSync(path.join(__dirname, "..", "browser", "soundEngine.js"), "utf8");
+const animEngineJs = fs.readFileSync(path.join(__dirname, "..", "browser", "animEngine.js"), "utf8");
 
 describe("play.js thin-client regression coverage", () => {
   it("loads shared card and relic catalogs instead of keeping local catalogs", () => {
@@ -77,8 +78,8 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('function getSelectedCombatCard() {');
     expect(playJs).toContain('function syncCombatSelectionState(combat = currentRun?.combat) {');
     expect(playJs).toContain('const selectedCard = getSelectedCombatCard();');
-    expect(playJs).toContain('const enemyTargetingActive = combat?.turn === "player" && selectedCard?.type === "attack" && combat?.state === "active";');
-    expect(playJs).toContain('enemyPanel.classList.toggle("targetable", enemyTargetingActive);');
+    expect(playJs).toContain('const enemyTargetingActive = combat?.turn === "player" && selectedCard?.type === "attack" && !isAoE && combat?.state === "active";');
+    expect(playJs).toContain('enemyPanel.classList.toggle("targetable", enemyTargetingActive || (isAoE && combat?.state === "active"));');
     expect(playJs).toContain('enemyPanel.classList.toggle("target-selected", enemyTargetingActive);');
     expect(playJs).toContain('setCombatStateMessage("Target locked · click the enemy to strike", "player")');
     expect(playJs).toContain('enemyPanel.onclick = enemyTargetingActive');
@@ -125,7 +126,7 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('descDiv.className = "card-desc"');
     expect(playJs).toContain('div.tabIndex = 0;');
     expect(playJs).toContain('div.setAttribute("role", "button");');
-    expect(playJs).toContain('container.appendChild(makeCard(card, { dealDelay: -1 }));');
+    expect(playJs).toContain('function appendDeckCard(container, card, mode) {');
     expect(playJs).toContain('cardsRow.appendChild(makeCard(card, { dealDelay: -1 }));');
     expect(playJs).toContain('cards.forEach((card) => grid.appendChild(makeCard(card, { dealDelay: -1 })));');
     expect(playJs).toContain('const cardEl = makeCard(card, {');
@@ -189,7 +190,7 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain('$id("reward-continue-btn")?.addEventListener("click", async () => {');
     expect(playJs).toContain('await continueRewardFlow();');
     expect(playJs).toContain('el.classList.add("reward-item");');
-    expect(playJs).toContain('cardRow.appendChild(el);');
+    expect(playJs).toContain('cardRow.appendChild(wrap);');
   });
 
   it("supports deck and library overlay browsing with shared card rendering", () => {
@@ -377,6 +378,41 @@ describe("play.js thin-client regression coverage", () => {
     expect(playJs).toContain("window.SoundEngine?.onPlayerTurnStart()");
     expect(playJs).toContain("window.SoundEngine?.onRewardReveal()");
     expect(playJs).toContain("window.SoundEngine?.onMapMove()");
+  });
+
+  it("renders a deck comparison sidebar during card reward pick phase", () => {
+    const htmlContent = fs.readFileSync(path.join(__dirname, "..", "browser", "play.html"), "utf8");
+    expect(htmlContent).toContain('id="reward-deck-sidebar"');
+    expect(playJs).toContain("function renderRewardDeckSidebar(run)");
+    expect(playJs).toContain("renderRewardDeckSidebar(currentRun)");
+    expect(playJs).toContain("const isCardPick = rewards?.cards?.length > 0");
+    expect(playCss).toContain(".reward-deck-sidebar {");
+    expect(playCss).toContain(".deck-mini-row {");
+  });
+
+  it("fires onMultiHit for multi-hit cards and falls back to onEnemyHit for single-hit", () => {
+    expect(animEngineJs).toContain("onMultiHit(ex, ey, perHitDmg, hitCount");
+    expect(playJs).toContain("cardHitCount > 1 && dmg > 0");
+    expect(playJs).toContain("window.AnimEngine.onMultiHit(");
+    expect(playJs).toContain("window.SoundEngine?.onMultiHitSound(cardHitCount)");
+    expect(soundEngineJs).toContain("onMultiHitSound(hitCount");
+  });
+
+  it("shows keyboard shortcut hints on hand cards, end-turn button, and first potion slot", () => {
+    expect(playCss).toContain(".key-hint {");
+    expect(playJs).toContain('keyHint.className = "key-hint"');
+    expect(playJs).toContain('keyHint.textContent = idx + 1');
+    expect(playJs).toContain('eHint.className = "key-hint"');
+    expect(playJs).toContain('eHint.textContent = "E"');
+    expect(playJs).toContain('qHint.className = "key-hint"');
+    expect(playJs).toContain('qHint.textContent = "Q"');
+  });
+
+  it("shows exhaust badge on cards with exhaust:true in makeCard and card preview", () => {
+    expect(playCss).toContain(".card-exhaust-badge {");
+    expect(playJs).toContain("if (card.exhaust) {");
+    expect(playJs).toContain('exhaustBadge.className = "card-exhaust-badge"');
+    expect(playJs).toContain('exhaustBadge.textContent = "Exhaust"');
   });
 
   it("applies victory rewards after end-turn kills and re-enables end-turn on API failure", () => {

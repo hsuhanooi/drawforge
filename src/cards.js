@@ -9,9 +9,9 @@ const { createCardCatalog } = require("./cardCatalog");
 const { CARD_REGISTRY } = require("./cardRegistry");
 const { MAX_HEX_STACKS, MAX_POISON_STACKS, MAX_BURN_STACKS, MAX_EXHAUST_ENERGY_PER_TURN } = require("./constants");
 
-const STRIKE_DAMAGE = 6;
-const DEFEND_BLOCK = 6;
-const BASH_DAMAGE = 8;
+const STRIKE_DAMAGE = 5;
+const DEFEND_BLOCK = 5;
+const BASH_DAMAGE = 7;
 const BARRIER_BLOCK = 10;
 const QUICK_STRIKE_DAMAGE = 4;
 const VOLLEY_DAMAGE = 5;
@@ -154,7 +154,15 @@ const FACTORY_EXPORT_NAMES = {
   volatile_compound: "volatileCompoundCardDefinition",
   charged_toxin: "chargedToxinCardDefinition",
   hex_blight: "hexBlightCardDefinition",
-  shocking_brand: "shockingBrandCardDefinition"
+  shocking_brand: "shockingBrandCardDefinition",
+  whirlwind: "whirlwindCardDefinition",
+  chain_lightning: "chainLightningCardDefinition",
+  plague_wave: "plagueWaveCardDefinition",
+  calculated_risk: "calculatedRiskCardDefinition",
+  compress: "compressCardDefinition",
+  momentum_card: "momentumCardCardDefinition",
+  bulwark: "bulwarkCardDefinition",
+  desperation: "desperationCardDefinition"
 };
 
 const computeDamage = (card, state, next) => {

@@ -341,6 +341,11 @@
     onUiClick() {
       play("ui_click", 0.5);
     },
+    onMultiHitSound(hitCount, delayMs = 100) {
+      for (let i = 0; i < hitCount; i++) {
+        setTimeout(() => play("hit_light", 0.6 + i * 0.05), i * delayMs);
+      }
+    },
 
     // Expose sound names for testing
     SOUND_NAMES: Object.keys(SOUNDS),

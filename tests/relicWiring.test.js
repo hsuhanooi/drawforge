@@ -162,7 +162,7 @@ describe("flicker_charm", () => {
     const enemyHealthAfterFirst = run2.combat.enemy.health;
     const run3 = playCombatCard(run2, 0);
     const dmg = enemyHealthAfterFirst - run3.combat.enemy.health;
-    expect(dmg).toBe(6);
+    expect(dmg).toBe(5);
   });
 });
 
@@ -178,7 +178,7 @@ describe("duelists_thread", () => {
     const enemyBefore = started.combat.enemy.health;
     const run2 = playCombatCard(started, 0);
     const dmg = enemyBefore - run2.combat.enemy.health;
-    expect(dmg).toBe(8);
+    expect(dmg).toBe(7);
     expect(run2.combat.duelist_used_this_turn).toBe(true);
   });
 
@@ -193,7 +193,7 @@ describe("duelists_thread", () => {
     const run2 = playCombatCard(started, 0);
     const enemyBefore = run2.combat.enemy.health;
     const run3 = playCombatCard(run2, 0);
-    expect(run3.combat.enemy.health).toBe(enemyBefore - 6);
+    expect(run3.combat.enemy.health).toBe(enemyBefore - 5);
   });
 
   it("bonus resets next turn", () => {
@@ -209,7 +209,7 @@ describe("duelists_thread", () => {
     expect(afterEndTurn.combat.duelist_used_this_turn).toBe(false);
     const enemyBefore = afterEndTurn.combat.enemy.health;
     const turn2 = playCombatCard(afterEndTurn, 0);
-    expect(turn2.combat.enemy.health).toBe(enemyBefore - 8);
+    expect(turn2.combat.enemy.health).toBe(enemyBefore - 7);
   });
 });
 
@@ -269,30 +269,29 @@ describe("bone_token health cap", () => {
   });
 });
 
-describe("lucky_coin", () => {
-  it("grants +5 gold on top of the enemy-specific combat reward", () => {
-    const run = makeRun(["lucky_coin"]);
-    const combat = { state: "victory", nodeType: "combat", player: { health: 80 }, enemy: { rewardGold: 18 } };
-    const result = applyVictoryToRun(run, combat);
-    expect(result.player.gold).toBe(run.player.gold + 23);
-  });
-});
-
-describe("pilgrims_map", () => {
-  it("grants +3 gold per non-boss combat on top of the enemy-specific reward", () => {
-    const run = makeRun(["pilgrims_map"]);
-    const combat = { state: "victory", nodeType: "combat", player: { health: 80 }, enemy: { rewardGold: 16 } };
-    const result = applyVictoryToRun(run, combat);
-    expect(result.player.gold).toBe(run.player.gold + 19);
+describe("burnout_coil", () => {
+  it("gains 1 energy when playing the last card in hand", () => {
+    const run = makeRun(["burnout_coil"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["strike", "strike", "strike", "strike", "strike"] }
+    });
+    const started = startCombat(run);
+    // Get to 1 card in hand
+    let state = { ...started, combat: { ...started.combat, hand: [started.combat.hand[0]], drawPile: [] } };
+    const energyBefore = state.combat.player.energy;
+    const result = playCombatCard(state, 0);
+    // Playing last card should grant +1 energy from burnout_coil
+    expect(result.combat.player.energy).toBe(energyBefore - 1 + 1); // cost 1 (strike), +1 from relic
+    expect(result.combat.triggeredRelics).toContain("burnout_coil");
   });
 
-  it("does not grant bonus on boss combat", () => {
-    const run = makeRun(["pilgrims_map"]);
-    const goldBefore = run.player.gold;
-    const combat = { state: "victory", nodeType: "boss", player: { health: 80 } };
-    const result = applyVictoryToRun(run, combat);
-    // boss reward is 50 gold, no pilgrims bonus
-    expect(result.player.gold).toBe(goldBefore + 50);
+  it("does not trigger when hand still has cards remaining", () => {
+    const run = makeRun(["burnout_coil"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["strike", "strike", "strike", "strike", "strike"] }
+    });
+    const started = startCombat(run);
+    const result = playCombatCard(started, 0);
+    // Still cards in hand — no burnout_coil trigger
+    expect(result.combat.triggeredRelics).not.toContain("burnout_coil");
   });
 });
 
@@ -316,15 +315,162 @@ describe("golden_brand", () => {
   });
 });
 
-describe("leather_thread", () => {
-  it("grants +1 maxHealth every 3 combats won", () => {
-    let run = makeRun(["leather_thread"]);
-    const combat = { state: "victory", nodeType: "combat", player: { health: 80 } };
-    run = applyVictoryToRun(run, combat);
-    expect(run.player.maxHealth).toBe(80);
-    run = applyVictoryToRun(run, { ...combat, player: { health: run.player.health } });
-    expect(run.player.maxHealth).toBe(80);
-    run = applyVictoryToRun(run, { ...combat, player: { health: run.player.health } });
-    expect(run.player.maxHealth).toBe(81);
+describe("convergence_stone", () => {
+  it("gains 2 energy after playing one of each type (attack, skill, power)", () => {
+    const { toRenderableCard } = require("../src/cardCatalog");
+    const run = makeRun(["convergence_stone"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["strike", "defend", "iron_will", "strike", "strike"] }
+    });
+    let state = startCombat(run);
+    state = { ...state, combat: { ...state.combat, player: { ...state.combat.player, energy: 5 }, hand: [toRenderableCard("strike"), toRenderableCard("defend"), toRenderableCard("iron_will")], drawPile: [] } };
+    // Play attack
+    state = playCombatCard(state, 0);
+    expect(state.combat.triggeredRelics).not.toContain("convergence_stone");
+    // Play skill
+    state = playCombatCard(state, 0);
+    expect(state.combat.triggeredRelics).not.toContain("convergence_stone");
+    // Play power — triggers convergence
+    const energyBefore = state.combat.player.energy;
+    state = playCombatCard(state, 0);
+    expect(state.combat.player.energy).toBe(energyBefore - 2 + 2); // cost 2, +2 from relic
+    expect(state.combat.triggeredRelics).toContain("convergence_stone");
+  });
+
+  it("does not trigger again after first time", () => {
+    const { toRenderableCard } = require("../src/cardCatalog");
+    const run = makeRun(["convergence_stone"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: Array(10).fill("strike") }
+    });
+    let state = startCombat(run);
+    state = { ...state, combat: { ...state.combat, convergence_attack: true, convergence_skill: true, convergence_triggered: true, hand: [toRenderableCard("iron_will")], drawPile: [] } };
+    state = playCombatCard(state, 0);
+    expect(state.combat.triggeredRelics).not.toContain("convergence_stone");
+  });
+});
+
+describe("plague_membrane", () => {
+  it("gains block equal to enemy poison stacks on first attack against poisoned enemy", () => {
+    const { toRenderableCard } = require("../src/cardCatalog");
+    const run = makeRun(["plague_membrane"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["strike", "strike", "strike", "strike", "strike"] }
+    });
+    let state = startCombat(run);
+    state = { ...state, combat: { ...state.combat, hand: [toRenderableCard("strike")], drawPile: [], enemy: { ...state.combat.enemy, poison: 3 } } };
+    const blockBefore = state.combat.player.block;
+    state = playCombatCard(state, 0);
+    // Gained 3 block from plague_membrane (enemy had 3 poison)
+    expect(state.combat.player.block).toBe(blockBefore + 3);
+    expect(state.combat.triggeredRelics).toContain("plague_membrane");
+  });
+
+  it("does not trigger twice in the same turn", () => {
+    const { toRenderableCard } = require("../src/cardCatalog");
+    const run = makeRun(["plague_membrane"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["strike", "strike", "strike", "strike", "strike"] }
+    });
+    let state = startCombat(run);
+    state = { ...state, combat: { ...state.combat, hand: [toRenderableCard("strike"), toRenderableCard("strike")], drawPile: [], enemy: { ...state.combat.enemy, poison: 2 } } };
+    state = playCombatCard(state, 0);
+    const blockAfterFirst = state.combat.player.block;
+    state = playCombatCard(state, 0);
+    // Second attack: no additional block from membrane
+    expect(state.combat.player.block).toBe(blockAfterFirst); // block reset to 0 in same turn context — membrane already used
+    expect(state.combat.plague_membrane_used).toBe(true);
+  });
+
+  it("resets at end of turn", () => {
+    const run = makeRun(["plague_membrane"]);
+    let state = startCombat(run);
+    state = { ...state, combat: { ...state.combat, plague_membrane_used: true } };
+    const result = endCombatTurn(state);
+    expect(result.combat.plague_membrane_used).toBe(false);
+  });
+});
+
+describe("rift_shard", () => {
+  it("gains 2 block when playing a card costing 2 or more", () => {
+    const { toRenderableCard } = require("../src/cardCatalog");
+    const run = makeRun(["rift_shard"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["heavy_swing", "strike", "strike", "strike", "strike"] }
+    });
+    let state = startCombat(run);
+    state = { ...state, combat: { ...state.combat, hand: [toRenderableCard("heavy_swing")], drawPile: [] } };
+    const blockBefore = state.combat.player.block;
+    state = playCombatCard(state, 0);
+    expect(state.combat.player.block).toBe(blockBefore + 2);
+    expect(state.combat.triggeredRelics).toContain("rift_shard");
+  });
+
+  it("does not trigger on cards costing less than 2", () => {
+    const run = makeRun(["rift_shard"], {
+      player: { health: 80, maxHealth: 80, gold: 0, deck: ["strike", "strike", "strike", "strike", "strike"] }
+    });
+    const state = startCombat(run);
+    const result = playCombatCard(state, 0);
+    expect(result.combat.triggeredRelics).not.toContain("rift_shard");
+  });
+});
+
+describe("blood_crucible", () => {
+  const makeBloodRun = (relicIds = []) => ({
+    player: {
+      health: 80,
+      maxHealth: 80,
+      gold: 0,
+      deck: ["blood_pact", "blood_pact", "blood_pact", "strike", "defend"],
+      relics: relicIds.map((id) => ({ id, name: id }))
+    },
+    relics: relicIds.map((id) => ({ id, name: id })),
+    phoenix_used: false,
+    combatsWon: 0
+  });
+  const node = { id: "r1c0", row: 1, col: 0, type: "combat" };
+
+  it("doubles blood_pact energy gain (2 -> 4) with blood_crucible relic", () => {
+    const run = makeBloodRun(["blood_crucible"]);
+    const combat = startCombatForNode(run, node);
+    const bpIdx = combat.hand.findIndex(c => c.id === "blood_pact");
+    if (bpIdx === -1) return; // blood_pact not in opening hand — skip
+    const energyBefore = combat.player.energy;
+    const result = playCombatCard({ ...run, combat }, bpIdx);
+    expect(result.combat.player.energy).toBe(energyBefore - 0 + 4); // cost 0, gain 4 (doubled)
+  });
+
+  it("without blood_crucible, blood_pact gives normal 2 energy", () => {
+    const run = makeBloodRun([]);
+    const combat = startCombatForNode(run, node);
+    const bpIdx = combat.hand.findIndex(c => c.id === "blood_pact");
+    if (bpIdx === -1) return;
+    const energyBefore = combat.player.energy;
+    const result = playCombatCard({ ...run, combat }, bpIdx);
+    expect(result.combat.player.energy).toBe(energyBefore - 0 + 2); // cost 0, gain 2
+  });
+
+  it("caps total sacrifice energy at MAX_SACRIFICE_ENERGY_PER_TURN=4 even with multiple blood_pact plays", () => {
+    const run = makeBloodRun(["blood_crucible"]);
+    const bloodPact = { id: "blood_pact", name: "Blood Pact", cost: 0, selfDamage: 5, energyGain: 2, draw: 1, type: "skill" };
+    let combat = startCombatForNode(run, node);
+    // Force hand to 3 blood_pact cards and set energy=0
+    combat = {
+      ...combat,
+      hand: [bloodPact, bloodPact, bloodPact],
+      player: { ...combat.player, health: 80, energy: 0, block: 0 },
+      sacrificeEnergyThisTurn: 0
+    };
+    // First play: cost 0, gain min(4, 4-0)=4 → energy=0+4=4, sacrifice=4
+    const r1 = playCombatCard({ ...run, combat }, 0);
+    expect(r1.combat.sacrificeEnergyThisTurn).toBe(4);
+    expect(r1.combat.player.energy).toBe(4);
+    // Second play: cost 0, gain min(4, 4-4)=0 → energy=4+0=4, sacrifice still 4
+    const r2 = playCombatCard({ ...run, combat: r1.combat }, 0);
+    expect(r2.combat.sacrificeEnergyThisTurn).toBe(4);
+    expect(r2.combat.player.energy).toBe(4);
+  });
+
+  it("resets sacrificeEnergyThisTurn to 0 at turn start", () => {
+    const run = makeBloodRun(["blood_crucible"]);
+    const combat = { ...startCombatForNode(run, node), sacrificeEnergyThisTurn: 4, state: "active" };
+    const next = endCombatTurn({ ...run, combat });
+    expect(next.combat.sacrificeEnergyThisTurn).toBe(0);
   });
 });

@@ -53,21 +53,23 @@ describe("Charged archetype", () => {
     expect(run2.combat.player.energy).toBe(3); // cost 0
   });
 
-  it("release deals 14 damage normally", () => {
+  it("release deals 8 damage normally (no Charged)", () => {
     const run = withHand(startCombat(makeRun(["release", "strike", "strike", "strike", "strike"])), ["release"]);
     const hpBefore = run.combat.enemy.health;
     const run2 = playCard(run, "release");
-    expect(run2.combat.enemy.health).toBe(hpBefore - 14);
+    expect(run2.combat.enemy.health).toBe(hpBefore - 8);
   });
 
-  it("release costs 1 less when charged and clears charged", () => {
+  it("release deals 14 damage when Charged and clears charged", () => {
     const run = withHand(startCombat(makeRun(["release", "charge_up", "strike", "strike", "strike"])), ["charge_up", "release"]);
     const run2 = playCard(run, "charge_up");
     expect(run2.combat.player.charged).toBe(true);
+    const hpBefore = run2.combat.enemy.health;
     const energyBeforeRelease = run2.combat.player.energy;
     const run3 = playCard(run2, "release");
-    // Cost reduced from 2 to 1 when charged
-    expect(run3.combat.player.energy).toBe(energyBeforeRelease - 1);
+    // Always costs 2, but deals 8 + 6 = 14 when Charged
+    expect(run3.combat.enemy.health).toBe(hpBefore - 14);
+    expect(run3.combat.player.energy).toBe(energyBeforeRelease - 2);
     expect(run3.combat.player.charged).toBe(false);
   });
 
@@ -220,13 +222,13 @@ describe("Hex archetype", () => {
     expect(runR.combat.enemy.health).toBe(hpB - 10);
   });
 
-  it("hexburst deals 6 + 4 per hex stack and consumes all hex", () => {
+  it("hexburst deals 6 + 3 per hex stack and consumes all hex", () => {
     // Set hex directly to preserve 3 energy for hexburst (cost 2) + mark_of_ruin (cost 1)
     const run = withHand(startCombat(makeRun(["hexburst", "mark_of_ruin", "strike", "strike", "strike"])), ["mark_of_ruin", "hexburst"]);
     const run2 = playCard(run, "mark_of_ruin"); // hex 1, cost 1 → 2 energy left
     const hpBefore = run2.combat.enemy.health;
     const run3 = playCard(run2, "hexburst");
-    expect(run3.combat.enemy.health).toBe(hpBefore - (6 + 4 * 1)); // 10 damage
+    expect(run3.combat.enemy.health).toBe(hpBefore - (6 + 3 * 1)); // 9 damage
     expect(run3.combat.enemy.hex).toBe(0); // hex consumed
   });
 

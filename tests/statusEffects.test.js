@@ -37,8 +37,8 @@ describe("Status effects: Strength", () => {
     const enemyHpBefore = withCombat.combat.enemy.health;
     const { idx } = getCard(withCombat.combat, "strike");
     const result = playCombatCard(withCombat, idx);
-    // Strike deals 6 + 3 strength = 9 damage
-    expect(result.combat.enemy.health).toBe(enemyHpBefore - 9);
+    // Strike deals 5 + 3 strength = 8 damage
+    expect(result.combat.enemy.health).toBe(enemyHpBefore - 8);
   });
 
   it("does not add to skill/block cards", () => {
@@ -50,8 +50,8 @@ describe("Status effects: Strength", () => {
     const blockBefore = withCombat.combat.player.block;
     const { idx } = getCard(withCombat.combat, "defend");
     const result = playCombatCard(withCombat, idx);
-    // Defend gives 6 block + 0 dexterity = 6; strength does not add
-    expect(result.combat.player.block).toBe(blockBefore + 6);
+    // Defend gives 5 block + 0 dexterity = 5; strength does not add
+    expect(result.combat.player.block).toBe(blockBefore + 5);
   });
 
   it("war_cry card grants 2 Strength", () => {
@@ -86,8 +86,8 @@ describe("Status effects: Dexterity", () => {
     const blockBefore = withCombat.combat.player.block;
     const { idx } = getCard(withCombat.combat, "defend");
     const result = playCombatCard(withCombat, idx);
-    // Defend gives 6 + 2 dex = 8
-    expect(result.combat.player.block).toBe(blockBefore + 8);
+    // Defend gives 5 + 2 dex = 7
+    expect(result.combat.player.block).toBe(blockBefore + 7);
   });
 
   it("fortify card grants 2 Dexterity", () => {
@@ -121,8 +121,8 @@ describe("Status effects: Vulnerable", () => {
     const enemyHpBefore = withCombat.combat.enemy.health;
     const { idx } = getCard(withCombat.combat, "strike");
     const result = playCombatCard(withCombat, idx);
-    // Strike 6 × 1.5 = 9 (floor)
-    expect(result.combat.enemy.health).toBe(enemyHpBefore - 9);
+    // Strike 5 × 1.5 = 7 (floor)
+    expect(result.combat.enemy.health).toBe(enemyHpBefore - 7);
   });
 
   it("decays by 1 at end of turn", () => {
@@ -178,8 +178,8 @@ describe("Status effects: Weak", () => {
     const enemyHpBefore = withCombat.combat.enemy.health;
     const { idx } = getCard(withCombat.combat, "strike");
     const result = playCombatCard(withCombat, idx);
-    // Strike 6 × 0.75 = 4 (floor)
-    expect(result.combat.enemy.health).toBe(enemyHpBefore - 4);
+    // Strike 5 × 0.75 = 3 (floor)
+    expect(result.combat.enemy.health).toBe(enemyHpBefore - 3);
   });
 
   it("player Weak decays by 1 at end of turn", () => {
@@ -203,8 +203,8 @@ describe("Status effects: combined", () => {
     const enemyHpBefore = withCombat.combat.enemy.health;
     const { idx } = getCard(withCombat.combat, "strike");
     const result = playCombatCard(withCombat, idx);
-    // Strike 6 + 2 str = 8, then × 1.5 = 12
-    expect(result.combat.enemy.health).toBe(enemyHpBefore - 12);
+    // Strike 5 + 2 str = 7, then × 1.5 = 10 (floor)
+    expect(result.combat.enemy.health).toBe(enemyHpBefore - 10);
   });
 
   it("cracked_lens relic starts enemy with 1 Vulnerable", () => {

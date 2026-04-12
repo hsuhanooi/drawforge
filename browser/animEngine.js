@@ -1253,6 +1253,24 @@
       addTween(0, 0.75, 0.55, "in2", v => { vignetteAmt = v; }, () => {});
     },
 
+    onMultiHit(ex, ey, perHitDmg, hitCount, delayMs = 100) {
+      for (let i = 0; i < hitCount; i++) {
+        setTimeout(() => {
+          emit({
+            x: ex, y: ey, count: 5,
+            colors: ["#ff3322", "#ff8844", "#ffaa44"],
+            speedMin: 60, speedMax: 200,
+            angleMin: -Math.PI * 1.15, angleMax: -Math.PI * 0.05,
+            sizeMin: 2, sizeMax: 5,
+            lifeMin: 0.25, lifeMax: 0.6,
+            gravity: 240, drag: 0.87,
+          });
+          spawnFloat(ex, ey - 20 - i * 8, `-${perHitDmg * (i + 1)}`, "#ff7744", false);
+          if (i === 0) window.AnimEngine.freeze(25);
+        }, i * delayMs);
+      }
+    },
+
     // Direct access for external callers
     emit,
     spawnFloat,

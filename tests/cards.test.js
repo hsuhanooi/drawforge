@@ -446,12 +446,12 @@ describe("new card definitions", () => {
 });
 
 describe("balance caps", () => {
-  it("defend grants 6 block (buffed from 5)", () => {
-    expect(DEFEND_BLOCK).toBe(6);
+  it("defend grants 5 block", () => {
+    expect(DEFEND_BLOCK).toBe(5);
     const card = defendCardDefinition();
     const state = { player: { health: 80, block: 0, energy: 3 }, enemy: { health: 30 } };
     const next = executeCardEffect(card, state);
-    expect(next.player.block).toBe(6);
+    expect(next.player.block).toBe(5);
   });
 
   it("barrier grants 10 block (buffed from 8)", () => {

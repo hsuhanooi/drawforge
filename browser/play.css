@@ -1165,6 +1165,39 @@ body[data-theme-accent="venom"] .card-component.rarity-common {
 }
 .card-component:hover .card-shine { opacity: 1; }
 
+/* Keyboard shortcut hint */
+.key-hint {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 9px;
+  font-family: monospace;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 3px;
+  padding: 0 3px;
+  opacity: 0.55;
+  pointer-events: none;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.3);
+}
+
+/* Exhaust badge */
+.card-exhaust-badge {
+  position: absolute;
+  bottom: 22px;
+  left: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #7a2020, #3a1010);
+  color: #ffaaaa;
+  border: 1px solid rgba(200,80,80,0.4);
+  pointer-events: none;
+}
+
 /* Cost gem */
 .card-cost {
   position: absolute;
@@ -1350,8 +1383,188 @@ canvas.card-art-canvas {
 #screen-reward {
   background: rgba(5,7,15,0.92);
   backdrop-filter: blur(8px);
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0;
+  justify-content: flex-start;
+}
+
+/* Reward deck comparison sidebar */
+.reward-deck-sidebar {
+  width: 220px;
+  min-width: 220px;
+  height: 100%;
+  overflow-y: auto;
+  background: rgba(10,12,20,0.6);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  display: flex;
   flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.reward-deck-sidebar.hidden { display: none; }
+#reward-deck-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+#reward-deck-stats {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+#reward-deck-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+}
+.deck-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text);
+  cursor: default;
+  transition: background 0.15s;
+}
+.deck-mini-row:hover { background: rgba(255,255,255,0.06); }
+.deck-mini-row.highlight { background: rgba(255,200,60,0.12); color: var(--gold); }
+.deck-mini-cost {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.deck-mini-starter {
+  margin-left: auto;
+  font-size: 8px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  font-style: italic;
+}
+/* Archetype distribution row */
+.archetype-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+}
+.archetype-tag {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+/* Mana curve histogram */
+.mana-curve-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 36px;
+  padding-bottom: 2px;
+}
+.mana-curve-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+.mana-curve-bar {
+  width: 100%;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  min-height: 3px;
+  opacity: 0.7;
+}
+.mana-curve-label {
+  font-size: 8px;
+  color: var(--text-dim);
+}
+/* Reward card synergy hints */
+.reward-item-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.synergy-hint {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.synergy-match {
+  background: rgba(240,192,64,0.18);
+  border: 1px solid rgba(240,192,64,0.4);
+  color: var(--gold);
+}
+.synergy-neutral {
+  background: rgba(180,180,220,0.12);
+  border: 1px solid rgba(180,180,220,0.25);
+  color: #b4b4dc;
+}
+.synergy-starter {
+  background: rgba(200,80,80,0.12);
+  border: 1px solid rgba(200,80,80,0.25);
+  color: #c87878;
+}
+.synergy-new {
+  background: rgba(100,180,140,0.12);
+  border: 1px solid rgba(100,180,140,0.25);
+  color: #88c8a0;
+}
+/* Starter badge in deck overlay */
+.starter-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+#reward-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 24px;
+  padding: 24px;
+  overflow-y: auto;
+}
+@media (max-width: 480px) {
+  .reward-deck-sidebar { display: none; }
+  #screen-reward { flex-direction: column; }
 }
 #reward-header {
   font-size: 22px;
@@ -1377,17 +1590,22 @@ canvas.card-art-canvas {
   display: flex;
   gap: 20px;
   justify-content: center;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .reward-item {
   animation: reward-rise 0.4s cubic-bezier(0.34,1.3,0.64,1) both;
   opacity: 0;
 }
-.reward-item:nth-child(1) { animation-delay: 0.05s; }
-.reward-item:nth-child(2) { animation-delay: 0.14s; }
-.reward-item:nth-child(3) { animation-delay: 0.23s; }
-.reward-item:nth-child(4) { animation-delay: 0.32s; }
+.reward-item-wrap:nth-child(1) .reward-item { animation-delay: 0.05s; }
+.reward-item-wrap:nth-child(2) .reward-item { animation-delay: 0.14s; }
+.reward-item-wrap:nth-child(3) .reward-item { animation-delay: 0.23s; }
+.reward-item-wrap:nth-child(4) .reward-item { animation-delay: 0.32s; }
+/* Fallback for direct .reward-item children (non-wrapped) */
+#reward-cards-row > .reward-item:nth-child(1) { animation-delay: 0.05s; }
+#reward-cards-row > .reward-item:nth-child(2) { animation-delay: 0.14s; }
+#reward-cards-row > .reward-item:nth-child(3) { animation-delay: 0.23s; }
+#reward-cards-row > .reward-item:nth-child(4) { animation-delay: 0.32s; }
 @keyframes reward-rise {
   from { opacity: 0; transform: translateY(30px) scale(0.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

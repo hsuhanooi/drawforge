@@ -82,15 +82,10 @@ const applyVictoryToRun = (run, combat) => {
     newHealth = Math.min(newHealth + 6, maxHealth);
   }
 
-  let goldBonus = 0;
-  if (hasRelic(run, "lucky_coin")) goldBonus += 5;
-  if (hasRelic(run, "pilgrims_map") && combat.nodeType !== "boss") goldBonus += 3;
+  const goldBonus = 0;
 
   const newCombatsWon = (run.combatsWon || 0) + 1;
-  let newMaxHealth = maxHealth;
-  if (hasRelic(run, "leather_thread") && newCombatsWon % 3 === 0) {
-    newMaxHealth += 1;
-  }
+  const newMaxHealth = maxHealth;
 
   // Apply any curses inflicted during combat (from debuff_curse intents)
   const pendingCurses = combat.pendingCurses || [];

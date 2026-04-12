@@ -15,13 +15,8 @@ describe("relic system", () => {
     };
 
     const ironCore = RELICS.find((r) => r.id === "iron_core");
-    const featherCharm = RELICS.find((r) => r.id === "feather_charm");
-
     const healed = addRelicToRun(run, ironCore);
-    const golded = addRelicToRun(run, featherCharm);
-
     expect(healed.player.health).toBe(85);
-    expect(golded.player.gold).toBe(114);
   });
 
   it("grants combat energy bonus from ember ring", () => {
@@ -50,11 +45,11 @@ describe("relic system", () => {
   });
 
   it("derives relic descriptions and metadata from the canonical registry", () => {
-    const luckyCoin = RELICS.find((r) => r.id === "lucky_coin");
-    expect(luckyCoin.description).toBe(luckyCoin.effectText);
-    expect(luckyCoin.triggerType).toBe("passive");
-    expect(luckyCoin.assetRef).toBe("relics/lucky_coin");
-    expect(luckyCoin.status).toBe("implemented");
+    const burnoutCoil = RELICS.find((r) => r.id === "burnout_coil");
+    expect(burnoutCoil.description).toBe(burnoutCoil.effectText);
+    expect(burnoutCoil.triggerType).toBe("triggered");
+    expect(burnoutCoil.assetRef).toBe("relics/burnout_coil");
+    expect(burnoutCoil.status).toBe("implemented");
   });
 
   it("tier 1 reward (elite) only returns common or uncommon relics", () => {
@@ -86,15 +81,15 @@ describe("relic system", () => {
   });
 
   it("adds presentation asset metadata for relics", () => {
-    const luckyCoin = RELICS.find((r) => r.id === "lucky_coin");
+    const burnoutCoil = RELICS.find((r) => r.id === "burnout_coil");
 
-    expect(luckyCoin.presentation).toEqual({
+    expect(burnoutCoil.presentation).toEqual({
       card: { category: "card", assetRef: "cards/_placeholder", placeholderRef: "cards/_placeholder", isPlaceholder: true },
-      relic: { category: "relic", assetRef: "relics/lucky_coin", placeholderRef: "relics/_placeholder", isPlaceholder: false },
+      relic: { category: "relic", assetRef: "relics/burnout_coil", placeholderRef: "relics/_placeholder", isPlaceholder: false },
       enemy: { category: "enemy", assetRef: "enemies/_placeholder", placeholderRef: "enemies/_placeholder", isPlaceholder: true },
-      icon: { category: "icon", assetRef: "icons/lucky_coin", placeholderRef: "icons/_placeholder", isPlaceholder: false },
+      icon: { category: "icon", assetRef: "icons/burnout_coil", placeholderRef: "icons/_placeholder", isPlaceholder: false },
       background: { category: "background", assetRef: "backgrounds/_placeholder", placeholderRef: "backgrounds/_placeholder", isPlaceholder: true },
-      vfx: { category: "vfx", assetRef: "vfx/lucky_coin", placeholderRef: "vfx/_placeholder", isPlaceholder: false }
+      vfx: { category: "vfx", assetRef: "vfx/burnout_coil", placeholderRef: "vfx/_placeholder", isPlaceholder: false }
     });
   });
 });

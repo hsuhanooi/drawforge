@@ -108,13 +108,14 @@ describe("combat rewards", () => {
   it("biases rewards toward Hex/Debuff cards for hex_witch archetype", () => {
     const hexArchetypes = ["Hex", "Hex / Exhaust"];
     const run = { act: 1, relics: [], archetype: "hex_witch" };
-    // Sample 20 reward draws to reliably observe the bias
+    // Draw 20 reward rounds to reliably observe the bias
     const allCards = [];
     for (let i = 0; i < 20; i++) {
       allCards.push(...createVictoryCardRewards("combat", run, {}, Math.random));
     }
-    const anyHex = allCards.some((c) => hexArchetypes.some((t) => (c.archetype || "").includes(t)));
-    expect(anyHex).toBe(true);
+    const hexCards = allCards.filter((c) => hexArchetypes.some((t) => (c.archetype || "").includes(t)));
+    // With 50% bias over 60 draws, at least 1 should be themed
+    expect(hexCards.length).toBeGreaterThanOrEqual(1);
   });
 
   it("biases rewards toward Poison cards for poison_vanguard archetype", () => {

@@ -84,6 +84,10 @@ describe("browser combat actions", () => {
     const toxicCloud = { ...CARD_CATALOG.toxic_cloud };
     combat.hand = [toxicCloud];
     combat.player.energy = 3;
+    // Force single-enemy mode and enough HP so status ticks + debuff_burn intent both resolve
+    combat.enemies = undefined;
+    combat.enemy.health = Math.max(combat.enemy.health, 35);
+    combat.enemy.maxHp = combat.enemy.health;
     combat.enemy.poison = MAX_POISON_STACKS - toxicCloud.applyPoison + 1;
     combat.enemy.burn = 9;
     combat.enemyIntent = { type: "debuff_burn", value: 3, label: "Scorch" };

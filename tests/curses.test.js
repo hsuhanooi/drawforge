@@ -100,12 +100,17 @@ describe("Curse cards", () => {
 
 describe("Curse sources", () => {
   it("debuff_curse intent adds curse to pendingCurses on combat state", () => {
-    const run = makeRunWithCombat();
+    // Use a guaranteed single-enemy encounter to ensure enemyIntent is respected
+    const singleCombatNode = { id: "r0c0", type: "combat", row: 0, col: 0, next: [] };
+    const run = makeBaseRun();
+    const runWithCombat = { ...run, combat: startCombatForNode(run, singleCombatNode) };
+    // Force single-enemy by removing any enemies array
     const combat = {
-      ...run.combat,
+      ...runWithCombat.combat,
+      enemies: undefined,
       enemyIntent: { type: "debuff_curse", curseId: "wound", label: "Void Brand: add Wound to deck" }
     };
-    const runWithIntent = { ...run, combat };
+    const runWithIntent = { ...runWithCombat, combat };
     const afterTurn = endCombatTurn(runWithIntent);
     expect(afterTurn.combat.pendingCurses || []).toContain("wound");
   });

@@ -178,7 +178,7 @@ async function collectState(page) {
       },
       combatSummary: {
         playerHp: document.querySelector('#player-hp-current')?.textContent || null,
-        enemyHp: document.querySelector('#enemy-hp-current')?.textContent || null,
+        enemyHp: document.querySelector('#enemy-hp-current')?.textContent || document.querySelector('.combatant-panel .hp-current')?.textContent || null,
         intent: document.querySelector('#enemy-intent-label')?.textContent || null,
         playableCards: countVisible('#hand-area .card-component:not(.unplayable), #hand-area .card:not(.unplayable)'),
         selectedCards: countVisible('#hand-area .card-component.is-selected, #hand-area .card.is-selected'),
@@ -373,8 +373,11 @@ async function actOnCombatScreen(page) {
       return actions.length ? `combat:${actions.join('|')}` : null;
     }
 
+    // Only treat enemyHp as 0 when we actually have a numeric value;
+    // null (multi-enemy) should not count as "dead".
+    const enemyHpNum = Number(combatState.combatSummary?.enemyHp);
     const combatResolved = /victory|defeat/i.test(combatState.combatTurnState || '')
-      || (Number(combatState.combatSummary?.enemyHp) || 0) <= 0
+      || (combatState.combatSummary?.enemyHp !== null && enemyHpNum <= 0)
       || (Number(combatState.combatSummary?.playerHp) || 0) <= 0;
     if (combatResolved) {
       await page.waitForFunction(() => {
@@ -443,7 +446,7 @@ async function actOnCombatScreen(page) {
 
   const resolvedBeforeEndTurn = await collectState(page).catch(() => null);
   if (resolvedBeforeEndTurn && (/victory|defeat/i.test(resolvedBeforeEndTurn.combatTurnState || '')
-    || (Number(resolvedBeforeEndTurn.combatSummary?.enemyHp) || 0) <= 0
+    || (resolvedBeforeEndTurn.combatSummary?.enemyHp !== null && Number(resolvedBeforeEndTurn.combatSummary?.enemyHp) <= 0)
     || (Number(resolvedBeforeEndTurn.combatSummary?.playerHp) || 0) <= 0)) {
     actions.push('await-resolution');
     return `combat:${actions.join('|')}`;
@@ -676,14 +679,15 @@ async function waitForCombatControls(page) {
     const endTurnBtn = document.querySelector('#end-turn-btn');
     const turnState = document.querySelector('#turn-state-chip')?.textContent || '';
     const playerHp = Number(document.querySelector('#player-hp-current')?.textContent || 0);
-    const enemyHp = Number(document.querySelector('#enemy-hp-current')?.textContent || 0);
+    const enemyHpEl = document.querySelector('#enemy-hp-current') || document.querySelector('.combatant-panel .hp-current');
+    const enemyHp = enemyHpEl ? Number(enemyHpEl.textContent || 0) : null;
 
     return Boolean(selectedCard)
       || Boolean(playableCard)
       || Boolean(endTurnBtn && !endTurnBtn.disabled)
       || /victory|defeat/i.test(turnState)
       || playerHp <= 0
-      || enemyHp <= 0;
+      || (enemyHp !== null && enemyHp <= 0);
   }, { timeout: 1200 }).catch(() => {});
 }
 
@@ -913,6 +917,11 @@ async function runSingle(browser, runIndex) {
           state: stateBeforeAction
         };
       }
+
+      // Any action produced means the harness is still making progress,
+      // even if the coarse progressKey hasn't changed yet (e.g. combat
+      // micro-actions within the same step). Bump the idle timer.
+      lastProgressAt = Date.now();
 
       const postActionDelay = screen === 'reward'
         ? REWARD_SETTLE_DELAY_MS

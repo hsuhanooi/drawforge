@@ -20,7 +20,7 @@ describe('playwright burn-in harness combat prioritization', () => {
     expect(burninSource).toContain("return 'combat:await-ready';");
     expect(burninSource).toContain("const selectedAttack = await page.evaluate(() => {");
     expect(burninSource).toContain("if (selectedAttack) {");
-    expect(burninSource).toContain("const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);");
+    expect(burninSource).toContain("const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '.combatant-panel.enemy-panel.targeted', '.combatant-panel.enemy-panel:not(.defeated)']);");
     expect(burninSource).toContain("actions.push(`target:${target}`);");
     expect(burninSource).toContain("const domClicked = await page.evaluate(() => {");
     expect(burninSource).toContain("return `dom:${selector}`;");

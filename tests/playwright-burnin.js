@@ -400,7 +400,7 @@ async function actOnCombatScreen(page) {
     }).catch(() => false);
 
     if (selectedAttack) {
-      const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
+      const target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '.combatant-panel.enemy-panel.targeted', '.combatant-panel.enemy-panel:not(.defeated)']);
       if (target) {
         actions.push(`target:${target}`);
         await sleep(COMBAT_MICRO_DELAY_MS);
@@ -431,7 +431,7 @@ async function actOnCombatScreen(page) {
 
     let target = null;
     if (selectedCardState?.type === 'attack') {
-      target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy']);
+      target = await clickFirst(page, ['#enemy-panel', '#enemy-canvas', '.enemy-target', '.combat-enemy', '.combatant-panel.enemy-panel.targeted', '.combatant-panel.enemy-panel:not(.defeated)']);
     } else if (selectedCardState?.selector) {
       target = await clickFirst(page, [selectedCardState.selector]);
     }
@@ -460,7 +460,7 @@ async function actOnCombatScreen(page) {
 
   const combatFallback = await page.evaluate(() => {
     const selectedCard = document.querySelector('#hand-area .card-component.is-selected, #hand-area .card.is-selected');
-    const enemyTarget = document.querySelector('#enemy-panel, #enemy-canvas, .enemy-target, .combat-enemy');
+    const enemyTarget = document.querySelector('#enemy-panel, #enemy-canvas, .enemy-target, .combat-enemy, .combatant-panel.enemy-panel.targeted, .combatant-panel.enemy-panel:not(.defeated)');
     if (selectedCard) {
       if (selectedCard.classList.contains('type-attack') && enemyTarget) {
         enemyTarget.click();

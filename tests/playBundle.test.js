@@ -547,4 +547,10 @@ describe("soundEngine.js SFX synthesizer", () => {
     expect(playJs).toContain('"/run/use-potion.json"');
     expect(playJs).toContain('"/run/discard-potion.json"');
   });
+
+  it("withRewardClaim catches stale reward errors and re-renders instead of throwing", () => {
+    // After a double-click or stale relic/card claim, the server returns 400;
+    // the client should catch and re-render instead of surfacing an unhandled page error.
+    expect(playJs).toContain("Reward claim failed, re-syncing:");
+  });
 });

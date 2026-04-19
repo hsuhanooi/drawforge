@@ -2970,6 +2970,11 @@
     rewardClaimInFlight = true;
     try {
       await action();
+    } catch (err) {
+      // Stale or duplicate reward claims (e.g. double-click) return 400;
+      // re-render to sync state instead of surfacing an unhandled page error.
+      console.warn("Reward claim failed, re-syncing:", err.message);
+      render();
     } finally {
       rewardClaimInFlight = false;
     }
